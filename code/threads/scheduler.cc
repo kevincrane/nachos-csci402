@@ -94,8 +94,8 @@ Scheduler::Run (Thread *nextThread)
     
 #ifdef USER_PROGRAM			// ignore until running user programs 
     if (currentThread->space != NULL) {	// if this thread is a user program,
-        currentThread->SaveUserState(); // save the user's CPU registers
-	currentThread->space->SaveState();
+		currentThread->SaveUserState(); // save the user's CPU registers
+		currentThread->space->SaveState();
     }
 #endif
     
@@ -122,8 +122,8 @@ Scheduler::Run (Thread *nextThread)
     // before now (for example, in Thread::Finish()), because up to this
     // point, we were still running on the old thread's stack!
     if (threadToBeDestroyed != NULL) {
-        delete threadToBeDestroyed;
-	threadToBeDestroyed = NULL;
+		delete threadToBeDestroyed;
+		threadToBeDestroyed = NULL;
     }
     
 #ifdef USER_PROGRAM

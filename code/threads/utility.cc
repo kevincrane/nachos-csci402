@@ -55,11 +55,11 @@ void
 DEBUG(char flag, char *format, ...)
 {
     if (DebugIsEnabled(flag)) {
-	va_list ap;
-	// You will get an unused variable message here -- ignore it.
-	va_start(ap, format);
-	vfprintf(stdout, format, ap);
-	va_end(ap);
-	fflush(stdout);
+		va_list ap;
+		// You will get an unused variable message here -- ignore it.
+		va_start(ap, format);
+		vfprintf(stdout, format, ap);
+		va_end(ap);
+		fflush(stdout);
     }
 }

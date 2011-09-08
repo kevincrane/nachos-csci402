@@ -183,8 +183,8 @@ Thread::Yield ()
     
     nextThread = scheduler->FindNextToRun();
     if (nextThread != NULL) {
-	scheduler->ReadyToRun(this);
-	scheduler->Run(nextThread);
+	    scheduler->ReadyToRun(this);
+    	scheduler->Run(nextThread);
     }
     (void) interrupt->SetLevel(oldLevel);
 }
@@ -220,7 +220,7 @@ Thread::Sleep ()
 
     status = BLOCKED;
     while ((nextThread = scheduler->FindNextToRun()) == NULL)
-	interrupt->Idle();	// no one to run, wait for an interrupt
+	    interrupt->Idle();	// no one to run, wait for an interrupt
         
     scheduler->Run(nextThread); // returns when we've been signalled
 }
@@ -299,7 +299,7 @@ void
 Thread::SaveUserState()
 {
     for (int i = 0; i < NumTotalRegs; i++)
-	userRegisters[i] = machine->ReadRegister(i);
+	    userRegisters[i] = machine->ReadRegister(i);
 }
 
 //----------------------------------------------------------------------
@@ -315,6 +315,6 @@ void
 Thread::RestoreUserState()
 {
     for (int i = 0; i < NumTotalRegs; i++)
-	machine->WriteRegister(i, userRegisters[i]);
+    	machine->WriteRegister(i, userRegisters[i]);
 }
 #endif
