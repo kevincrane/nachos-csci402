@@ -1,5 +1,3 @@
-POOP POOP WEASELFARM
-
 Note to Kevin: to mount aludra as a network drive on your computer, use sshfs;
 $ sshfs -oworkaround=rename kevincra@aludra.usc.edu:/home/scf-04/kevincra/nachos-csci402 /home/kevin/workspace/nachos-csci402/
 $ fusermount -u ~/workspace/nachos-csci402
