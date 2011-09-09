@@ -102,13 +102,117 @@ Semaphore::V()
 // Dummy functions -- so we can compile our later assignments 
 // Note -- without a correct implementation of Condition::Wait(), 
 // the test case in the network assignment won't work!
-Lock::Lock(char* debugName) {}
-Lock::~Lock() {}
-void Lock::Acquire() {}
-void Lock::Release() {}
+Lock::Lock(char* debugName) {
+  name = debugName;
+  waitQueue = new List;
+  isFree = true;
+  lockOwner = NULL;
+}
 
-Condition::Condition(char* debugName) { }
-Condition::~Condition() { }
-void Condition::Wait(Lock* conditionLock) { ASSERT(FALSE); }
-void Condition::Signal(Lock* conditionLock) { }
-void Condition::Broadcast(Lock* conditionLock) { }
+Lock::~Lock() {
+  delete waitQueue;
+}
+
+void Lock::Acquire() {
+  IntStatus oldLevel = interrupt->SetLevel(IntOff); // disable interrupts
+
+  if (currentThread == lockOwner) {
+    (void) interrupt->SetLevel(oldLevel); // enable interrupts
+    return;
+  }
+
+  if (isFree) {
+    isFree = false;
+    lockOwner = currentThread;
+  } else {
+    waitQueue->Append((void *)currentThread); // add to lock wait queue
+    currentThread->Sleep();                   // put to sleep
+  }
+  (void) interrupt->SetLevel(oldLevel); // enable interrupts
+}
+
+void Lock::Release() {
+  Thread *thread;
+  IntStatus oldLevel = interrupt->SetLevel(IntOff); // disable interrupts
+
+  if(currentThread != lockOwner) {
+    printf ("Error: Thread is not the lock owner!"); // print error message
+    (void) interrupt->SetLevel(oldLevel);            // restore interrupts
+    return;
+  }
+  if(!waitQueue.isEmpty()) {
+    thread = (Thread *)queue->Remove(); // remove a thread from lock's wait queue
+    if(thread != NULL) {
+      scheduler->ReadyToRun(thread);    // put in ready queue in ready state
+      lockOwner = thread;               // make lock owner
+    }
+  } else {
+    isFree = true;                      // make lock free
+    lockOwner = NULL;                   // clear lock ownership
+  }
+  (void) interrupt->SetLevel(oldLevel); // restore interrupts
+}
+
+Condition::Condition(char* debugName) { 
+  name = debugName;
+  waitQueue = new List;
+  waitingLock = NULL;
+}
+
+Condition::~Condition() { 
+  delete waitQueue;
+}
+
+void Condition::Wait(Lock* conditionLock) { 
+  IntStatus oldLevel = interrupt->SetLevel(IntOff); // disable interrupts
+
+  if (conditionLock == NULL) {
+    printf ("Error: The lock you want to wait is NULL");
+    (void) interrupt->SetLevel(oldLevel);
+    return;
+  }
+  if (waitingLock == NULL) {
+     waitingLock = conditionLock;
+  }
+  if (waitingLock != conditionLock) {
+     printf ("Error: this isn't the waiting lock!");
+     (void) interrupt->SetLevel(oldLevel);
+     return;
+  }
+  conditionLock->Release();
+  waitQueue->Append((void *)currentThread);	// add to lock wait queue
+  currentThread->Sleep();
+  conditionLock->Acquire();
+  (void) interrupt->SetLevel(oldLevel);
+}
+
+void Condition::Signal(Lock* conditionLock) { 
+  Thread *thread;
+  IntStatus oldLevel = interrupt->SetLevel(IntOff); //disable interrupts
+
+  // If no threads waiting, restore interrupts and return
+  if (waitQueue.isEmpty()) {
+    cout << "Error: this is not the waiting lock!" << endl;
+    (void) interrupt->SetLevel(oldLevel);
+    return;
+  }
+  if (waitingLock != conditionLock) {
+    printf ("Error: Signal, waitingLock does not equal conditionLock");
+    (void) interrupt->SetLevel(oldLevel);
+    return;
+  }
+  thread = (Thread *)queue->Remove();
+  if(thread != NULL) {
+    scheduler->ReadyToRun(thread);      // Put in ready queue in ready state
+  }
+  if (waitQueue.isEmpty()) {
+    waitingLock = NULL;
+  }
+  (void) interrupt->SetLevel(oldLevel);
+}
+
+void Condition::Broadcast(Lock* conditionLock) { 
+  while (!waitQueue.isEmpty()) {
+    Signal(conditionLock);
+  }
+}

@@ -79,7 +79,9 @@ class Lock {
 
   private:
     char* name;				// for debugging
-    // plus some other stuff you'll need to define
+    List *waitQueue;                    // threads waiting for the lock
+    bool isFree;                        // true if the lock is available
+    Thread *lockOwner;                  // thread that currently has the lock
 };
 
 // The following class defines a "condition variable".  A condition
@@ -131,6 +133,7 @@ class Condition {
 
   private:
     char* name;
-    // plus some other stuff you'll need to define
+    Lock *waitingLock;
+    List *waitQueue;
 };
 #endif // SYNCH_H
