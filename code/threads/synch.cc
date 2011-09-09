@@ -36,6 +36,8 @@
 Semaphore::Semaphore(char* debugName, int initialValue)
 {
     name = debugName;
+    if(initialValue < 0)		// ensure starting value is valid, prevent possible infinite loop
+    	initialValue = 0;
     value = initialValue;
     queue = new List;
 }
