@@ -116,14 +116,14 @@ Lock::~Lock() {
 void Lock::Acquire() {
   IntStatus oldLevel = interrupt->SetLevel(IntOff); // disable interrupts
 
-  if (currentThread == lockOwner) {
+  if(currentThread == lockOwner) {
     (void) interrupt->SetLevel(oldLevel); // enable interrupts
     return;
   }
 
-  if (isFree) {
-    isFree = false;
-    lockOwner = currentThread;
+  if(isFree) {
+    isFree = false;                           // lock is no longer free
+    lockOwner = currentThread;                // now owned by currentThread
   } else {
     waitQueue->Append((void *)currentThread); // add to lock wait queue
     currentThread->Sleep();                   // put to sleep
@@ -166,15 +166,15 @@ Condition::~Condition() {
 void Condition::Wait(Lock* conditionLock) { 
   IntStatus oldLevel = interrupt->SetLevel(IntOff); // disable interrupts
 
-  if (conditionLock == NULL) {
+  if(conditionLock == NULL) {
     printf ("Error: The lock you want to wait is NULL");
     (void) interrupt->SetLevel(oldLevel);
     return;
   }
-  if (waitingLock == NULL) {
+  if(waitingLock == NULL) {
      waitingLock = conditionLock;
   }
-  if (waitingLock != conditionLock) {
+  if(waitingLock != conditionLock) {
      printf ("Error: this isn't the waiting lock!");
      (void) interrupt->SetLevel(oldLevel);
      return;
@@ -187,21 +187,21 @@ void Condition::Wait(Lock* conditionLock) {
 }
 
 void Condition::Signal(Lock* conditionLock) { 
-  Thread *thread;
+  Thread *thread;   //TODO: more descriptive var name
   IntStatus oldLevel = interrupt->SetLevel(IntOff); //disable interrupts
 
   // If no threads waiting, restore interrupts and return
-  if (waitQueue.isEmpty()) {
+  if(waitQueue.isEmpty()) {
     cout << "Error: this is not the waiting lock!" << endl;
     (void) interrupt->SetLevel(oldLevel);
     return;
   }
-  if (waitingLock != conditionLock) {
+  if(waitingLock != conditionLock) {
     printf ("Error: Signal, waitingLock does not equal conditionLock");
     (void) interrupt->SetLevel(oldLevel);
     return;
   }
-  thread = (Thread *)queue->Remove();
+  thread = (Thread *)queue->Remove();   //TODO: should be waitQueue?
   if(thread != NULL) {
     scheduler->ReadyToRun(thread);      // Put in ready queue in ready state
   }
