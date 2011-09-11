@@ -122,13 +122,13 @@ void Lock::Acquire() {
   }
 
   if(isFree) {
-    isFree = false;                           // lock is no longer free
-    lockOwner = currentThread;                // now owned by currentThread
+    isFree = false;                           	// lock is no longer free
+    lockOwner = currentThread;               	// now owned by currentThread
   } else {
-    waitQueue->Append((void *)currentThread); // add to lock wait queue
-    currentThread->Sleep();                   // put to sleep
+    waitQueue->Append((void *)currentThread);	// add to lock wait queue
+    currentThread->Sleep();                 	// put to sleep
   }
-  (void) interrupt->SetLevel(oldLevel); // enable interrupts
+  (void) interrupt->SetLevel(oldLevel); 		// enable interrupts
 }
 
 void Lock::Release() {
@@ -136,12 +136,12 @@ void Lock::Release() {
   IntStatus oldLevel = interrupt->SetLevel(IntOff); // disable interrupts
 
   if(currentThread != lockOwner) {
-    printf ("Error: Thread is not the lock owner!"); // print error message
+    printf ("Error: Thread (%s) is not the lock owner (%s)!\n", currentThread->getName(), lockOwner->getName()); // print error message
     (void) interrupt->SetLevel(oldLevel);            // restore interrupts
     return;
   }
-  if(!waitQueue.isEmpty()) {
-    thread = (Thread *)queue->Remove(); // remove a thread from lock's wait queue
+  if(!(waitQueue->IsEmpty())) {
+    thread = (Thread *)waitQueue->Remove(); // remove a thread from lock's wait queue
     if(thread != NULL) {
       scheduler->ReadyToRun(thread);    // put in ready queue in ready state
       lockOwner = thread;               // make lock owner
@@ -167,7 +167,7 @@ void Condition::Wait(Lock* conditionLock) {
   IntStatus oldLevel = interrupt->SetLevel(IntOff); // disable interrupts
 
   if(conditionLock == NULL) {
-    printf ("Error: The lock you want to wait is NULL");
+    printf ("Error: The lock you want to wait is NULL\n");
     (void) interrupt->SetLevel(oldLevel);
     return;
   }
@@ -175,7 +175,7 @@ void Condition::Wait(Lock* conditionLock) {
      waitingLock = conditionLock;
   }
   if(waitingLock != conditionLock) {
-     printf ("Error: this isn't the waiting lock!");
+     printf ("Error: this isn't the waiting lock!\n");
      (void) interrupt->SetLevel(oldLevel);
      return;
   }
@@ -191,28 +191,28 @@ void Condition::Signal(Lock* conditionLock) {
   IntStatus oldLevel = interrupt->SetLevel(IntOff); //disable interrupts
 
   // If no threads waiting, restore interrupts and return
-  if(waitQueue.isEmpty()) {
-    cout << "Error: this is not the waiting lock!" << endl;
+  if(waitQueue->IsEmpty()) {
+    printf ("Error: this is not the waiting lock!\n");
     (void) interrupt->SetLevel(oldLevel);
     return;
   }
   if(waitingLock != conditionLock) {
-    printf ("Error: Signal, waitingLock does not equal conditionLock");
+    printf ("Error: Signal, waitingLock does not equal conditionLock\n");
     (void) interrupt->SetLevel(oldLevel);
     return;
   }
-  thread = (Thread *)queue->Remove();   //TODO: should be waitQueue?
+  thread = (Thread *)waitQueue->Remove();
   if(thread != NULL) {
     scheduler->ReadyToRun(thread);      // Put in ready queue in ready state
   }
-  if (waitQueue.isEmpty()) {
+  if (waitQueue->IsEmpty()) {
     waitingLock = NULL;
   }
   (void) interrupt->SetLevel(oldLevel);
 }
 
 void Condition::Broadcast(Lock* conditionLock) { 
-  while (!waitQueue.isEmpty()) {
+  while (!waitQueue->IsEmpty()) {
     Signal(conditionLock);
   }
 }
