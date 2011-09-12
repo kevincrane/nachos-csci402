@@ -1,0 +1,49 @@
+Movie Theater Interaction Scenarios
+
+Threads:
+-GroupHead
+-Customer
+-TicketClerk
+-ConcessionClerk
+-TicketTaker
+-MovieTechnician
+-Manager
+
+Scenarios:
+
+1. GroupHead buys tickets for group
+     Involves: GroupHead, TicketClerk
+
+2. Group wants food
+     Involves: GroupHead, Customer, ConcessionClerk
+
+3. Group goes into movie
+     Involves: GroupHead, Customer, TicketTaker
+
+4. Manager tells TicketTaker to take tickets
+     Involves: Manager, TicketTaker
+
+5. Manager tells customers that the movie is starting
+     Involves: Manager, GroupHead, Customer
+
+6. Customers give ticket and seat themselves
+     Involves: GroupHead, Customer, TicketTaker
+
+7. Manager tells MovieTechnician to start the movie
+     Involves: Manager, MovieTechnician
+
+8. MovieTechnician tells customers that the movie is over
+     Involves: MovieTechnician, GroupHead, Customer
+
+9. MovieTechnician tells manager that the movie is over
+     Involves: Manager, MovieTechnician
+
+10. Customers go to the bathroom and leave
+     Involves: GroupHead, Customers
+
+11. Manager tells employee to take break
+     Involves: Manager, TicketClerk, ConcessionClerk
+
+12. Manager tells employee to come off break
+     Involves: Manager, TicketClerk, ConcessionClerk
+
