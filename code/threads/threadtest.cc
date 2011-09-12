@@ -204,7 +204,7 @@ void t4_waiter() {
 
 
 // --------------------------------------------------
-// t2_signaller()
+// t4_signaller()
 //     This thread will broadcast to the t4_c1 condition variable.
 //     All t4_waiters will be released
 // --------------------------------------------------
@@ -247,7 +247,7 @@ void t5_t1() {
 }
 
 // --------------------------------------------------
-// t5_t1() -- test 5 thread 1
+// t5_t2() -- test 5 thread 2
 //     This thread will wait on a t5_c1 condition under t5_l2, which is
 //     a Fatal error
 // --------------------------------------------------
