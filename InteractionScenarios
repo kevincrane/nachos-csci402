@@ -11,10 +11,10 @@ Threads:
 
 Scenarios:
 
-1. GroupHead buys tickets for group
+1. GroupHead buys tickets for group	//Crowley
      Involves: GroupHead, TicketClerk
 
-2. Group wants food
+2. Group wants food			//Similar to 1
      Involves: GroupHead, Customer, ConcessionClerk
 
 3. Group goes into movie
