@@ -10,37 +10,41 @@ Threads:
 -Manager
 
 Scenarios:
-
-1. GroupHead buys tickets for group
+//Kevin
+1. GroupHead buys tickets for group	//Crowley
      Involves: GroupHead, TicketClerk
-
-2. Group wants food
+//Michelle
+2. Group wants food			//Similar to 1
      Involves: GroupHead, Customer, ConcessionClerk
 
+//Ryan
 3. Group goes into movie
      Involves: GroupHead, Customer, TicketTaker
-
+//Ryan
 4. Manager tells TicketTaker to take tickets
      Involves: Manager, TicketTaker
-
+//Ryan
 5. Manager tells customers that the movie is starting
      Involves: Manager, GroupHead, Customer
-
+//Kevin
 6. Customers give ticket and seat themselves
      Involves: GroupHead, Customer, TicketTaker
 
+//Michelle
 7. Manager tells MovieTechnician to start the movie
      Involves: Manager, MovieTechnician
-
+//Michelle
 8. MovieTechnician tells customers that the movie is over
      Involves: MovieTechnician, GroupHead, Customer
-
+//Michelle
 9. MovieTechnician tells manager that the movie is over
      Involves: Manager, MovieTechnician
-
+//Kevin
 10. Customers go to the bathroom and leave
      Involves: GroupHead, Customers
 
+
+//Worry about these last
 11. Manager tells employee to take break
      Involves: Manager, TicketClerk, ConcessionClerk
 
