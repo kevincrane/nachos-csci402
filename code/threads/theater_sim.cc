@@ -12,6 +12,41 @@
 #include "synch.h"
 #endif
 
+
+// CONSTANTS
+#define MAX_TC 5   			 // constant: defines maximum number of ticket clerks
+#define MAX_CUST 50          // constant: maximum number of customers
+
+// Customer Global variables
+typedef struct {
+  bool  isLeader;           // Is this customer the group leader?
+  int   index;              // Index in customers[] array
+  int   group;              // Which group am I?
+  int   money;              // Amount of money carried
+  int   numTickets;         // Number of tickets carried
+  int   seatNumber;         // Seat number
+  bool  hasSoda;            // Do I have soda?
+  bool  hasPopcorn;         // Do I have popcorn?
+} CustomerStruct;
+
+CustomerStruct customers[MAX_CUST];   // List of all customers in theater
+
+// Group Global variables
+int groupHeads[MAX_CUST];   // List of indices pointing to the leaders of each group
+int groupSize[MAX_CUST];    // The size of each group
+
+
+// TicketClerk Global variables
+int   ticketClerkState[MAX_TC];           // Current state of a ticketClerk
+Lock*	ticketClerkLock[MAX_TC];            // array of Locks, each corresponding to one of the TicketClerks
+Condition*	ticketClerkCV[MAX_TC];        // condition variable assigned to particular TicketClerk
+int 	ticketClerkLineCount[MAX_TC];       // How many people in each ticketClerk's line?
+int		numberOfTicketsNeeded[MAX_TC];      // How many tickets does the current customer need?
+
+Lock*	ticketClerkLineLock;                // Lock for line of customers
+Condition*	ticketClerkLineCV[MAX_TC];		// Condition variable assigned to particular line of customers
+
+
 // CODE HERE BITCHES
 
 // return the length of an int array
@@ -50,10 +85,12 @@ void doBuyTicket() {
 
 }
 
-void Customer(int groupSize) {
+
+// Customer
+void Customer(int localGroupSize)
+{
   int myTicketClerk = -1;
-  int myGroupSize = groupSize;
-  
+  int myGroupSize = localGroupSize;
   //TODO: how separate group leader from regular bitch customer
   
   ticketClerkLineLock->Acquire();
@@ -110,13 +147,14 @@ void Customer(int groupSize) {
 // TicketClerk
 // -Thread that is run when Customer is interacting with TicketClerk to buy movie tickets
 void ticketClerk(int myIndex) {
+  int numberOfTicketsHeld = 0;
   while(true) {
     //Is there a customer in my line?
     ticketClerkLineLock->Acquire();
     if(ticketClerkLineCount[myIndex] > 0) {	// There's a customer in my line
       ticketClerkState[myIndex] = 1;        // I must be busy, decrement line count
       ticketClerkLineCount[myIndex]--;
-      ticketClerkLineCV[myIndex]->Signal(); // Wake up 1 customer
+      ticketClerkLineCV[myIndex]->Signal(ticketClerkLineLock); // Wake up 1 customer
     } else {
       //No one in my line
       ticketClerkState[myIndex] = 0;
@@ -134,7 +172,7 @@ void ticketClerk(int myIndex) {
     ticketClerkCV[myIndex]->Wait(ticketClerkLock[myIndex]);
     numberOfTicketsHeld = numberOfTicketsNeeded[myIndex];
     printf("TicketClerk %i: \"Here are your %i tickets. Enjoy the show!\"\n", myIndex, numberOfTicketsNeeded[myIndex]);
-    ticketClerkCV[myIndex]->Signal(ticketsClerkLock[myIndex]);
+    ticketClerkCV[myIndex]->Signal(ticketClerkLock[myIndex]);
     
     // TODO: Wait for next customer? Don't think it's necessary
     // TODO: ability to go on break; give manager the burden of calling for break
@@ -145,16 +183,17 @@ void ticketClerk(int myIndex) {
 
 // Initialize values and players in this theater
 void init() {
+
   int aGroups[10] = {3, 1, 4, 5, 3, 4, 1, 1, 5, 2};
   
   // Initialize customers and groups
   customerInit(aGroups);
   
+	Thread *t;
 	for(int i=0; i<MAX_TC; i++) {
 		ticketClerkLineCV[i] = new Condition("TC_CV");		// instantiate line condition variables
-		
-		Thread t = new Thread("tc");
-		t->Fork(ticketClerk(i));
+		t = new Thread("TicketClerk");
+		t->Fork((VoidFunctionPtr)ticketClerk,0);
 	}
 }
 
