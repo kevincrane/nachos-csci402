@@ -11,3 +11,39 @@
 #endif
 
 // CODE HERE BITCHES
+
+// CUSTOMER 
+
+
+
+// MANAGER
+
+
+
+// TICKET CLERK
+
+
+
+
+// CONCESSION CLERK
+
+
+
+
+// TICKET TAKER
+
+
+
+
+
+// MOVIE TECHNICIAN
+
+
+
+
+//Temporary to check if makefile works
+void Theater_Sim(){
+	
+	printf("Works bitches\n");
+	return;
+}

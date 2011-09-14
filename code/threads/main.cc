@@ -52,7 +52,7 @@
 
 #include "utility.h"
 #include "system.h"
-
+#include "theater_sim.cc"
 
 // External functions used by this file
 
@@ -98,9 +98,9 @@ main(int argc, char **argv)
             printf (copyright);
 #ifdef THREADS
 	if (!strcmp(*argv, "-T"))               // Test Suite: link for this code is at the bottom of part 1 description
-    		TestSuite();
-    //if (!strcmp(*argv, "-P2"))               // Problem 2: for part 2
-    //    Problem2();
+    	TestSuite();
+    if (!strcmp(*argv, "-P2"))               // Problem 2: for part 2
+        Theater_Sim();
 #endif
 #ifdef USER_PROGRAM
         if (!strcmp(*argv, "-x")) {        	// run a user program
