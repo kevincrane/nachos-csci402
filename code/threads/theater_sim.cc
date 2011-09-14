@@ -7,14 +7,49 @@
 #include "copyright.h"
 #include "system.h"
 #include "thread.h"
+#include "theater_sim.h"
 #ifdef CHANGED
 #include "synch.h"
 #endif
 
 // CODE HERE BITCHES
 
+// return the length of an int array
+int len(int[] intArr) {
+  return sizeof(intArr)/sizeof(int);
+}
 
-// Customer
+
+// Customer Code
+
+// init all values and assemble into groups
+void customerInit(int[] groups) {
+  int currIndex = 0;
+  // Iterate through each of the groups passed in; each int is number of people in group
+  for(int i=0; i<len(groups); i++) {
+    groupHeads[i] = currIndex;    // Current index corresponds to a group leader
+    groupSize[i] = groups[i];     // Number of people in current group
+    for(int j=currIndex; j<(currIndex+groups[i]; j++) {
+      // Initialize all values for current customer
+      if(j == currIndex) customers[j].isLeader = true;
+        else customers[j].isLeader = false;
+      customers[j].index = j;
+      customers[j].group = i;
+      customers[j].money = 120;
+      customers[j].numTickets = 0;
+      customers[j].seatNumber = -1;
+      customers[j].hasPopcorn = false;
+      customers[j].hasSoda = false;
+    }
+    currIndex += groups[i];
+  }
+}
+
+
+void doBuyTicket() {
+
+}
+
 void Customer(int groupSize) {
   int myTicketClerk = -1;
   int myGroupSize = groupSize;
@@ -26,7 +61,7 @@ void Customer(int groupSize) {
   for(int i=0; i<MAX_TC; i++) {
     if(ticketClerkState[i] == 0) {   //TODO: should use enum BUSY={0,1, other states (e.g. on break?)}
       //Found a clerk who's not busy
-      myTicketClerk = i;            // and now you belong to me
+      myTicketClerk = i;             // and now you belong to me
       ticketClerkState[i] = 1;
       printf("Customer NAME: Talking to TicketClerk %i.\n", myTicketClerk);
       break;
@@ -110,7 +145,12 @@ void ticketClerk(int myIndex) {
 
 // Initialize values and players in this theater
 void init() {
-	for(int i=0; i<MAX_CLERKS; i++) {
+  int aGroups[10] = {3, 1, 4, 5, 3, 4, 1, 1, 5, 2};
+  
+  // Initialize customers and groups
+  customerInit(aGroups);
+  
+	for(int i=0; i<MAX_TC; i++) {
 		ticketClerkLineCV[i] = new Condition("TC_CV");		// instantiate line condition variables
 		
 		Thread t = new Thread("tc");
@@ -142,8 +182,9 @@ void init() {
 
 //Temporary to check if makefile works
 void Theater_Sim() {
-	
+
 	printf("Works bitches\n");
+	init();
 	return;
 }
 
