@@ -43,7 +43,7 @@ main.o: ../threads/main.cc ../threads/copyright.h ../threads/utility.h \
   ../threads/thread.h ../threads/scheduler.h ../threads/list.h \
   ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
   ../machine/timer.h ../threads/utility.h ../threads/theater_sim.cc \
-  ../threads/synch.h
+  ../threads/theater_sim.h ../threads/synch.h
 list.o: ../threads/list.cc ../threads/copyright.h ../threads/list.h \
   ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \
   ../threads/copyright.h \
@@ -243,9 +243,7 @@ threadtest.o: ../threads/threadtest.cc ../threads/copyright.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
   ../threads/utility.h ../threads/synch.h
-theater_sim.o: ../threads/theater_sim.cc ../threads/copyright.h \
-  ../threads/system.h ../threads/utility.h ../threads/bool.h \
-  ../machine/sysdep.h ../threads/copyright.h \
+theater_sim.o: ../threads/theater_sim.cc \
   /usr/sfw/lib/gcc/sparc-sun-solaris2.10/3.4.3/include/stdio.h \
   /usr/include/stdarg.h /usr/include/iso/stdarg_iso.h \
   /usr/include/sys/va_impl.h /usr/include/sys/va_list.h \
@@ -253,6 +251,8 @@ theater_sim.o: ../threads/theater_sim.cc ../threads/copyright.h \
   /usr/include/sys/feature_tests.h /usr/include/sys/ccompile.h \
   /usr/include/iso/stdio_iso.h /usr/include/stdio_tag.h \
   /usr/include/stdio_impl.h /usr/include/iso/stdio_c99.h \
+  ../threads/copyright.h ../threads/system.h ../threads/utility.h \
+  ../threads/bool.h ../machine/sysdep.h ../threads/copyright.h \
   /usr/include/string.h /usr/include/iso/string_iso.h \
   /usr/include/stdlib.h /usr/include/iso/stdlib_iso.h \
   /usr/include/iso/stdlib_c99.h /usr/include/sys/wait.h \
@@ -268,7 +268,7 @@ theater_sim.o: ../threads/theater_sim.cc ../threads/copyright.h \
   /usr/include/v7/sys/psr.h /usr/include/sys/fsr.h ../threads/thread.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../threads/utility.h ../threads/synch.h
+  ../threads/utility.h ../threads/theater_sim.h ../threads/synch.h
 interrupt.o: ../machine/interrupt.cc \
   /usr/sfw/lib/gcc/sparc-sun-solaris2.10/3.4.3/include/stdio.h \
   /usr/include/stdarg.h /usr/include/iso/stdarg_iso.h \

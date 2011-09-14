@@ -63,6 +63,7 @@ extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
 #ifdef THREADS
 extern void TestSuite(void); //Problem2(void)
+extern void Theater_Sim(void);
 #endif
 
 //----------------------------------------------------------------------
@@ -99,27 +100,28 @@ main(int argc, char **argv)
 #ifdef THREADS
 	if (!strcmp(*argv, "-T"))               // Test Suite: link for this code is at the bottom of part 1 description
     	TestSuite();
-    if (!strcmp(*argv, "-P2"))               // Problem 2: for part 2
-        Theater_Sim();
+  if (!strcmp(*argv, "-P2"))               // Problem 2: for part 2
+      Theater_Sim();
 #endif
 #ifdef USER_PROGRAM
-        if (!strcmp(*argv, "-x")) {        	// run a user program
-	    ASSERT(argc > 1);
-            StartProcess(*(argv + 1));
-            argCount = 2;
-        } else if (!strcmp(*argv, "-c")) {      // test the console
-	    if (argc == 1)
-	        ConsoleTest(NULL, NULL);
-	    else {
-		ASSERT(argc > 2);
-	        ConsoleTest(*(argv + 1), *(argv + 2));
-	        argCount = 3;
-	    }
-	    interrupt->Halt();		// once we start the console, then 
+  if (!strcmp(*argv, "-x")) {        	// run a user program
+	  ASSERT(argc > 1);
+    StartProcess(*(argv + 1));
+    argCount = 2;
+  } else if (!strcmp(*argv, "-c")) {      // test the console
+	  if (argc == 1)
+	    ConsoleTest(NULL, NULL);
+	  else {
+	  	ASSERT(argc > 2);
+	    ConsoleTest(*(argv + 1), *(argv + 2));
+	    argCount = 3;
+	  }
+	  interrupt->Halt();		// once we start the console, then 
 					// Nachos will loop forever waiting 
 					// for console input
 	}
 #endif // USER_PROGRAM
+
 #ifdef FILESYS
 	if (!strcmp(*argv, "-cp")) { 		// copy from UNIX to Nachos
 	    ASSERT(argc > 2);
