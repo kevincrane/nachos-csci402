@@ -10,7 +10,7 @@ Threads:
 -Manager
 
 Scenarios:
-//Kevin
+//Kevin (DONE, except for ticketclerk on break and movie already started; not tested or compiled at all, likely shit)
 1. GroupHead buys tickets for group	//Crowley
      Involves: GroupHead, TicketClerk
 //Michelle

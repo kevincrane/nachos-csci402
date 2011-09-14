@@ -175,7 +175,7 @@ void Condition::Wait(Lock* conditionLock) {
      waitingLock = conditionLock;
   }
   if(waitingLock != conditionLock) {
-     printf ("Error: this isn't the waiting lock!\n");
+     printf ("Error: this isn't the correct waiting lock!\n");
      (void) interrupt->SetLevel(oldLevel);
      return;
   }
