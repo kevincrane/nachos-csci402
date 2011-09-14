@@ -117,3 +117,33 @@ void init() {
 		t->Fork(ticketClerk(i));
 	}
 }
+
+
+
+// MANAGER
+
+
+
+// CONCESSION CLERK
+
+
+
+
+// TICKET TAKER
+
+
+
+
+
+// MOVIE TECHNICIAN
+
+
+
+
+//Temporary to check if makefile works
+void Theater_Sim() {
+	
+	printf("Works bitches\n");
+	return;
+}
+
