@@ -5,11 +5,14 @@
 // TODO: ADD DOCUMENTATION HERE
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "copyright.h"
 #include "system.h"
 #include "thread.h"
 #include "theater_sim.h"
+
 #ifdef CHANGED
 #include "synch.h"
 #endif
@@ -68,7 +71,7 @@ int   numberOfTheater[MAX_TT];            // What theater are these customers go
 int   numTicketsReceived[MAX_TT];         // Number of tickets the customer gave
 int   totalTicketsTaken[MAX_TT];          // Total tickets taken for this movie
 bool  movieStarted;                       // Has the movie started already?
-
+int ticketTakerWorking;					  // Number of Ticket Takers currently working
 Lock* ticketTakerLineLock;                // Lock for line of customers
 Condition*  ticketTakerLineCV[MAX_TT];		// Condition variable assigned to particular line of customers
 
@@ -288,9 +291,64 @@ void ticketTaker(int myIndex)
 
 
 
-// MANAGER
-
-
+// MANAGER     -------     ADD MOAR COMMENTS
+// TODO     more comments
+void manager(int myIndex)
+{
+  while(true)
+  {
+  	//Put Employee on Break
+  	for(int i = 0; i < MAX_TT; i++)		//Put TicketTaker on break 
+  	{
+  	  ticketTakerLineLock->Acquire();
+  	  DEBUG('p', "Acquiring ticketTakerLineLock %i to check line length of 0. \n", i);
+  	  if(ticketTakerLineCount[i]==0)
+  	  {
+  	    DEBUG('p', "TicketTaker%i has no one in line. \n", i);
+  	    if(rand() % 5 == 0)
+  		{
+  		  DEBUG('p', "TicketTaker%i is going to take a break. \n", i);
+  		  ticketTakerLock[i]->Acquire();
+  		  ticketTakerState[i] = 2;
+  		  ticketTakerLock[i]->Release();
+  		}
+  	  }
+  	  else
+  	  {
+  	  	ticketTakerLock[i]->Acquire();
+  	    if(ticketTakerWorking > 0)
+  	    {
+  	    	if(rand() % 5 == 0)
+  	    	{
+  	    	  DEBUG('p', "TicketTaker%i is going to take a break since another employee is working. \n", i);
+  	    	  ticketTakerState[i] = 2;
+  	    	}
+  	    ticketTakerLock[i]->Release();
+  	  	}
+  	  }
+  	  ticketTakerLineLock->Release();
+	}	  
+  	  
+  		  	
+  	//Take Employee Off Break
+  	
+  	
+  	//Movie theater stop code
+  	
+  	  //Tell TicketTakers to take tickets
+  	  
+  	  //Tell Customers to go to theater
+  	  
+  	//Check clerk money levels
+  	
+  	
+  	//Check theater sim complete
+  	
+  	//Pause
+  	
+  }	
+  	
+}	  
 
 // MOVIE TECHNICIAN
 
@@ -327,6 +385,14 @@ void init() {
 	  t = new Thread("cust");
 	  t->Fork((VoidFunctionPtr)groupHead,i);
 	}
+	
+	/*//Fork off new thread for a manager
+	
+	Commented out for now because it creates a seg fault due to lack of initialization
+	
+	DEBUG ('p', "Forking new thread: manager\n");
+	t = new Thread("man");
+	t->Fork((VoidFunctionPtr)manager,0);*/
 }
 
 //Temporary to check if makefile works
