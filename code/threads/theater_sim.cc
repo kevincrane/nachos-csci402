@@ -336,4 +336,3 @@ void Theater_Sim() {
 	init();
 	return;
 }
-
