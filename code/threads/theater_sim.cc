@@ -323,7 +323,10 @@ void ticketTaker(int myIndex)
 void manager(int myIndex)
 {
   int pastTotal = 0;
-  int total = 0;
+  int totalRevenue = 0;
+	bool ticketTakerWorkNow = false;
+	bool ticketClerkWorkNow = false;
+	bool concecessionClerkWorkNow = false;
   while(true)
   {
   	//Put Employee on Break
@@ -334,7 +337,7 @@ void manager(int myIndex)
   	{
   	  ticketTakerLineLock->Acquire();
   	  DEBUG('p', "Manager: Acquiring ticketTakerLineLock %i to check line length of 0. \n", i);
-  	  if(ticketTakerLineCount[i]==0)
+  	  if(ticketTakerLineCount[i]==0 && ticketTakerState[i]!=2)
   	  {
   	    DEBUG('p', "Manager: TicketTaker%i has no one in line. \n", i);
   	    if(rand() % 5 == 0)
@@ -367,7 +370,7 @@ void manager(int myIndex)
   	{
   	  concessionClerkLineLock->Acquire();
   	  DEBUG('p', "Manager: Acquiring concessionClerkLineLock %i to check line length of 0. \n", i);
-  	  if(concessionClerkLineCount[i]==0)
+  	  if(concessionClerkLineCount[i]==0&&concessionClerkState[i]!=2)
   	  {
   	    DEBUG('p', "Manager: concessionClerk%i has no one in line. \n", i);
   	    if(rand() % 5 == 0)
@@ -399,7 +402,7 @@ void manager(int myIndex)
   	{
   	  ticketClerkLineLock->Acquire();
   	  DEBUG('p', "Manager: Acquiring ticketClerkLineLock %i to check line length of 0. \n", i);
-  	  if(ticketClerkLineCount[i]==0)
+  	  if(ticketClerkLineCount[i]==0&&ticketClerkState[i]!=2)
   	  {
   	    DEBUG('p', "Manager: ticketClerk%i has no one in line. \n", i);
   	    if(rand() % 5 == 0)
@@ -424,10 +427,28 @@ void manager(int myIndex)
   	  	}
   	  }
   	  ticketClerkLineLock->Release();
-	}	
+		}	
   	
-  	//Take Employee Off Break
-  	
+  	//TODO: Take Employee Off Break - commented out for git push to allow me to work on this in class
+  	/*for(int i = 0; i < MAX_TT; i++)
+		{
+			ticketTakerLineLock->Acquire();
+			if(ticketTakerLineCount[i]>5)
+			{
+				ticketTakerLock[i]->Acquire();
+				ticketTakerWorkNow = true;						//Set status to having the employee work
+				ticketTakerLock[i]->Release();
+			}
+			ticketTakerLineLock->Release();
+			break;
+		}
+		if(ticketTakerWorkNow && ticketTakerWorking<MAX_TT)
+		{
+			//Get TT off break
+			//Need for a break lock?
+			ticketTakerLineLock->Acquire();
+		}*/
+	
   	DEBUG('p', "Manager: Checking movie to see if it needs to be restarted.\n");
   	//Check to start movie
   	movieStatusLock->Acquire();
@@ -471,7 +492,7 @@ void manager(int myIndex)
   	  totalRevenue += ticketClerkRegister[i];
   	  ticketClerkLock[i]->Release();
   	}
-  	DEBUG('p', "Manager: Total amount of money in theater is $%i \n", total);
+  	DEBUG('p', "Manager: Total amount of money in theater is $%i \n", totalRevenue);
   	
   	//TODO: Check theater sim complete
   	
@@ -516,7 +537,7 @@ void init() {
 	  // Fork off a new thread for a customer
 	  DEBUG('p', "Forking new thread: customer%i\n", i);
 	  t = new Thread("cust");
-	  t->Fork((VoidFunctionPtr)groupHead,groupsHeads[i]);
+	  t->Fork((VoidFunctionPtr)groupHead,groupHeads[i]);
 	}
 	
 	// Initialize ticketTaker values
