@@ -43,6 +43,7 @@ typedef struct {
 
 CustomerStruct customers[MAX_CUST];       // List of all customers in theater
 int totalCustomers;                       // total number of customers there actually are
+int totalCustomersServed;									// total number of customers that finished
 int totalGroups;                          // total number of groups there actually are
 Lock* customerLock;
 Condition* customerCV;
@@ -64,7 +65,8 @@ int   theaterOnTicket = 1;                // Theater Number (TODO: only 1 theate
 int	  ticketClerkWorking;				  // Number of Ticket Clerks working
 Lock* ticketClerkLineLock;                // Lock for line of customers
 Condition*  ticketClerkLineCV[MAX_TC];		// Condition variable assigned to particular line of customers
-
+Lock* ticketClerkBreakLock;								// Lock for when TC goes on break
+Condition* ticketClerkBreakCV;						// Condition variable for when TC goes on break
 
 // TicketTaker Global variables
 int   ticketTakerState[MAX_TT];           // Current state of a ticketTaker
@@ -80,6 +82,8 @@ Lock* ticketTakerLineLock;                // Lock for line of customers
 Condition*  ticketTakerLineCV[MAX_TT];		// Condition variable assigned to particular line of customers
 Lock* ticketTakerMovieLock;				  // Lock for ticket takers to acquire for wait
 Condition* ticketTakerMovieCV;			  // Condition variable for wait
+Lock* ticketTakerBreakLock;								// Lock for when TT goes on break
+Condition* ticketTakerBreakCV;						// Condition variable when TT goes on break
 
 // ConcessionClerk Global variables
 Lock* concessionClerkLineLock;
@@ -88,6 +92,9 @@ Lock* concessionClerkLock[MAX_CC];
 int concessionClerkWorking;
 int concessionClerkRegister[MAX_CC];
 int concessionClerkState[MAX_CC];
+Lock* concessionClerkBreakLock;					// Lock for when CC goes on break
+Condition* concessionClerkBreakCV;			// Condition variable for when CC goes on break
+
 
 // MovieTechnician Global variables
 Lock* movieStatusLock;
@@ -216,6 +223,10 @@ void groupHead(int custIndex)
   // doEnterTheater   //TODO: who's doing and how? concerns everyone in customers[] btwn (currIndex) and (currIndex+groupSize[groupIndex])
   // doLeaveTheaterAndTakeAShit
   
+  //Counter to see how many customers have left movies
+  totalCustomersServed += groupSize[groupIndex];
+  DEBUG('p', "Total Customers Served: %i\n", totalCustomersServed);
+  //Added by me above
   DEBUG('p', "cust%i: Finished my evening at the movies.\n\n", custIndex);
 }
 
@@ -326,7 +337,7 @@ void manager(int myIndex)
   int totalRevenue = 0;
 	bool ticketTakerWorkNow = false;
 	bool ticketClerkWorkNow = false;
-	bool concecessionClerkWorkNow = false;
+	bool concessionClerkWorkNow = false;
   while(true)
   {
   	//Put Employee on Break
@@ -406,12 +417,12 @@ void manager(int myIndex)
   	  {
   	    DEBUG('p', "Manager: ticketClerk%i has no one in line. \n", i);
   	    if(rand() % 5 == 0)
-  		{
-  		  DEBUG('p', "Manager: ticketClerk%i is going to take a break. \n", i);
-  		  ticketClerkLock[i]->Acquire();
-  		  ticketClerkState[i] = 2;			//State as 2 means to take a break
-  		  ticketClerkLock[i]->Release();
-  		}
+  			{
+					DEBUG('p', "Manager: ticketClerk%i is going to take a break. \n", i);
+					ticketClerkLock[i]->Acquire();
+					ticketClerkState[i] = 2;			//State as 2 means to take a break
+					ticketClerkLock[i]->Release();
+  			}
   	  }
   	  else
   	  {
@@ -429,25 +440,72 @@ void manager(int myIndex)
   	  ticketClerkLineLock->Release();
 		}	
   	
-  	//TODO: Take Employee Off Break - commented out for git push to allow me to work on this in class
-  	/*for(int i = 0; i < MAX_TT; i++)
+  	// Take Employee Off Break
+		// Ticket Taker
+		for(int i = 0; i < MAX_TT; i++)
 		{
+			DEBUG('p', "Manager: Acquiring ticketTakerLineLock %i to check line length > 5.\n", i);
 			ticketTakerLineLock->Acquire();
 			if(ticketTakerLineCount[i]>5)
 			{
-				ticketTakerLock[i]->Acquire();
+				DEBUG('p', "Manager: Found line longer than 5. Flagging ticketTaker%i to come off break.\n",i);
 				ticketTakerWorkNow = true;						//Set status to having the employee work
-				ticketTakerLock[i]->Release();
 			}
 			ticketTakerLineLock->Release();
 			break;
 		}
 		if(ticketTakerWorkNow && ticketTakerWorking<MAX_TT)
 		{
+			DEBUG('p', "Manager: Signalling a ticketTaker to come off break.\n");
 			//Get TT off break
-			//Need for a break lock?
-			ticketTakerLineLock->Acquire();
-		}*/
+			ticketTakerBreakLock->Acquire();
+			ticketTakerBreakCV->Signal(ticketTakerBreakLock);
+			ticketTakerBreakLock->Release();
+		}
+		
+		// Ticket Clerk
+		for(int i = 0; i < MAX_TC; i++)
+		{
+			DEBUG('p', "Manager: Acquiring ticketClerkLineLock %i to check line length > 5.\n", i);
+			ticketClerkLineLock->Acquire();
+			if(ticketClerkLineCount[i]>5)
+			{
+				DEBUG('p', "Manager: Found line longer than 5. Flagging ticketClerk%i to come off break.\n", i);
+				ticketClerkWorkNow = true;					//Set status to have clerk work
+			}
+			ticketClerkLineLock->Release();
+			break;
+		}
+		if(ticketClerkWorkNow && ticketClerkWorking<MAX_TT)
+		{
+			DEBUG('p', "Manager: Signalling a ticketClerk to come off break.\n");
+			//Get TC off break
+			ticketClerkBreakLock->Acquire();
+			ticketClerkBreakCV->Signal(ticketClerkBreakLock);
+			ticketClerkBreakLock->Release();
+		}
+		// Concession Clerk
+		for(int i = 0; i < MAX_CC; i++)
+		{
+			DEBUG('p', "Manager: Acquiring concessionClerkLineLock %i to check line length > 5.\n", i);
+			concessionClerkLineLock->Acquire();
+			if(concessionClerkLineCount[i]>5)
+			{
+				DEBUG('p', "Manager: Found line longer than 5. Flagging concessionClerk%i to come off break.\n", i);
+				concessionClerkWorkNow = true;
+			}
+			concessionClerkLineLock->Release();
+			break;
+		}
+		if(concessionClerkWorkNow && concessionClerkWorking<MAX_CC)
+		{
+			DEBUG('p', "Manager: Signalling a concessionClerk to come off break.\n");
+			//Get CC off break
+			concessionClerkBreakLock->Acquire();
+			concessionClerkBreakCV->Signal(concessionClerkBreakLock);
+			concessionClerkBreakLock->Release();
+		}
+		
 	
   	DEBUG('p', "Manager: Checking movie to see if it needs to be restarted.\n");
   	//Check to start movie
@@ -495,9 +553,14 @@ void manager(int myIndex)
   	DEBUG('p', "Manager: Total amount of money in theater is $%i \n", totalRevenue);
   	
   	//TODO: Check theater sim complete
+  	if(totalCustomersServed == totalCustomers){
+  		DEBUG('p', "\n\nManager: Everyone is happy and has left. Closing the theater.\n\n\n");
+  		break;
+  	}
   	
-  	//Pause
-  	for(int i=0; i<50; i++)
+  	
+  	//Pause  ---   NOT SURE HOW LONG TO MAKE MANAGER YIELD - ryan
+  	for(int i=0; i<10; i++)
   	{
   	  currentThread->Yield();
   	}
@@ -514,10 +577,12 @@ void init() {
   DEBUG('p', "Initializing values and players in the movie theater.\n");
   int aGroups[] = {3, 1, 4, 5, 3, 4, 1, 1, 5, 2, 3};
   int aNumGroups = len(aGroups);
-  
+  totalCustomersServed = 0;
   // Initialize ticketClerk values
 	Thread *t;
 	ticketClerkLineLock = new Lock("TC_LINELOCK");
+	ticketClerkBreakLock = new Lock("TC_BREAKLOCK");
+	ticketClerkBreakCV = new Condition("TC_BREAKCV");
 	for(int i=0; i<MAX_TC; i++) 
 	{
     ticketClerkLineCV[i] = new Condition("TC_lineCV");		// instantiate line condition variables
@@ -542,6 +607,8 @@ void init() {
 	
 	// Initialize ticketTaker values
 	ticketTakerLineLock = new Lock("TT_LINELOCK");
+	ticketTakerBreakLock = new Lock("TT_BREAKLOCK");
+	ticketTakerBreakCV = new Condition("TT_BREAKCV");
 	for(int i=0; i<MAX_TT; i++)
 	{
 	  ticketTakerLock[i] = new Lock("TT_LOCK");
@@ -549,6 +616,8 @@ void init() {
 	
 	// Initialize concessionClerk values
 	concessionClerkLineLock = new Lock("CC_LINELOCK");
+	concessionClerkBreakLock = new Lock("CC_BREAKLOCK");
+	concessionClerkBreakCV = new Condition("CC_BREAKCV");
 	for(int i=0; i<MAX_CC; i++)
 	{
 	  concessionClerkLock[i] = new Lock("CC_LOCK");
@@ -563,8 +632,10 @@ void init() {
 	//Commented out for now because it creates a seg fault due to lack of initialization*/
 	
 	DEBUG ('p', "Forking new thread: manager\n");
+	
+	DEBUG('p', "We have this many customers: %i\n", totalCustomers);
 	t = new Thread("man");
-//	t->Fork((VoidFunctionPtr)manager,0);  //TODO: make this run without being an infinite loop
+	t->Fork((VoidFunctionPtr)manager,0);  //TODO: make this run without being an infinite loop - fixed by adding some code to the customer (ryan)
 }
 
 //Temporary to check if makefile works
