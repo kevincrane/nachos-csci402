@@ -12,6 +12,7 @@
 #include "system.h"
 #include "thread.h"
 #include "theater_sim.h"
+
 #ifdef CHANGED
 #include "synch.h"
 #endif
@@ -627,6 +628,7 @@ void init() {
 	  concessionClerkLock[i] = new Lock("CC_LOCK");
 	}
 	
+<<<<<<< HEAD
 	// Initialize movieTechnician values
 	movieStatusLock = new Lock("MS_LOCK");
 	/*MANAGER GOES LAST....MMM K
