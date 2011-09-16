@@ -123,6 +123,8 @@ void customerInit(int groups[], int numGroups)
     DEBUG('p', "cust_init: Initializing a group of %i customers, starting at customer[%i].\n", groupSize[i], currIndex);
     for(int j=currIndex; j<(currIndex+groups[i]); j++) 
     {
+      printf("Customer %i in Group %i has entered the movie theater\n", j, i);
+  
       // Initialize all values for current customer
       if(j == currIndex) customers[j].isLeader = true;
         else customers[j].isLeader = false;
@@ -153,7 +155,8 @@ void doBuyTickets(int custIndex, int groupIndex)
       //Found a clerk who's not busy
       myTicketClerk = i;             // and now you belong to me
       ticketClerkState[i] = 1;
-      printf("Customer %i: Talking to TicketClerk %i.\n", custIndex, myTicketClerk);
+      printf("Customer %i in Group %i is walking up to TicketClerk%i to buy %i tickets\n", 
+          custIndex, groupIndex, myTicketClerk, groupSize[groupIndex]);
       DEBUG('p', "cust%i: talking to tc%i.\n", custIndex, myTicketClerk);
       break;
     }
@@ -175,7 +178,7 @@ void doBuyTickets(int custIndex, int groupIndex)
     
     // Found the TicketClerk with the shortest line
     myTicketClerk = shortestTCLine;
-    printf("Customer%i: Waiting in line for TicketClerk %i.\n", custIndex, myTicketClerk);
+    printf("Customer %i in Group %i is getting in TicketClerk line %i\n", custIndex, groupIndex, myTicketClerk);
     DEBUG('p', "cust%i: waiting for tc%i.\n", custIndex, myTicketClerk);
     
     // Get in the shortest line
@@ -225,9 +228,10 @@ void groupHead(int custIndex)
   
   //Counter to see how many customers have left movies
   totalCustomersServed += groupSize[groupIndex];
-  DEBUG('p', "Total Customers Served: %i\n", totalCustomersServed);
-  //Added by me above
-  DEBUG('p', "cust%i: Finished my evening at the movies.\n\n", custIndex);
+  for(int i=custIndex; i<custIndex+groupSize[groupIndex]; i++)
+  {
+    printf("Customer %i in Group %i has left the movie theater\n", i, customers[i].group);
+  }
 }
 
 
@@ -645,3 +649,4 @@ void Theater_Sim() {
 	init();
 	return;
 }
+
