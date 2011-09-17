@@ -19,11 +19,13 @@
 
 
 // CONSTANTS
-#define MAX_CUST 50         // constant: maximum number of customers
+#define MAX_CUST 1000       // constant: maximum number of customers
 #define MAX_TC 5            // constant: defines maximum number of ticketClerks
 #define MAX_TT 3            // constant: defines maximum number of ticketTakers
 #define MAX_CC 5            // constant: defines maximum number of concessionClerks
-#define MAX_SEATS 10        // constant: max number of seats in the theater
+#define MAX_SEATS 25        // constant: max number of seats in the theater
+#define NUM_ROWS 5          // constant: number of rows in the theater
+#define NUM_COLS 5          // constant: number of seats/row
 
 #define TICKET_PRICE 12     // constant: price of a movie ticket
 #define POPCORN_PRICE 5     // constant: price of popcorn
@@ -38,19 +40,20 @@ typedef struct {
   int   group;              // Which group am I?
   int   money;              // Amount of money carried
   int   numTickets;         // Number of tickets carried
-  int   seatNumber;         // Seat number
+  int   seatRow;            // Seat row
+  int   seatCol;            // Seat column
   bool  hasSoda;            // Do I have soda?
   bool  hasPopcorn;         // Do I have popcorn?
 } CustomerStruct;
 
 CustomerStruct customers[MAX_CUST];       // List of all customers in theater
-int   totalCustomers;                       // total number of customers there actually are
-int   totalCustomersServed;									// total number of customers that finished
-int   totalGroups;                          // total number of groups there actually are
-Lock* customerLock;
-Condition*  customerCV;
-Lock* customerLobbyLock;        // Lock for when cust in lobby
+int   totalCustomers;                     // total number of customers there actually are
+int   totalCustomersServed;               // total number of customers that finished
+int   totalGroups;                        // total number of groups there actually are
+int   freeSeatsInRow[NUM_ROWS];           // seating arrangements in theater
+Lock* customerLobbyLock;                  // Lock for when cust in lobby
 Condition*  customerLobbyCV;     // CV for when cust in lobby
+
 
 // Group Global variables
 int groupHeads[MAX_CUST];                 // List of indices pointing to the leaders of each group
@@ -81,7 +84,7 @@ bool  allowedIn[MAX_TT];                  // Is this group allowed into the thea
 int   numTicketsReceived[MAX_TT];         // Number of tickets the customer gave
 int   totalTicketsTaken=0;          // Total tickets taken for this movie
 bool  movieStarted;                       // Has the movie started already?
-int ticketTakerWorking;                   // Number of Ticket Takers currently working
+int   ticketTakerWorking;                 // Number of Ticket Takers currently working
 Lock* ticketTakerLineLock;                // Lock for line of customers
 Condition*  ticketTakerLineCV[MAX_TT];		// Condition variable assigned to particular line of customers
 Lock* ticketTakerMovieLock;               // Lock for ticket takers to acquire for wait
@@ -138,25 +141,22 @@ void customerInit(int groups[], int numGroups)
       customers[j].group = i;
       customers[j].money = 120;
       customers[j].numTickets = 0;
-      customers[j].seatNumber = -1;
+      customers[j].seatRow = -1;
+      customers[j].seatCol = -1;
       customers[j].hasPopcorn = false;
       customers[j].hasSoda = false;
     }
     currIndex += groups[i];
     totalCustomers += groups[i];
     
-//    customerLobbyLock[i] = new Lock("C_LOBBY_LOCK");
-//    customerLobbyCV[i] = new Condition("C_LOBBY_CV");
   }
-customerLobbyLock = new Lock("C_LOBBY_LOCK");
-    customerLobbyCV = new Condition("C_LOBBY_CV");
+  customerLobbyLock = new Lock("C_LOBBY_LOCK");
+  customerLobbyCV = new Condition("C_LOBBY_CV");
   DEBUG('p', "\n");
 }
 
 
-// Bring a group of Customers back from the lobby
-
-
+// Go to ticketClerk to buy tickets
 void doBuyTickets(int custIndex, int groupIndex) 
 {
   int myTicketClerk = -1;
@@ -229,6 +229,7 @@ void doBuyTickets(int custIndex, int groupIndex)
   
 }
 
+// Give tickets to the ticketTaker, and either go into theater or lobby/repeat
 void doGiveTickets(int custIndex, int groupIndex)
 {
   int myTicketTaker = -1;
@@ -309,6 +310,71 @@ void doGiveTickets(int custIndex, int groupIndex)
   }
 }
 
+// Customer sitting in position [row, col]
+void choseSeat(int custIndex, int row, int col)
+{
+  customers[custIndex].seatRow = row+1; // defaults rows from 1-5, as opposed to 0-4
+  customers[custIndex].seatCol = col;
+  printf("Customer %i in Group %i has found the following seat: row %i and seat %i\n",
+      custIndex, customers[custIndex].group, row+1, col);
+}
+
+// Try to find ideal seats in the theater
+void doChooseSeats(int custIndex, int groupIndex)
+{
+  int gSize = groupSize[groupIndex];
+  
+  // Try to find a row with enough free seats
+  for(int i=0; i<NUM_ROWS; i++) {
+    if(freeSeatsInRow[i] >= gSize) {
+      // enough consecutive seats in one row
+      for(int j=custIndex; j<(custIndex+gSize); j++) {
+        // Seating a customer
+        choseSeat(j, i, freeSeatsInRow[i]);
+        freeSeatsInRow[i]--;
+      }
+      return;
+    }
+  }
+  
+  // Find two consecutive rows to sit in?
+  for(int i=1; i<NUM_ROWS; i++) {
+    if((freeSeatsInRow[i-1] + freeSeatsInRow[i]) >= gSize) {
+      int toBeSeated = gSize;
+      int freeInFirstRow = freeSeatsInRow[i-1];
+      for(int j=0; j<freeInFirstRow; j++) {
+        // Seating a customer
+        choseSeat(custIndex+j, i-1, freeSeatsInRow[i-1]);
+        freeSeatsInRow[i-1]--;
+        toBeSeated--;
+      }
+      for(int j=0; j<toBeSeated; j++) {
+        // Seating remaining customers in group
+        choseSeat((custIndex+freeInFirstRow+j), i, freeSeatsInRow[i]);
+        freeSeatsInRow[i];
+      }
+      return;
+    }
+  }
+  
+  // Just find somewhere to sit before someone gets mad
+  for(int i=0; i<NUM_ROWS; i++) {
+    int toBeSeated = gSize;
+    if(freeSeatsInRow[i] > 0) {
+      for(int j=0; j<freeSeatsInRow[i]; j++) {
+        // Sit customer down here
+        choseSeat(custIndex+(gSize-toBeSeated), i, freeSeatsInRow[i]-j);
+        toBeSeated--;
+        if(toBeSeated == 0) {
+          freeSeatsInRow[i] -= j+1;
+          return;
+        }
+      }
+      freeSeatsInRow[i] = 0;
+    }
+  }
+}
+
 
 void groupHead(int custIndex) 
 {
@@ -324,7 +390,10 @@ void groupHead(int custIndex)
   
   // Give tickets to ticketTaker
   doGiveTickets(custIndex, groupIndex);  
-  // doEnterTheater   //TODO: who's doing and how? concerns everyone in customers[] btwn (currIndex) and (currIndex+groupSize[groupIndex])
+
+  // Go find seats in the theater
+  doChooseSeats(custIndex, groupIndex);
+  
   // doLeaveTheaterAndTakeAShit
   
   //Counter to see how many customers have left movies
@@ -346,6 +415,14 @@ void ticketClerk(int myIndex)
   int numberOfTicketsHeld;
   while(true) 
   {
+    // TicketClerk is on break, go away.
+    if(ticketClerkState[myIndex] == 2) {
+      printf("TicketClerk %i is going on break.\n", myIndex);
+      ticketClerkBreakLock->Acquire();
+      ticketClerkBreakCV->Wait(ticketClerkBreakLock);
+      ticketClerkBreakLock->Release();
+      printf("TicketClerk %i is coming off break.\n", myIndex);
+    } 
     //Is there a customer in my line?
     DEBUG('p', "tc%i: Acquiring ticketClerkLineLock.\n", myIndex);
     ticketClerkLineLock->Acquire();
@@ -355,8 +432,6 @@ void ticketClerk(int myIndex)
       printf("TicketClerk %i has a line length %i and is signaling a customer.\n", 
           myIndex, ticketClerkLineCount[myIndex]+1);
       ticketClerkLineCV[myIndex]->Signal(ticketClerkLineLock); // Wake up 1 customer
-    } else if(ticketClerkState[myIndex] == 2) {
-      // ticketClerk is on break, don't disturb him or he'll get cranky
     } else {
       //No one in my line
       printf("TicketClerk %i has no one in line. I am available for a customer.\n", myIndex);
@@ -403,6 +478,15 @@ void ticketTaker(int myIndex)
 
   while(true)
   {
+    // TicketTaker is on break, go away.
+    if(ticketTakerState[myIndex] == 2) {
+      printf("TicketTaker %i is going on break.\n", myIndex);
+      ticketTakerBreakLock->Acquire();
+      ticketTakerBreakCV->Wait(ticketTakerBreakLock);
+      ticketTakerBreakLock->Release();
+      printf("TicketTaker %i is coming off break.\n", myIndex);
+    } 
+    
     //Is there a customer in my line?
     ticketTakerLineLock->Acquire();
     if(ticketTakerLineCount[myIndex] > 0) {	// There's a customer in my line
@@ -411,8 +495,6 @@ void ticketTaker(int myIndex)
       printf("TicketTaker %i has a line length %i and is signaling a customer.\n", 
           myIndex, ticketTakerLineCount[myIndex]+1);
       ticketTakerLineCV[myIndex]->Signal(ticketTakerLineLock); // Wake up 1 customer
-    } else if(ticketTakerState[myIndex] == 2) {
-      // ticketTaker is on break, don't disturb him or face his wrath
     } else {
       //No one in my line
       printf("TicketTaker %i has no one in line. I am available for a customer.\n", myIndex);
@@ -498,7 +580,6 @@ void manager(int myIndex)
   	    DEBUG('p', "Manager: TicketTaker%i has no one in line. \n", i);
   	    if(rand() % 5 == 0)
     		{
-    		  printf("TicketTaker %i is going on break.\n", i);
     		  ticketTakerLock[i]->Acquire();
     		  ticketTakerState[i] = 2;
     		  ticketTakerLock[i]->Release();
@@ -713,9 +794,15 @@ void manager(int myIndex)
 // Initialize values and players in this theater
 void init() {
   DEBUG('p', "Initializing values and players in the movie theater.\n");
-  int aGroups[] = {3, 1, 4, 5, 3, 4, 1, 1, 5, 2, 3};
+  int aGroups[] = {3, 1, 4, 5, 3, 4, 2, 1, 5, 2, 3};
   int aNumGroups = len(aGroups);
   totalCustomersServed = 0;
+  
+  for(int i=0; i<NUM_ROWS; i++)
+  {
+    freeSeatsInRow[i] = NUM_COLS;
+  }
+  
   // Initialize ticketClerk values
 	Thread *t;
 	ticketClerkLineLock = new Lock("TC_LINELOCK");
