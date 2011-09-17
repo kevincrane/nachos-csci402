@@ -456,6 +456,26 @@ void ticketTaker(int myIndex)
 
 
 // MANAGER  (TODO: ADD MOAR COMMENTS)
+
+/*	To have a employee go on break
+		The manager will check if the line length is 0 first to see if no one is in a line
+		or will check if less than 3 in the line and another employee is working
+		If either are true there is a 20% chance the manager will tell them to go on break
+		The manager will set their state to 2 meaning they should go on break
+		In that employee's code there should be an if statement checking for this state
+		
+		In order to make your employee go on break you need to acquire the appropriate lock
+		Then use the condition variable to wait
+		ie
+			ticketTakerBreakLock->Acquire()
+			ticketTakerBreakCV->Wait(TicketTakerBreakLock)
+		By doing this the employee will go on break and enter a queue for when they will be called of break
+		
+		If a line gets greater than 5, the manager will signal this condition variable which will get
+		the employee of break
+		
+		Make sure you have a release for the break lock after the wait!
+*/
 void manager(int myIndex)
 {
   int pastTotal = 0;
