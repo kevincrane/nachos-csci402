@@ -65,7 +65,7 @@ extern void MailTest(int networkID);
 #ifdef THREADS
 extern void TestSuite(void); //Problem2(void)
 extern void Theater_Sim(void);
-extern void Thearer_Sim_Test(void);
+extern void Theater_Sim_Test(void);
 #endif
 
 //----------------------------------------------------------------------
