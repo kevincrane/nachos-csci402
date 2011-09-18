@@ -60,6 +60,7 @@ THREAD_C =../threads/main.cc\
 	../threads/utility.cc\
 	../threads/threadtest.cc\
 	../threads/theater_sim.cc\
+	../threads/theater_sim_test.cc\
 	../machine/interrupt.cc\
 	../machine/sysdep.cc\
 	../machine/stats.cc\

@@ -398,6 +398,7 @@ void groupHead(int custIndex)
   
   //Counter to see how many customers have left movies
   totalCustomersServed += groupSize[groupIndex];
+	DEBUG('p', "Customers served: %i\n", totalCustomersServed);
   for(int i=custIndex; i<custIndex+groupSize[groupIndex]; i++)
   {
     printf("Customer %i in Group %i has left the movie theater\n", i, customers[i].group);
@@ -473,9 +474,6 @@ void ticketClerk(int myIndex)
 // TICKET TAKER
 void ticketTaker(int myIndex)
 {
-  if(myIndex==2 || myIndex==0)
-    ticketTakerState[myIndex] = 2;
-
   while(true)
   {
     // TicketTaker is on break, go away.
@@ -582,9 +580,12 @@ void manager(int myIndex)
     		{
     		  ticketTakerLock[i]->Acquire();
     		  ticketTakerState[i] = 2;
+					printf("Manager has told TicketTaker [%i] to go on break.\n", i);
     		  ticketTakerLock[i]->Release();
-    		  //break;
+    		  
     		}
+				ticketTakerLineLock->Release();
+				break;
   	  }
   	  else if(ticketTakerWorking > 0)
   	  {
@@ -592,11 +593,13 @@ void manager(int myIndex)
 	    	if(rand() % 5 == 0)
 	    	{
 	    	  DEBUG('p', "Manager: TicketTaker%i is going to take a break since another employee is working. \n", i);
+					printf("Manager has told TicketTaker [%i] to go on break.\n", i);
 	    	  ticketTakerState[i] = 2;
 	    	}
  		    ticketTakerLock[i]->Release();
+				ticketTakerLineLock->Release();
   	  }
-  	  ticketTakerLineLock->Release();
+  	  else ticketTakerLineLock->Release();
   	}	  
 
   	//ConcessionClerk Break
@@ -612,8 +615,11 @@ void manager(int myIndex)
     		  DEBUG('p', "Manager: concessionClerk%i is going to take a break. \n", i);
     		  concessionClerkLock[i]->Acquire();
     		  concessionClerkState[i] = 2;			//State as 2 means to take a break
+					printf("Manager has told ConcessionClerk [%i] to go on break.\n", i);
     		  concessionClerkLock[i]->Release();
     		}
+				concessionClerkLineLock->Release();
+				break;
   	  }
   	  else
   	  {
@@ -623,19 +629,20 @@ void manager(int myIndex)
   	    	if(rand() % 5 == 0)
   	    	{
   	    	  DEBUG('p', "Manager: concessionClerk%i is going to take a break since another employee is working. \n", i);
+						printf("Manager has told ConcessionClerk [%i] to go on break.\n", i);
   	    	  concessionClerkState[i] = 2;
   	    	}
   	    concessionClerkLock[i]->Release();
   	  	}
+				concessionClerkLineLock->Release();
   	  }
-      concessionClerkLineLock->Release();
 	  }	
   		  	
   	//TicketClerk Break
   	for(int i = 0; i < MAX_TC; i++)		//Put TicketClerk on break 
   	{
   	  ticketClerkLineLock->Acquire();
-  	  DEBUG('p', "Manager: Acquiring ticketClerkLineLock %i to check line length of 0. \n", i);
+  	  DEBUG('p', "Manager: Acquiring ticketClerkLineLock %i to check line empty: line length is %i. \n", i, ticketClerkLineCount[i]);
   	  if(ticketClerkLineCount[i]==0&&ticketClerkState[i]!=2)
   	  {
   	    DEBUG('p', "Manager: ticketClerk%i has no one in line. \n", i);
@@ -643,9 +650,12 @@ void manager(int myIndex)
   			{
 					DEBUG('p', "Manager: ticketClerk%i is going to take a break. \n", i);
 					ticketClerkLock[i]->Acquire();
+					printf("Manager has told TicketClerk [%i] to go on break. \n",i);
 					ticketClerkState[i] = 2;			//State as 2 means to take a break
 					ticketClerkLock[i]->Release();
   			}
+				ticketClerkLineLock->Release();
+				break;
   	  }
   	  else
   	  {
@@ -656,6 +666,7 @@ void manager(int myIndex)
   	    	{
   	    	  DEBUG('p', "Manager: ticketClerk%i is going to take a break since another employee is working. \n", i);
   	    	  ticketClerkState[i] = 2;
+						printf("Manager has told TicketClerk [%i] to go on break. \n",i);
   	    	}
   	    ticketClerkLock[i]->Release();
   	  	}
@@ -673,9 +684,9 @@ void manager(int myIndex)
 			{
 				DEBUG('p', "Manager: Found line longer than 5. Flagging ticketTaker%i to come off break.\n",i);
 				ticketTakerWorkNow = true;						//Set status to having the employee work
+				break;
 			}
 			ticketTakerLineLock->Release();
-			break;
 		}
 		if(ticketTakerWorkNow && ticketTakerWorking<MAX_TT)
 		{
@@ -695,9 +706,9 @@ void manager(int myIndex)
 			{
 				DEBUG('p', "Manager: Found line longer than 5. Flagging ticketClerk%i to come off break.\n", i);
 				ticketClerkWorkNow = true;					//Set status to have clerk work
+				break;
 			}
 			ticketClerkLineLock->Release();
-			break;
 		}
 		if(ticketClerkWorkNow && ticketClerkWorking<MAX_TT)
 		{
@@ -716,9 +727,9 @@ void manager(int myIndex)
 			{
 				DEBUG('p', "Manager: Found line longer than 5. Flagging concessionClerk%i to come off break.\n", i);
 				concessionClerkWorkNow = true;
+				break;
 			}
 			concessionClerkLineLock->Release();
-			break;
 		}
 		if(concessionClerkWorkNow && concessionClerkWorking<MAX_CC)
 		{
@@ -752,26 +763,30 @@ void manager(int myIndex)
   	  movieStatusLock->Acquire();
   	  movieStatus = 0;
   	  movieStatusLockCV->Signal(movieStatusLock);
+			printf("Manager is telling the MovieTechnnician to start the movie.\n");
   	  movieStatusLock->Release();
   	}
   	
   	//Check clerk money levels
   	pastTotal = totalRevenue;
-  	totalRevenue = 0;
   	for(int i = 0; i<MAX_CC; i++)
   	{
   	  concessionClerkLock[i]->Acquire();
   	  totalRevenue += concessionClerkRegister[i];
+			printf("Manager collected [%i] from ConcessionClerk[%i].\n", concessionClerkRegister[i], i);
+			concessionClerkRegister[i] = 0;
   	  concessionClerkLock[i]->Release();
   	}
   	for(int i = 0; i<MAX_TC; i++)
   	{
   	  ticketClerkLock[i]->Acquire();
   	  totalRevenue += ticketClerkRegister[i];
+			printf("Manager collected [%i] from TicketClerk[%i].\n", ticketClerkRegister[i], i); 
+			ticketClerkRegister[i] = 0;
   	  ticketClerkLock[i]->Release();
   	}
   	DEBUG('p', "Manager: Total amount of money in theater is $%i \n", totalRevenue);
-  	
+  	printf("Total money made by office = [%i]\n", totalRevenue);
   	//TODO: Check theater sim complete
   	if(totalCustomersServed == totalCustomers){
   		DEBUG('p', "\n\nManager: Everyone is happy and has left. Closing the theater.\n\n\n");
@@ -779,7 +794,7 @@ void manager(int myIndex)
   	}
   	
   	//Pause  ---   NOT SURE HOW LONG TO MAKE MANAGER YIELD - ryan
-  	for(int i=0; i<10; i++)
+  	for(int i=0; i<50; i++)
   	{
   	  currentThread->Yield();
   	}
@@ -861,7 +876,7 @@ void init() {
 	DEBUG ('p', "Forking new thread: manager\n");
 	DEBUG('p', "We have this many customers: %i\n", totalCustomers);
 	t = new Thread("man");
-//	t->Fork((VoidFunctionPtr)manager,0);
+	t->Fork((VoidFunctionPtr)manager,0);
 	
 }
 
