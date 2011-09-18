@@ -473,9 +473,6 @@ void ticketClerk(int myIndex)
 // TICKET TAKER
 void ticketTaker(int myIndex)
 {
-  if(myIndex==2 || myIndex==0)
-    ticketTakerState[myIndex] = 2;
-
   while(true)
   {
     // TicketTaker is on break, go away.
@@ -851,7 +848,7 @@ void init() {
 	for(int i=0; i<aNumGroups; i++) 
 	{
 	  // Fork off a new thread for a customer
-	  DEBUG('p', "Forking new thread: customer%i\n", i);
+	  DEBUG('p', "Forking new thread: customerGroup%i\n", groupHeads[i]);
 	  t = new Thread("cust");
 	  t->Fork((VoidFunctionPtr)groupHead,groupHeads[i]);
 	}
