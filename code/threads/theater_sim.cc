@@ -19,7 +19,7 @@
 
 
 // CONSTANTS
-#define MAX_CUST 1000       // constant: maximum number of customers
+#define MAX_CUST 50      	 // constant: maximum number of customers
 #define MAX_TC 5            // constant: defines maximum number of ticketClerks
 #define MAX_TT 3            // constant: defines maximum number of ticketTakers
 #define MAX_CC 5            // constant: defines maximum number of concessionClerks
@@ -254,6 +254,7 @@ void doBuyTickets(int custIndex, int groupIndex)
 	  ticketClerkLineLock->Release();
 	}
       }
+	
   } while(findNewLine);
 
   ticketClerkLineLock->Release();
@@ -679,10 +680,10 @@ void ticketClerk(int myIndex)
       ticketClerkIsWorking[myIndex] = false;
       ticketClerkLineCV[myIndex]->Broadcast(ticketClerkLineLock);
       ticketClerkLineLock->Release();
-
+			ticketClerkWorking--;
       ticketClerkBreakLock->Acquire();
       ticketClerkBreakCV->Wait(ticketClerkBreakLock);
-
+			ticketClerkWorking++;
       ticketClerkLineLock->Acquire();
       ticketClerkState[myIndex]=0;
       ticketClerkIsWorking[myIndex] = true;
@@ -728,7 +729,7 @@ void ticketClerk(int myIndex)
     
     DEBUG('p', "tc%i: Finished handling customer.\n", myIndex);
     ticketClerkCV[myIndex]->Wait(ticketClerkLock[myIndex]);         // Wait until customer is out of the way before beginning next one
-    
+    ticketClerkLock[myIndex]->Release(); //Temp?
   }
 }
 
@@ -743,10 +744,12 @@ void concessionClerk(int myIndex) {
       concessionClerkIsWorking[myIndex] = false;
       concessionClerkLineCV[myIndex]->Broadcast(concessionClerkLineLock);
       concessionClerkLineLock->Release();
-
+			
+			concessionClerkWorking--;
       concessionClerkBreakLock->Acquire();
       concessionClerkBreakCV->Wait(concessionClerkBreakLock);
-
+			concessionClerkWorking++;
+			
       concessionClerkLineLock->Acquire();
       concessionClerkState[myIndex]=0;
       concessionClerkIsWorking[myIndex] = true;
@@ -828,8 +831,9 @@ void ticketTaker(int myIndex)
       ticketTakerLineLock->Release();
 
       ticketTakerBreakLock->Acquire();
+			ticketTakerWorking--;
       ticketTakerBreakCV->Wait(ticketTakerBreakLock);
-
+			ticketTakerWorking++;
       ticketTakerLineLock->Acquire();
       ticketTakerState[myIndex] = 0;
       ticketTakerIsWorking[myIndex] = true;
@@ -903,12 +907,15 @@ void manager(int myIndex)
 
   while(true)
   {
+		ticketTakerWorkNow = false;
+		ticketClerkWorkNow = false;
+		concessionClerkWorkNow = false;
     //Put Employee on Break
     DEBUG('p', "Manager: Checking for employees to go on break. \n");
   	
     //TicketTaker Break
     DEBUG('p', "Entered TicketTaker Break Section\n");
-    for(int i = 0; i < MAX_TT; i++)		//Put TicketTaker on break 
+    for(int i = 1; i < MAX_TT; i++)		//Put TicketTaker on break 
     {
       ticketTakerLineLock->Acquire();
       DEBUG('p', "Manager: Acquiring ticketTakerLineLock %i to check line length of 0. \n", i);
@@ -1002,7 +1009,6 @@ void manager(int myIndex)
         ticketClerkLock[i]->Acquire();
    	    if(ticketClerkWorking > 0)
         {
-					DEBUG('p', "MANAGER: TEMP IN IF STATEMENT\n");
    	    	if(rand() % 5 == 0)
    	    	{
    	    	  DEBUG('p', "Manager: ticketClerk%i is going to take a break since another employee is working. \n", i);
@@ -1038,7 +1044,7 @@ void manager(int myIndex)
 		}
 		if(ticketTakerWorkNow && ticketTakerWorking<MAX_TT)
 		{
-			DEBUG('p', "Manager: Signalling a ticketTaker to come off break.\n");
+			DEBUG('p', "Manager: Signalling a ticketTaker to come off break (%i of %i).\n", ticketTakerWorking, MAX_TT);
 			//Get TT off break
 			ticketTakerBreakLock->Acquire();
 			ticketTakerBreakCV->Signal(ticketTakerBreakLock);
@@ -1065,9 +1071,9 @@ void manager(int myIndex)
 			ticketClerkLineLock->Release();
 		}
 		
-		if(ticketClerkWorkNow && ticketClerkWorking<MAX_TT)
+		if(ticketClerkWorkNow && ticketClerkWorking<MAX_TC)
 		{
-			DEBUG('p', "Manager: Signalling a ticketClerk to come off break.\n");
+			DEBUG('p', "Manager: Signalling a ticketClerk to come off break (%i of %i working).\n", ticketClerkWorking,MAX_TC);
 			//Get TC off break
 			ticketClerkBreakLock->Acquire();
 			ticketClerkBreakCV->Signal(ticketClerkBreakLock);
@@ -1114,11 +1120,11 @@ void manager(int myIndex)
     		movieStarted = false;
     		ticketTakerMovieLock->Acquire();
     		DEBUG('p', "Manager: Waking up all ticketTakers!\n");
-				// for(int i = 0; i<MAX_TT;i++){
-					// ticketTakerLock[i]->Acquire();
-					// ticketTakerCV[i]->Signal(ticketTakerLock[i]);
-					// ticketTakerLock[i]->Release();
-				// }
+				 // for(int i = 0; i<MAX_TT;i++){
+					 // ticketTakerLock[i]->Acquire();
+					 // ticketTakerCV[i]->Signal(ticketTakerLock[i]);
+					 // ticketTakerLock[i]->Release();
+				 // }
     		ticketTakerMovieCV->Broadcast(ticketTakerMovieLock);
     		ticketTakerMovieLock->Release();
     			
@@ -1129,7 +1135,7 @@ void manager(int myIndex)
     		customerLobbyLock->Release();
     
        	// TODO: Pause for random movie starting
-       	for(int i=0; i<30; i++) {
+       	for(int i=0; i<((int)rand()%40 + 20); i++) {
        		currentThread->Yield();
        	}
 
@@ -1149,7 +1155,7 @@ void manager(int myIndex)
 			concessionClerkLock[i]->Acquire();
 			totalRevenue += concessionClerkRegister[i];
 
-			printf("Manager collected [%i] from ConcessionClerk[%i].\n", concessionClerkRegister[i], i);
+			printf("Manager collected [%i] from ConcessionClerkConcessionClerk[%i].\n", concessionClerkRegister[i], i);
 			concessionClerkRegister[i] = 0;
 			concessionClerkLock[i]->Release();
 		}
@@ -1167,13 +1173,13 @@ void manager(int myIndex)
 		printf("Total money made by office = [%i]\n", totalRevenue);
 		//TODO: Check theater sim complete
 		if(totalCustomersServed == totalCustomers){
-			DEBUG('p', "\n\nManager: Everyone is happy and has left. Closing the theater.\n\n\n");
 			theaterDone = true;
+			printf("\n\nManager: Everyone is happy and has left. Closing the theater.\n\n\n");
 			break;
 		}
 		
 		//Pause  ---   NOT SURE HOW LONG TO MAKE MANAGER YIELD - ryan
-		for(int i=0; i<3; i++)
+		for(int i=0; i<10; i++)
 		{
 			currentThread->Yield();
 		}
@@ -1184,7 +1190,7 @@ void manager(int myIndex)
 void movieTech(int myIndex) {
   while(!theaterDone) {			
     DEBUG('p',"Total Tickets Taken: %i. Num Seats Occupied: %i. Movie Status: %i\n", totalTicketsTaken, numSeatsOccupied, movieStatus);
-    if(movieStatus == 0 && (totalTicketsTaken == numSeatsOccupied)) {
+    if(movieStatus == 0 && (totalTicketsTaken == numSeatsOccupied) && totalCustomersServed != totalCustomers) {
       DEBUG('p', "MOVIE TECH ATTEMPTING TO START MOVIE\n");
       movieStatusLock->Acquire();
       movieStatus = 1;
@@ -1234,6 +1240,10 @@ void movieTech(int myIndex) {
 void init_values(){
   totalCustomersServed = 0;
 
+	ticketTakerWorking = MAX_TT;
+	ticketClerkWorking = MAX_TC;
+	concessionClerkWorking = MAX_CC;
+	
   for(int i=0; i<NUM_ROWS; i++)
   {
     freeSeatsInRow[i] = NUM_COLS;
@@ -1262,7 +1272,7 @@ void init_values(){
 	ticketTakerBreakCV = new Condition("TT_BREAKCV");
 	ticketTakerMovieLock = new Lock("TT_MOVIELOCK");
 	ticketTakerMovieCV = new Condition("TT_MOVIECV");
-	movieStarted = false;
+	movieStarted = true;
 
 	for(int i=0; i<MAX_TT; i++)
 	{
@@ -1309,12 +1319,26 @@ void init() {
   DEBUG('p', "Initializing values and players in the movie theater.\n");
 	init_values();
 
-  
-  
 	Thread *t;
+
+	int custsLeftToAssign = MAX_CUST;
+	int aGroups[MAX_CUST];
+	int aNumGroups = 0;
+	while(custsLeftToAssign > 0) {
+		int addNum = rand()%5+1; // Random number of customers from 1-5
+		if(addNum > custsLeftToAssign)
+			addNum = custsLeftToAssign;
+		aGroups[aNumGroups] = addNum;
+		aNumGroups++;
+		custsLeftToAssign -= addNum;
+	}
 	
-	int aGroups[] = {3, 1, 4, 5, 3, 4, 2, 1, 5, 2, 3};
-  int aNumGroups = len(aGroups);
+	// Display for user how many of each theater player there are
+	printf("Number of Customers = %i\n", MAX_CUST);
+	printf("Number of Groups = %i\n", aNumGroups);
+	printf("Number of TicketClerks = %i\n", MAX_TC);
+	printf("Number of ConcessionClerks = %i\n", MAX_CC);
+	printf("Number of TicketTakers = %i\n\n", MAX_TT);
 	for(int i=0; i<MAX_TC; i++) 
 	{ 
 	  // Fork off a new thread for a ticketClerk
@@ -1324,7 +1348,7 @@ void init() {
 	}
 	
   // Initialize customers
-  customerInit(aGroups, len(aGroups));
+  customerInit(aGroups, aNumGroups);
 	for(int i=0; i<aNumGroups; i++) 
 	{
 	  // Fork off a new thread for a customer
