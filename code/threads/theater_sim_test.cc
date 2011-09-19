@@ -70,7 +70,7 @@ void TestBManagerOffBreak()
 	testb.P();
 	// Set TicketClerk status to on break
 	ticketClerkState[0] = 2;
-	
+	ticketClerkWorking = 1;
 	// Set flag to put TicketClerk back to work
 	bool ticketClerkWorkNow = false;
 	
@@ -92,11 +92,11 @@ void TestBManagerOffBreak()
 	{
 		DEBUG('p', "Manager: Signalling a ticketClerk to come off break.\n");
 		//Get TC off break
-		ticketClerkBreakLock->Acquire();
-		ticketClerkBreakCV->Signal(ticketClerkBreakLock);
-		ticketClerkBreakLock->Release();
+		ticketClerkBreakLock[0]->Acquire();
+		ticketClerkBreakCV[0]->Signal(ticketClerkBreakLock[0]);
+		ticketClerkBreakLock[0]->Release();
 	}
-
+	DEBUG('p', "Manager: Outside of CV signal if block.\n");
 
 
 }
@@ -105,8 +105,9 @@ void TestBClerkOnBreak()
 {
 	testb.V();
 	DEBUG('p', "Got into clerk code\n");
-	ticketClerkBreakLock->Acquire();
-  ticketClerkBreakCV->Wait(ticketClerkBreakLock);
+	ticketClerkBreakLock[0]->Acquire();
+	ticketClerkWorking--;
+  ticketClerkBreakCV[0]->Wait(ticketClerkBreakLock[0]);
 	
 	printf("Test B Clerk got off break successfully\n");
 	B_Done.V();

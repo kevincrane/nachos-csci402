@@ -591,10 +591,10 @@ void doLeaveTheaterAndUseRestroom(int custIndex, int groupIndex) {
 
   for(int i=custIndex; i<custIndex+groupSize[groupIndex]; i++) {
     if(customers[i].needsRestroom == true) {
-      printf("Customer %i in Group %i is going to the bathroom.\n", i, groupIndex);
+      printf("Customer %i in Group %i is going to the bathroom and has left the theater.\n", i, groupIndex);
       numInRestroom++;
     } else {
-      printf("Customer %i in Group %i is in the lobby.\n", i, groupIndex);
+      printf("Customer %i in Group %i is in the lobby and has left the theater.\n", i, groupIndex);
     }
   }
     
@@ -1131,7 +1131,7 @@ void manager(int myIndex)
 		printf("Total money made by office = %i\n", totalRevenue);
 		
 		if(totalCustomersServed == totalCustomers){
-			DEBUG('p', "\n\nManager: Everyone is happy and has left. Closing the theater.\n\n\n");
+			printf("\n\nManager: Everyone is happy and has left. Closing the theater.\n\n\n");
 			theaterDone = true;
 			break;
 		}
@@ -1253,7 +1253,7 @@ void manager(int myIndex)
   	  } else 
 			{
 				DEBUG('p', "Manager: Acquiring individual ticket clerk lock (%i)\n",i);
- /*       ticketClerkLock[i]->Acquire();
+        ticketClerkLock[i]->Acquire();
 
    	    if(ticketClerkWorking > 0)
         {
@@ -1595,18 +1595,6 @@ void init() {
 		aNumGroups++;
 		custsLeftToAssign -= addNum;
 	}
-	
-  int custsLeftToAssign = MAX_CUST;
-  int aGroups[MAX_CUST];
-  int aNumGroups = 0;
-  while(custsLeftToAssign > 0) {
-    int addNum = rand()%5+1;      // Random number of customers from 1-5
-    if(addNum > custsLeftToAssign)
-      addNum = custsLeftToAssign;
-    aGroups[aNumGroups] = addNum;
-    aNumGroups++;
-    custsLeftToAssign -= addNum;
-  }
   
   // Display for user how many of each theater player there are
   printf("Number of Customers = %i\n", MAX_CUST);
