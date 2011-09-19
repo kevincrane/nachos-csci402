@@ -230,8 +230,8 @@ void doBuyTickets(int custIndex, int groupIndex)
 	myTicketClerk = 0; // Default back-up value, in case all ticketClerks on break
 
 	DEBUG('p', "cust%i: all tc's occupied, looking for shortest line.\n", custIndex);
-	int shortestTCLine = -1;     // default the first line to current shortest
-	int shortestTCLineLength = 100000;
+	int shortestTCLine = 0;     // default the first line to current shortest
+	int shortestTCLineLength = ticketClerkLineCount[0];
 	for(int i=0; i<MAX_TC; i++) {
 	  if((ticketClerkState[i] == 1) && (shortestTCLineLength > ticketClerkLineCount[i])) {
 	    //current line is shorter
@@ -279,8 +279,8 @@ void doBuyTickets(int custIndex, int groupIndex)
       custIndex, groupIndex, myTicketClerk);
   DEBUG('p', "cust%i: I has %i tickets!\n", custIndex, customers[custIndex].numTickets);
 
-  ticketClerkLock[myTicketClerk]->Release();                                    // Fly free ticketClerk. You were a noble friend.
   ticketClerkCV[myTicketClerk]->Signal(ticketClerkLock[myTicketClerk]);         // You're free to carry on noble ticketClerk
+  ticketClerkLock[myTicketClerk]->Release();                                    // Fly free ticketClerk. You were a noble friend.
   
 }
 
@@ -969,10 +969,11 @@ void manager(int myIndex)
 						printf("Manager has told ConcessionClerk %i to go on break.\n", i);
   	    	  concessionClerkState[i] = 2;
   	    	}
-  	    concessionClerkLock[i]->Release();
+  	    
   	  	}
-				concessionClerkLineLock->Release();
+				concessionClerkLock[i]->Release();
   	  }
+			concessionClerkLineLock->Release();
 	  }	
   		  	
   	//TicketClerk Break
@@ -991,24 +992,27 @@ void manager(int myIndex)
 					ticketClerkState[i] = 2;			//State as 2 means to take a break
 					ticketClerkLock[i]->Release();
   			}
+				DEBUG('p', "Manager: Releasing TicketClerkLineLock.\n");
 				ticketClerkLineLock->Release();
 				break;
   	  } else 
 			{
+				DEBUG('p', "Manager: Acquiring individual ticket clerk lock (%i)\n",i);
         ticketClerkLock[i]->Acquire();
    	    if(ticketClerkWorking > 0)
         {
+					DEBUG('p', "MANAGER: TEMP IN IF STATEMENT\n");
    	    	if(rand() % 5 == 0)
    	    	{
    	    	  DEBUG('p', "Manager: ticketClerk%i is going to take a break since another employee is working. \n", i);
    	    	  ticketClerkState[i] = 2;
   					printf("Manager has told TicketClerk %i to go on break. \n",i);
    	    	}
-   	    ticketClerkLock[i]->Release();
    	  	}
-				DEBUG('p', "Manager: Releasing TicketClerkLineLock.\n");
-				ticketClerkLineLock->Release();
+   	    ticketClerkLock[i]->Release();
    	  }
+			DEBUG('p', "Manager: Releasing TicketClerkLineLock.\n");
+			ticketClerkLineLock->Release();
     }	
   	
   	// Take Employee Off Break
@@ -1024,7 +1028,9 @@ void manager(int myIndex)
 				break;
 			}
 			else if(ticketTakerWorking == 0 && ticketTakerLineCount[0] > 0){
-				DEBUG('p', "Manager: Found a line without an employee, grabbing an employee to come off break. \n",i);
+				DEBUG('p', "Manager: Found a line without an employee (tt%i), grabbing an employee to come off break. \n",i);
+				ticketTakerWorkNow = true;						//Set status to having the employee work
+				ticketTakerLineLock->Release();
 				break;
 			}
 			ticketTakerLineLock->Release();
@@ -1049,6 +1055,12 @@ void manager(int myIndex)
 				ticketClerkWorkNow = true;					//Set status to have clerk work
 				break;
 			}
+			else if(ticketClerkWorking == 0 && ticketClerkLineCount[0] > 0){
+				DEBUG('p', "Manager: Found a line without an employee (tc%i), grabbing an employee to come off break. \n",i);
+				ticketClerkWorkNow = true;					//Set status to have clerk work
+				ticketClerkLineLock->Release();
+				break;
+			}
 			ticketClerkLineLock->Release();
 		}
 		
@@ -1071,6 +1083,12 @@ void manager(int myIndex)
 				concessionClerkWorkNow = true;
 				break;
 			}
+			else if(concessionClerkWorking == 0 && concessionClerkLineCount[0] > 0){
+				DEBUG('p', "Manager: Found a line without an employee (cc%i), grabbing an employee to come off break. \n",i);
+				concessionClerkWorkNow = true;
+				concessionClerkLineLock->Release();
+				break;
+			}
 			concessionClerkLineLock->Release();
 		}
 		if(concessionClerkWorkNow && concessionClerkWorking<MAX_CC)
@@ -1086,7 +1104,7 @@ void manager(int myIndex)
   	DEBUG('p', "Manager: Checking movie to see if it needs to be restarted.\n");
     //Check to start movie
     DEBUG('p', "MovieStatus = %i.\n", movieStatus);
-    if(movieStatus == 2 && theaterStarted)		//Stopped
+    if(movieStatus == 2)		//Stopped
     {
 			DEBUG('p', "TotalTicketsTaken = %i\n", totalTicketsTaken);
 			DEBUG('p', "NumSeatsOccupied = %i\n", numSeatsOccupied);
@@ -1095,6 +1113,11 @@ void manager(int myIndex)
     		movieStarted = false;
     		ticketTakerMovieLock->Acquire();
     		DEBUG('p', "Manager: Waking up all ticketTakers!\n");
+				// for(int i = 0; i<MAX_TT;i++){
+					// ticketTakerLock[i]->Acquire();
+					// ticketTakerCV[i]->Signal(ticketTakerLock[i]);
+					// ticketTakerLock[i]->Release();
+				// }
     		ticketTakerMovieCV->Broadcast(ticketTakerMovieLock);
     		ticketTakerMovieLock->Release();
     			
@@ -1129,6 +1152,7 @@ void manager(int myIndex)
 			concessionClerkRegister[i] = 0;
 			concessionClerkLock[i]->Release();
 		}
+		DEBUG('p', "Manager: Finished collecting concessionClerkMoney\n");
 		for(int i = 0; i<MAX_TC; i++)
 		{
 			ticketClerkLock[i]->Acquire();
@@ -1150,7 +1174,6 @@ void manager(int myIndex)
 		//Pause  ---   NOT SURE HOW LONG TO MAKE MANAGER YIELD - ryan
 		for(int i=0; i<10; i++)
 		{
-			theaterStarted = true;
 			currentThread->Yield();
 		}
 	}	

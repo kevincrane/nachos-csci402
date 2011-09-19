@@ -112,6 +112,60 @@ void TestBClerkOnBreak()
 	B_Done.V();
 }
 
+// Test C
+Semaphore C_Done("cd", 0);
+Semaphore testc("tc", 0);
+Semaphore testc2("tc2", 0);
+Semaphore testc3("tc3", 0);
+void TestCCustomer()
+{
+	testc.P();
+	int myTicketClerk = 0;
+	
+	// Added to get code to work
+  ticketClerkLock[myTicketClerk]->Acquire();
+	//Copied code
+	ticketClerkCV[myTicketClerk]->Signal(ticketClerkLock[myTicketClerk]);         // You're free to carry on noble ticketClerk
+  ticketClerkLock[myTicketClerk]->Release();                                    // Fly free ticketClerk. You were a noble friend.
+  
+}
+
+void TestCCustomer2()
+{
+	int myTicketClerk = 0;
+	testc2.P();
+	printf("Customer 2 began\n");
+	// Code to test, copied over
+	ticketClerkLineLock->Acquire();
+	printf("Customer 2 acquired clerk line lock\n");
+	ticketClerkLineCount[myTicketClerk]++;
+	ticketClerkLineCV[myTicketClerk]->Wait(ticketClerkLineLock);
+	printf("Clerk has grabbed me\n");
+	C_Done.V();
+}
+void TestCClerk()
+{
+	ticketClerkLineCount[0] = 0;
+	
+	
+	ticketClerkLock[0]->Acquire();
+	testc.V();
+	testc2.V();
+	ticketClerkCV[0]->Wait(ticketClerkLock[0]);
+	ticketClerkLock[0]->Release();
+	printf("Clerk has been released!\n");
+	ticketClerkLineLock->Acquire();
+    if(ticketClerkLineCount[0] > 0) {	// There's a customer in my line
+      ticketClerkState[0] = 1;        // I must be busy, decrement line count
+      ticketClerkLineCount[0]--;
+      printf("TicketClerk %i has a line length %i and is signaling a customer.\n", 
+          0, ticketClerkLineCount[0]+1);
+      ticketClerkLineCV[0]->Signal(ticketClerkLineLock); 
+			ticketClerkLineLock->Release();
+		}
+	printf("Clerk is done\n");
+	
+}
 
 
 // Test D
@@ -202,7 +256,9 @@ void Theater_Sim_Test()
 
 		A_Done.P();
 	}
+	printf("---------------------------------------------------------------------------\n");
 	printf("Test A is Complete \n");
+	printf("---------------------------------------------------------------------------\n");
 	
 	// Test B
 	// Manager test to get clerks off break 
@@ -211,12 +267,26 @@ void Theater_Sim_Test()
 	
 	t = new Thread("Test B Clerk");
 	t->Fork((VoidFunctionPtr)TestBClerkOnBreak,0);
-	printf("Test B is Complete \n");
+
 
 	B_Done.P();
+	printf("---------------------------------------------------------------------------\n");
+	printf("Test B is Complete \n");	
+	printf("---------------------------------------------------------------------------\n");
 	// Test C
-	// Total Sales doesn't suffer a race condition
+	// Clerks wait for customer to signal them to move on
+	t = new Thread("Test C 1");
+	t->Fork((VoidFunctionPtr)TestCCustomer,0);
 	
+	t = new Thread("Test C 2");
+	t->Fork((VoidFunctionPtr)TestCClerk,0);
+	
+	t = new Thread("Test C 3");
+	t->Fork((VoidFunctionPtr)TestCCustomer2,0);
+	C_Done.P();
+	printf("---------------------------------------------------------------------------\n");
+	printf("Test C is Complete \n");
+	printf("---------------------------------------------------------------------------\n");
 	// Test D
 	// Customers always choose shortest line
 	for(int i = 0; i<30; i++)
@@ -231,6 +301,7 @@ void Theater_Sim_Test()
 		D_Done.P();
 		printf("\n");
 	}	
-	
-	
+	printf("---------------------------------------------------------------------------\n");
+	printf("Test D is Complete \n");
+	printf("---------------------------------------------------------------------------\n");
 }
