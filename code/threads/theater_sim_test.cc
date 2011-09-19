@@ -62,6 +62,7 @@ void TestAManagerOneCash()
 // Test B to have manager get clerk off break
 
 Semaphore testb("tb", 0);
+Semaphore B_Done("bd",0);
 void TestBManagerOffBreak()
 {	
 	// Set TicketClerk line to 6 waiting in line
@@ -108,9 +109,83 @@ void TestBClerkOnBreak()
   ticketClerkBreakCV->Wait(ticketClerkBreakLock);
 	
 	printf("Test B Clerk got off break successfully\n");
+	B_Done.V();
 }
 
 
+
+// Test D
+Semaphore testd("td", 0);
+Semaphore D_Done("dd", 0);
+Semaphore done("d", 0);
+void TestD_1()
+{
+	// Set 2 ticket clerks to have open lines
+	ticketClerkState[0] = 1;
+	ticketClerkState[1] = 1;
+	
+	// Randomly set their line lengths
+	ticketClerkLineCount[0] = rand() % 5;
+	ticketClerkLineCount[1] = rand() % 4;
+	
+	// Print lengths
+	printf("Line 0: %i | Line 1: %i\n", ticketClerkLineCount[0], ticketClerkLineCount[1]);
+	testd.P();
+	
+	// Initialize Customer variables
+	int custIndex = 1;
+	int groupIndex = 1;
+	
+	// Code to test
+	ticketClerkLineLock->Acquire();
+	int myTicketClerk = 0; // Default back-up value, in case all ticketClerks on break
+
+	int shortestTCLine = -1;     // default the first line to current shortest
+	int shortestTCLineLength = 100000;
+	for(int i=0; i<MAX_TC; i++) {
+	  if((ticketClerkState[i] == 1) && (shortestTCLineLength > ticketClerkLineCount[i])) {
+	    //current line is shorter
+	    shortestTCLine = i;
+	    shortestTCLineLength = ticketClerkLineCount[i];
+	  }
+	}
+	// Found the TicketClerk with the shortest line
+	myTicketClerk = shortestTCLine;   
+	// Get in the shortest line
+	ticketClerkLineCount[myTicketClerk]++;
+	printf("Customer %i is getting in line %i| Length : %i\n", custIndex, myTicketClerk, ticketClerkLineCount[myTicketClerk]);
+	ticketClerkLineLock->Release();
+	D_Done.V();
+}
+
+void TestD_2()
+{
+	testd.V();
+	// Initialize variables
+	int custIndex = 2;
+	int groupIndex = 2;
+	
+	// Code to test
+	ticketClerkLineLock->Acquire();
+	int myTicketClerk = 0; // Default back-up value, in case all ticketClerks on break
+	int shortestTCLine = -1;     // default the first line to current shortest
+	int shortestTCLineLength = 100000;
+	for(int i=0; i<MAX_TC; i++) {
+	  if((ticketClerkState[i] == 1) && (shortestTCLineLength > ticketClerkLineCount[i])) {
+	    //current line is shorter
+	    shortestTCLine = i;
+	    shortestTCLineLength = ticketClerkLineCount[i];
+	  }
+	}
+	// Found the TicketClerk with the shortest line
+	myTicketClerk = shortestTCLine;
+  
+	// Get in the shortest line
+	ticketClerkLineCount[myTicketClerk]++;
+	printf("Customer %i is getting in line %i| Length : %i\n", custIndex, myTicketClerk, ticketClerkLineCount[myTicketClerk]);
+	ticketClerkLineLock->Release();
+	D_Done.V();
+}
 
 void Theater_Sim_Test()
 {
@@ -138,5 +213,24 @@ void Theater_Sim_Test()
 	t->Fork((VoidFunctionPtr)TestBClerkOnBreak,0);
 	printf("Test B is Complete \n");
 
+	B_Done.P();
+	// Test C
+	// Total Sales doesn't suffer a race condition
+	
+	// Test D
+	// Customers always choose shortest line
+	for(int i = 0; i<30; i++)
+	{
+		t = new Thread("Test D 1");
+		t->Fork((VoidFunctionPtr)TestD_1, 0);
+		
+		t = new Thread("Test D 2");
+		t->Fork((VoidFunctionPtr)TestD_2, 0);
+		
+		D_Done.P();
+		D_Done.P();
+		printf("\n");
+	}	
+	
 	
 }
