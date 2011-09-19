@@ -18,11 +18,12 @@
 #endif
 
 
-// CONSTANTS
-#define MAX_CUST 1000       // constant: maximum number of customers
+// CONSTANTS    (TAs: change the values of these to whatever you find pleasing)
+#define MAX_CUST 100         // constant: maximum number of customers
 #define MAX_TC 5            // constant: defines maximum number of ticketClerks
 #define MAX_TT 3            // constant: defines maximum number of ticketTakers
 #define MAX_CC 5            // constant: defines maximum number of concessionClerks
+
 #define MAX_SEATS 25        // constant: max number of seats in the theater
 #define NUM_ROWS 5          // constant: number of rows in the theater
 #define NUM_COLS 5          // constant: number of seats/row
@@ -184,7 +185,6 @@ void customerInit(int groups[], int numGroups)
     }
     currIndex += groups[i];
     totalCustomers += groups[i];
-
   }
   customerLobbyLock = new Lock("C_LOBBY_LOCK");
   customerLobbyCV = new Condition("C_LOBBY_CV");
@@ -630,7 +630,7 @@ void groupHead(int custIndex)
   doBuyTickets(custIndex, groupIndex);
 
   takeFoodOrders(custIndex);
-  if((customers[custIndex].totalSodas > 0)||(customers[custIndex].totalPopcorns > 0)) {
+  if((customers[custIndex].totalSodas > 0) || (customers[custIndex].totalPopcorns > 0)) {
     doBuyFood(custIndex, groupIndex);
   }
 
@@ -1123,7 +1123,7 @@ void manager(int myIndex)
 			concessionClerkLock[i]->Acquire();
 			totalRevenue += concessionClerkRegister[i];
 
-			printf("Manager collected [%i] from ConcessionClerk[%i].\n", concessionClerkRegister[i], i);
+			printf("Manager collected %i from ConcessionClerk%i.\n", concessionClerkRegister[i], i);
 			concessionClerkRegister[i] = 0;
 			concessionClerkLock[i]->Release();
 		}
@@ -1131,7 +1131,7 @@ void manager(int myIndex)
 		{
 			ticketClerkLock[i]->Acquire();
 			totalRevenue += ticketClerkRegister[i];
-			printf("Manager collected [%i] from TicketClerk[%i].\n", ticketClerkRegister[i], i); 
+			printf("Manager collected %i from TicketClerk%i.\n", ticketClerkRegister[i], i); 
 			ticketClerkRegister[i] = 0;
 
 			ticketClerkLock[i]->Release();
@@ -1169,7 +1169,7 @@ void movieTech(int myIndex) {
       movieLength = rand()%100 + 200; // Random number between 200 and 300
       while(movieLength > 0) {
         currentThread->Yield();
-        DEBUG('p', "MOVIE IS PLAYING\n");
+        DEBUG('p', "MOVIE IS PLAYING,%i\n", movieLength);
 	      movieLength--;
       }
 
@@ -1209,6 +1209,20 @@ void movieTech(int myIndex) {
 // Initialize values and players in this theater
 void init() {
   DEBUG('p', "Initializing values and players in the movie theater.\n");
+  /*
+  int custsLeftToAssign = MAX_CUST;
+  int aGroups[MAX_CUST];
+  int aNumGroups = 0;
+  while(custsLeftToAssign > 0) {
+    int addNum = rand()%5+1;      // Random number of customers from 1-5
+    if(addNum > custsLeftToAssign)
+      addNum = custsLeftToAssign;
+    aGroups[aNumGroups] = addNum;
+    aNumGroups++;
+    custsLeftToAssign -= addNum;
+  }
+  */
+  
   int aGroups[] = {3, 1, 4, 5, 3, 4, 2, 1, 5, 2, 3};
   int aNumGroups = len(aGroups);
   totalCustomersServed = 0;
@@ -1237,13 +1251,13 @@ void init() {
 	}
 	
   // Initialize customers
-  customerInit(aGroups, len(aGroups));
+  customerInit(aGroups, aNumGroups);
 	for(int i=0; i<aNumGroups; i++) 
 	{
 	  // Fork off a new thread for a customer
-	  DEBUG('p', "Forking new thread: customerGroup%i\n", groupHeads[i]);
-	  t = new Thread("cust");
-	  t->Fork((VoidFunctionPtr)groupHead,groupHeads[i]);
+    DEBUG('p', "Forking new thread: customerGroup%i\n", groupHeads[i]);
+    t = new Thread("cust");
+    t->Fork((VoidFunctionPtr)groupHead,groupHeads[i]);
 	}
 	
 	// Initialize ticketTaker values
