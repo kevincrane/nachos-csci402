@@ -1156,7 +1156,7 @@ void movieTech(int myIndex) {
       movieStatusLock->Release();
       printf("The MovieTechnician has started the movie.\n");
 
-      movieLength = 10;             //rand()%100 + 200; // Random number between 200 and 300
+      movieLength = rand()%100 + 200; // Random number between 200 and 300
       while(movieLength > 0) {
         currentThread->Yield();
         DEBUG('p', "MOVIE IS PLAYING");
@@ -1179,7 +1179,7 @@ void movieTech(int myIndex) {
       for(int i=0; i<NUM_ROWS; i++)
         freeSeatsInRow[i] = NUM_COLS;
         
-      printf("The MovieTechnician has told all customers to leave the theater room.");
+      printf("The MovieTechnician has told all customers to leave the theater room.\n");
     }
 
     if(movieStatus == 0) {
