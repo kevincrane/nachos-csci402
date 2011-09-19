@@ -134,6 +134,9 @@ int movieLength;                          // "Length" of the movie - a number of
 bool theaterDone = false;									// Flag for when the theater is finished
 bool theaterStarted = false;							// Flag for once manager has checked everything first
 
+//Manager Globals
+int totalRevenue;
+
 // Customer Code
 
 // init all values and assemble into groups
@@ -893,7 +896,7 @@ void ticketTaker(int myIndex)
 void manager(int myIndex)
 {
   int pastTotal = 0;
-  int totalRevenue = 0;
+  totalRevenue = 0;
   bool ticketTakerWorkNow = false;
   bool ticketClerkWorkNow = false;
   bool concessionClerkWorkNow = false;
@@ -1158,7 +1161,7 @@ void manager(int myIndex)
 void movieTech(int myIndex) {
   while(true) {			//!theaterDone
     DEBUG('p',"Total Tickets Taken: %i. Num Seats Occupied: %i.\n", totalTicketsTaken, numSeatsOccupied);
-    if(movieStatus == 0 && (totalTicketsTaken == numSeatsOccupied)) {
+    if(movieStatus == 0 && (totalTicketsTaken == numSeatsOccupied) && numSeatsOccupied!=0) {
       DEBUG('p', "MOVIE TECH ATTEMPTING TO START MOVIE\n");
       movieStatusLock->Acquire();
       movieStatus = 1;
@@ -1204,46 +1207,30 @@ void movieTech(int myIndex) {
     } 
   }
 }
-
-
-// Initialize values and players in this theater
-void init() {
-  DEBUG('p', "Initializing values and players in the movie theater.\n");
-  int aGroups[] = {3, 1, 4, 5, 3, 4, 2, 1, 5, 2, 3};
-  int aNumGroups = len(aGroups);
+// Initialize variables in theater
+void init_values(){
   totalCustomersServed = 0;
-  
+
   for(int i=0; i<NUM_ROWS; i++)
   {
     freeSeatsInRow[i] = NUM_COLS;
   }
-  
-  // Initialize ticketClerk values
-	Thread *t;
+	
+  for(int i=0; i<NUM_ROWS; i++)
+  {
+    freeSeatsInRow[i] = NUM_COLS;
+  }
+	
+	// Initialize ticketClerk values
 	ticketClerkLineLock = new Lock("TC_LINELOCK");
 	ticketClerkBreakLock = new Lock("TC_BREAKLOCK");
 	ticketClerkBreakCV = new Condition("TC_BREAKCV");
-	for(int i=0; i<MAX_TC; i++) 
+		for(int i=0; i<MAX_TC; i++) 
 	{
 	  ticketClerkLineCV[i] = new Condition("TC_lineCV");		// instantiate line condition variables
 	  ticketClerkLock[i] = new Lock("TC_LOCK");
 	  ticketClerkCV[i] = new Condition("TC_CV");
 	  ticketClerkIsWorking[i] = true;
-    
-	  // Fork off a new thread for a ticketClerk
-	  DEBUG('p', "Forking new thread: ticketClerk%i\n", i);
-	  t = new Thread("tc");
-	  t->Fork((VoidFunctionPtr)ticketClerk,i);
-	}
-	
-  // Initialize customers
-  customerInit(aGroups, len(aGroups));
-	for(int i=0; i<aNumGroups; i++) 
-	{
-	  // Fork off a new thread for a customer
-	  DEBUG('p', "Forking new thread: customerGroup%i\n", groupHeads[i]);
-	  t = new Thread("cust");
-	  t->Fork((VoidFunctionPtr)groupHead,groupHeads[i]);
 	}
 	
 	// Initialize ticketTaker values
@@ -1260,11 +1247,6 @@ void init() {
 	  ticketTakerLock[i] = new Lock("TT_LOCK");
 	  ticketTakerCV[i] = new Condition("TT_CV");
 	  ticketTakerIsWorking[i] = true;
-
-	  // Fork off a new thread for a ticketTaker
-	  DEBUG('p', "Forking new thread: ticketTaker%i\n", i);
-	  t = new Thread("tt");
-	  t->Fork((VoidFunctionPtr)ticketTaker, i);
 	}
 	
 	// Initialize concessionClerk values
@@ -1284,11 +1266,6 @@ void init() {
 	  numPopcornsOrdered[i] = 0;
 	  numSodasOrdered[i] = 0;
 	  concessionClerkIsWorking[i] = true;
-	  
-	  // Fork off a new thread for a concessionClerk
-	  DEBUG('p', "Forking new thread: concessionClerk%i\n", i);
-	  t = new Thread("cc");
-	  t->Fork((VoidFunctionPtr)concessionClerk, i);
 	}
 	
 	// Initialize movieTechnician values
@@ -1299,6 +1276,54 @@ void init() {
 	movieFinishedLock = new Lock("MFL");
 	movieStatusLock = new Lock("MS_LOCK");
 	numSeatsOccupied = 0; 
+	
+	// Initialize manager values
+	totalRevenue = 0;
+}
+
+// Initialize players in this theater
+void init() {
+  DEBUG('p', "Initializing values and players in the movie theater.\n");
+	init_values();
+
+  
+  
+	Thread *t;
+	
+	int aGroups[] = {3, 1, 4, 5, 3, 4, 2, 1, 5, 2, 3};
+  int aNumGroups = len(aGroups);
+	for(int i=0; i<MAX_TC; i++) 
+	{ 
+	  // Fork off a new thread for a ticketClerk
+	  DEBUG('p', "Forking new thread: ticketClerk%i\n", i);
+	  t = new Thread("tc");
+	  t->Fork((VoidFunctionPtr)ticketClerk,i);
+	}
+	
+  // Initialize customers
+  customerInit(aGroups, len(aGroups));
+	for(int i=0; i<aNumGroups; i++) 
+	{
+	  // Fork off a new thread for a customer
+	  DEBUG('p', "Forking new thread: customerGroup%i\n", groupHeads[i]);
+	  t = new Thread("cust");
+	  t->Fork((VoidFunctionPtr)groupHead,groupHeads[i]);
+	}
+
+	for(int i=0; i<MAX_TT; i++)
+	{
+	  // Fork off a new thread for a ticketTaker
+	  DEBUG('p', "Forking new thread: ticketTaker%i\n", i);
+	  t = new Thread("tt");
+	  t->Fork((VoidFunctionPtr)ticketTaker, i);
+	}
+	
+	for(int i=0; i<MAX_CC; i++) {
+	  // Fork off a new thread for a concessionClerk
+	  DEBUG('p', "Forking new thread: concessionClerk%i\n", i);
+	  t = new Thread("cc");
+	  t->Fork((VoidFunctionPtr)concessionClerk, i);
+	}
   
 	DEBUG('p', "Forking new thread: movieTech.\n");
 	t = new Thread("mt");
