@@ -387,7 +387,7 @@ void choseSeat(int custIndex, int row, int col) {
 void doChooseSeats(int custIndex, int groupIndex)
 {
   int gSize = groupSize[groupIndex];
-  
+  DEBUG('p', "Customer %i, Group %i choosing seats.\n", custIndex, groupIndex);
   // Try to find a row with enough free seats
   for(int i=0; i<NUM_ROWS; i++) {
     if(freeSeatsInRow[i] >= gSize) {
@@ -662,10 +662,7 @@ void groupHead(int custIndex)
 // TicketClerk
 // -Thread that is run when Customer is interacting with TicketClerk to buy movie tickets
 void ticketClerk(int myIndex) 
-{
-  if(myIndex==2 || myIndex==3)
-    ticketClerkState[myIndex] = 2;
-    
+{    
   int numberOfTicketsHeld;
   while(true) 
   {
@@ -813,8 +810,6 @@ void concessionClerk(int myIndex) {
 // TICKET TAKER
 void ticketTaker(int myIndex)
 {
-  if(myIndex==2 || myIndex==0) 
-    ticketTakerState[myIndex] = 2;
 
   while(true)
   {
@@ -1078,7 +1073,7 @@ void manager(int myIndex)
 		}
 		
 	
-  	    DEBUG('p', "Manager: Checking movie to see if it needs to be restarted.\n");
+  	DEBUG('p', "Manager: Checking movie to see if it needs to be restarted.\n");
     //Check to start movie
     DEBUG('p', "MovieStatus = %i.\n", movieStatus);
     if(movieStatus == 2)		//Stopped
@@ -1142,6 +1137,7 @@ void manager(int myIndex)
 		//Pause  ---   NOT SURE HOW LONG TO MAKE MANAGER YIELD - ryan
 		for(int i=0; i<50; i++)
 		{
+			DEBUG('p', "MANAGER YIELDING : %i\n", i);
 			currentThread->Yield();
 		}
 	}	
@@ -1163,7 +1159,7 @@ void movieTech(int myIndex) {
       while(movieLength > 0) {
         currentThread->Yield();
         DEBUG('p', "MOVIE IS PLAYING\n");
-	movieLength--;
+				movieLength--;
       }
 
       movieStatusLock->Acquire();
