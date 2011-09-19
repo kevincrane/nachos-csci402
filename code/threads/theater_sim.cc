@@ -183,6 +183,7 @@ void customerInit(int groups[], int numGroups)
     }
     currIndex += groups[i];
     totalCustomers += groups[i];
+
   }
   customerLobbyLock = new Lock("C_LOBBY_LOCK");
   customerLobbyCV = new Condition("C_LOBBY_CV");
@@ -364,9 +365,9 @@ void doGiveTickets(int custIndex, int groupIndex)
     // Allowed into theater
     printf("Allowed into theater slut.\n");
       
-    ticketTakerLock[myTicketTaker]->Release();                                  // Fly free ticketClerk. You were a noble friend.
     ticketTakerCV[myTicketTaker]->Signal(ticketTakerLock[myTicketTaker]);       // You're free to carry on noble ticketClerk
-  }
+		ticketTakerLock[myTicketTaker]->Release();                                  // Fly free ticketClerk. You were a noble friend.
+	}
 }
 
 // Customer sitting in position [row, col]
@@ -384,7 +385,7 @@ void choseSeat(int custIndex, int row, int col) {
 void doChooseSeats(int custIndex, int groupIndex)
 {
   int gSize = groupSize[groupIndex];
-  
+  DEBUG('p', "Customer %i, Group %i choosing seats.\n", custIndex, groupIndex);
   // Try to find a row with enough free seats
   for(int i=0; i<NUM_ROWS; i++) {
     if(freeSeatsInRow[i] >= gSize) {
@@ -811,6 +812,7 @@ void concessionClerk(int myIndex) {
 // TICKET TAKER
 void ticketTaker(int myIndex)
 {
+
   while(true)
   {
     // TicketTaker is on break, go away.
@@ -900,7 +902,7 @@ void manager(int myIndex)
     DEBUG('p', "Manager: Checking for employees to go on break. \n");
   	
     //TicketTaker Break
-    DEBUG('p', "Entered TicketTaker Break Section");
+    DEBUG('p', "Entered TicketTaker Break Section\n");
     for(int i = 0; i < MAX_TT; i++)		//Put TicketTaker on break 
     {
       ticketTakerLineLock->Acquire();
@@ -1071,72 +1073,75 @@ void manager(int myIndex)
 		}
 		
 	
-  	    DEBUG('p', "Manager: Checking movie to see if it needs to be restarted.\n");
+  	DEBUG('p', "Manager: Checking movie to see if it needs to be restarted.\n");
     //Check to start movie
     DEBUG('p', "MovieStatus = %i.\n", movieStatus);
     if(movieStatus == 2)		//Stopped
     {
-      DEBUG('p', "1\n");
-      DEBUG('p', "TotalTicketsTaken = %i\n", totalTicketsTaken);
-      DEBUG('p', "NumSeatsOccupied = %i\n", numSeatsOccupied);
-      if(totalTicketsTaken == 0 && numSeatsOccupied == 0) {
-        DEBUG('p', "2\n");
-        // Tell TicketTakers to take tickets
-        movieStarted = false;
-        ticketTakerMovieLock->Acquire();
-        ticketTakerMovieCV->Broadcast(ticketTakerMovieLock);
-        ticketTakerMovieLock->Release();
- 	    
-    	  // Tell Customers to go to theater
-        customerLobbyLock->Acquire();
-        customerLobbyCV->Broadcast(customerLobbyLock);
-        customerLobbyLock->Release();
-	
-        // TODO: Pause for random movie starting
-        for(int i=0; i<30; i++) {
-         currentThread->Yield();
-        }
+			DEBUG('p', "TotalTicketsTaken = %i\n", totalTicketsTaken);
+			DEBUG('p', "NumSeatsOccupied = %i\n", numSeatsOccupied);
+    	if(totalTicketsTaken == 0 && numSeatsOccupied == 0) {
+    		// Tell TicketTakers to take tickets
+    		movieStarted = false;
+    		ticketTakerMovieLock->Acquire();
+    		DEBUG('p', "Manager: Waking up all ticketTakers!\n");
+    		ticketTakerMovieCV->Broadcast(ticketTakerMovieLock);
+    		ticketTakerMovieLock->Release();
+    			
+    		// Tell Customers to go to theater
+    		customerLobbyLock->Acquire();
+    		DEBUG('p', "Manager: Waking up all customers!\n");
+    		customerLobbyCV->Broadcast(customerLobbyLock);
+    		customerLobbyLock->Release();
+    
+       	// TODO: Pause for random movie starting
+       	for(int i=0; i<30; i++) {
+       		currentThread->Yield();
+       	}
 
-        // Set movie ready to start
-        movieStarted = true;
-        movieStatusLock->Acquire();
-        movieStatus = 0;
-        movieStatusLockCV->Signal(movieStatusLock);
-        movieStatusLock->Release(); 
-      }
+       	// Set movie ready to start
+       	movieStarted = true;
+       	movieStatusLock->Acquire();
+       	movieStatus = 0;
+       	movieStatusLockCV->Signal(movieStatusLock);
+       	movieStatusLock->Release(); 
+     	}
     }
-  	
-  	//Check clerk money levels
-  	pastTotal = totalRevenue;
-  	for(int i = 0; i<MAX_CC; i++)
-  	{
-  	  concessionClerkLock[i]->Acquire();
-  	  totalRevenue += concessionClerkRegister[i];
+			
+		//Check clerk money levels
+		pastTotal = totalRevenue;
+		for(int i = 0; i<MAX_CC; i++)
+		{
+			concessionClerkLock[i]->Acquire();
+			totalRevenue += concessionClerkRegister[i];
+
 			printf("Manager collected [%i] from ConcessionClerk[%i].\n", concessionClerkRegister[i], i);
 			concessionClerkRegister[i] = 0;
-  	  concessionClerkLock[i]->Release();
-  	}
-  	for(int i = 0; i<MAX_TC; i++)
-  	{
-  	  ticketClerkLock[i]->Acquire();
-  	  totalRevenue += ticketClerkRegister[i];
+			concessionClerkLock[i]->Release();
+		}
+		for(int i = 0; i<MAX_TC; i++)
+		{
+			ticketClerkLock[i]->Acquire();
+			totalRevenue += ticketClerkRegister[i];
 			printf("Manager collected [%i] from TicketClerk[%i].\n", ticketClerkRegister[i], i); 
 			ticketClerkRegister[i] = 0;
-  	  ticketClerkLock[i]->Release();
-  	}
-  	DEBUG('p', "Manager: Total amount of money in theater is $%i \n", totalRevenue);
-  	printf("Total money made by office = [%i]\n", totalRevenue);
-  	//TODO: Check theater sim complete
-  	if(totalCustomersServed == totalCustomers){
-  		DEBUG('p', "\n\nManager: Everyone is happy and has left. Closing the theater.\n\n\n");
-  		break;
-  	}
-  	
-  	//Pause  ---   NOT SURE HOW LONG TO MAKE MANAGER YIELD - ryan
-  	for(int i=0; i<50; i++) {
-  	  currentThread->Yield();
-  	}
-  }	 
+
+			ticketClerkLock[i]->Release();
+		}
+		DEBUG('p', "Manager: Total amount of money in theater is $%i \n", totalRevenue);
+		printf("Total money made by office = [%i]\n", totalRevenue);
+		//TODO: Check theater sim complete
+		if(totalCustomersServed == totalCustomers){
+			DEBUG('p', "\n\nManager: Everyone is happy and has left. Closing the theater.\n\n\n");
+			break;
+		}
+		
+		//Pause  ---   NOT SURE HOW LONG TO MAKE MANAGER YIELD - ryan
+		for(int i=0; i<50; i++)
+		{
+			currentThread->Yield();
+		}
+	}	
 }	  
 
 // MOVIE TECHNICIAN
