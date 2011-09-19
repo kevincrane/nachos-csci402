@@ -135,6 +135,9 @@ int movieLength;                          // "Length" of the movie - a number of
 bool theaterDone = false;									// Flag for when the theater is finished
 bool theaterStarted = false;							// Flag for once manager has checked everything first
 
+//Manager Globals
+int totalRevenue;
+
 // Customer Code
 
 // init all values and assemble into groups
@@ -297,8 +300,8 @@ void doGiveTickets(int custIndex, int groupIndex)
           //Found a clerk who's not busy
           myTicketTaker = i;             // and now you belong to me
           ticketTakerState[i] = 1;
-          printf("Customer %i in Group %i is getting in 	 %i\n",
-          custIndex, groupIndex, myTicketTaker);
+          printf("Customer %i in Group %i is getting in TicketTaker line %i\n",
+              custIndex, groupIndex, myTicketTaker);
           DEBUG('p', "cust%i: talking to tt%i.\n", custIndex, myTicketTaker);
           break;
         }
@@ -363,8 +366,6 @@ void doGiveTickets(int custIndex, int groupIndex)
     return;
   } else {
     // Allowed into theater
-    printf("Allowed into theater slut.\n");
-      
     ticketTakerCV[myTicketTaker]->Signal(ticketTakerLock[myTicketTaker]);       // You're free to carry on noble ticketClerk
 		ticketTakerLock[myTicketTaker]->Release();                                  // Fly free ticketClerk. You were a noble friend.
 	}
@@ -546,7 +547,7 @@ void doBuyFood(int custIndex, int groupIndex)
   // Hand concession clerk money
   customers[custIndex].money -= amountOwed[myConcessionClerk];
   concessionClerkCV[myConcessionClerk]->Signal(concessionClerkLock[myConcessionClerk]);
-  printf("Customer %i in Group %i in ConcessionClerk line %i is paying $%i for food.\n",
+  printf("Customer %i in Group %i in ConcessionClerk line %i is paying %i for food.\n",
       custIndex, customers[custIndex].group, myConcessionClerk, amountOwed[myConcessionClerk]);
 
   // Wait for concessionClerk to take money
@@ -616,6 +617,7 @@ void doLeaveTheaterAndUseRestroom(int custIndex, int groupIndex) {
     }
     DEBUG('p', "%i members in Group %i left in the restroom.\n", numInRestroom, groupIndex);
   }
+  waitingOnGroupLock[groupIndex]->Release();
 }
 
 // Defines behavior routine for all groups of customers
@@ -893,7 +895,7 @@ void ticketTaker(int myIndex)
 void manager(int myIndex)
 {
   int pastTotal = 0;
-  int totalRevenue = 0;
+  totalRevenue = 0;
   bool ticketTakerWorkNow = false;
   bool ticketClerkWorkNow = false;
   bool concessionClerkWorkNow = false;
@@ -916,7 +918,7 @@ void manager(int myIndex)
     		{
      		  ticketTakerLock[i]->Acquire();
      		  ticketTakerState[i] = 2;
-  				printf("Manager has told TicketTaker [%i] to go on break.\n", i);
+  				printf("Manager has told TicketTaker %i to go on break.\n", i);
      		  ticketTakerLock[i]->Release();
     		}
 				ticketTakerLineLock->Release();
@@ -928,7 +930,7 @@ void manager(int myIndex)
 	    	if(rand() % 5 == 0)
 	    	{
 	    	  DEBUG('p', "Manager: TicketTaker%i is going to take a break since another employee is working. \n", i);
-					printf("Manager has told TicketTaker [%i] to go on break.\n", i);
+					printf("Manager has told TicketTaker %i to go on break.\n", i);
 	    	  ticketTakerState[i] = 2;
 	    	}
  		    ticketTakerLock[i]->Release();
@@ -950,7 +952,7 @@ void manager(int myIndex)
     		  DEBUG('p', "Manager: concessionClerk%i is going to take a break. \n", i);
     		  concessionClerkLock[i]->Acquire();
     		  concessionClerkState[i] = 2;			//State as 2 means to take a break
-					printf("Manager has told ConcessionClerk [%i] to go on break.\n", i);
+					printf("Manager has told ConcessionClerk %i to go on break.\n", i);
     		  concessionClerkLock[i]->Release();
     		}
 				concessionClerkLineLock->Release();
@@ -964,7 +966,7 @@ void manager(int myIndex)
   	    	if(rand() % 5 == 0)
   	    	{
   	    	  DEBUG('p', "Manager: concessionClerk%i is going to take a break since another employee is working. \n", i);
-						printf("Manager has told ConcessionClerk [%i] to go on break.\n", i);
+						printf("Manager has told ConcessionClerk %i to go on break.\n", i);
   	    	  concessionClerkState[i] = 2;
   	    	}
   	    concessionClerkLock[i]->Release();
@@ -985,7 +987,7 @@ void manager(int myIndex)
   			{
 					DEBUG('p', "Manager: ticketClerk%i is going to take a break. \n", i);
 					ticketClerkLock[i]->Acquire();
-					printf("Manager has told TicketClerk [%i] to go on break. \n",i);
+					printf("Manager has told TicketClerk %i to go on break. \n",i);
 					ticketClerkState[i] = 2;			//State as 2 means to take a break
 					ticketClerkLock[i]->Release();
   			}
@@ -1000,7 +1002,7 @@ void manager(int myIndex)
    	    	{
    	    	  DEBUG('p', "Manager: ticketClerk%i is going to take a break since another employee is working. \n", i);
    	    	  ticketClerkState[i] = 2;
-  					printf("Manager has told TicketClerk [%i] to go on break. \n",i);
+  					printf("Manager has told TicketClerk %i to go on break. \n",i);
    	    	}
    	    ticketClerkLock[i]->Release();
    	  	}
@@ -1136,8 +1138,8 @@ void manager(int myIndex)
 
 			ticketClerkLock[i]->Release();
 		}
-		DEBUG('p', "Manager: Total amount of money in theater is $%i \n", totalRevenue);
-		printf("Total money made by office = [%i]\n", totalRevenue);
+		DEBUG('p', "Manager: Total amount of money in theater is %i \n", totalRevenue);
+		printf("Total money made by office = %i\n", totalRevenue);
 		//TODO: Check theater sim complete
 		if(totalCustomersServed == totalCustomers){
 			DEBUG('p', "\n\nManager: Everyone is happy and has left. Closing the theater.\n\n\n");
@@ -1146,7 +1148,7 @@ void manager(int myIndex)
 		}
 		
 		//Pause  ---   NOT SURE HOW LONG TO MAKE MANAGER YIELD - ryan
-		for(int i=0; i<3; i++)
+		for(int i=0; i<10; i++)
 		{
 			theaterStarted = true;
 			currentThread->Yield();
@@ -1156,9 +1158,9 @@ void manager(int myIndex)
 
 // MOVIE TECHNICIAN
 void movieTech(int myIndex) {
-  while(true) {			//!theaterDone
+  while(!theaterDone) {
     DEBUG('p',"Total Tickets Taken: %i. Num Seats Occupied: %i.\n", totalTicketsTaken, numSeatsOccupied);
-    if(movieStatus == 0 && (totalTicketsTaken == numSeatsOccupied)) {
+    if(movieStatus == 0 && (totalTicketsTaken == numSeatsOccupied) && numSeatsOccupied!=0) {
       DEBUG('p', "MOVIE TECH ATTEMPTING TO START MOVIE\n");
       movieStatusLock->Acquire();
       movieStatus = 1;
@@ -1205,59 +1207,32 @@ void movieTech(int myIndex) {
   }
 }
 
-
 // Initialize values and players in this theater
-void init() {
+void init_values() {
   DEBUG('p', "Initializing values and players in the movie theater.\n");
-  /*
-  int custsLeftToAssign = MAX_CUST;
-  int aGroups[MAX_CUST];
-  int aNumGroups = 0;
-  while(custsLeftToAssign > 0) {
-    int addNum = rand()%5+1;      // Random number of customers from 1-5
-    if(addNum > custsLeftToAssign)
-      addNum = custsLeftToAssign;
-    aGroups[aNumGroups] = addNum;
-    aNumGroups++;
-    custsLeftToAssign -= addNum;
-  }
-  */
   
-  int aGroups[] = {3, 1, 4, 5, 3, 4, 2, 1, 5, 2, 3};
-  int aNumGroups = len(aGroups);
   totalCustomersServed = 0;
-  
+
   for(int i=0; i<NUM_ROWS; i++)
   {
     freeSeatsInRow[i] = NUM_COLS;
   }
-  
-  // Initialize ticketClerk values
-	Thread *t;
+	
+  for(int i=0; i<NUM_ROWS; i++)
+  {
+    freeSeatsInRow[i] = NUM_COLS;
+  }
+	
+	// Initialize ticketClerk values
 	ticketClerkLineLock = new Lock("TC_LINELOCK");
 	ticketClerkBreakLock = new Lock("TC_BREAKLOCK");
 	ticketClerkBreakCV = new Condition("TC_BREAKCV");
-	for(int i=0; i<MAX_TC; i++) 
+		for(int i=0; i<MAX_TC; i++) 
 	{
 	  ticketClerkLineCV[i] = new Condition("TC_lineCV");		// instantiate line condition variables
 	  ticketClerkLock[i] = new Lock("TC_LOCK");
 	  ticketClerkCV[i] = new Condition("TC_CV");
 	  ticketClerkIsWorking[i] = true;
-    
-	  // Fork off a new thread for a ticketClerk
-	  DEBUG('p', "Forking new thread: ticketClerk%i\n", i);
-	  t = new Thread("tc");
-	  t->Fork((VoidFunctionPtr)ticketClerk,i);
-	}
-	
-  // Initialize customers
-  customerInit(aGroups, aNumGroups);
-	for(int i=0; i<aNumGroups; i++) 
-	{
-	  // Fork off a new thread for a customer
-    DEBUG('p', "Forking new thread: customerGroup%i\n", groupHeads[i]);
-    t = new Thread("cust");
-    t->Fork((VoidFunctionPtr)groupHead,groupHeads[i]);
 	}
 	
 	// Initialize ticketTaker values
@@ -1274,11 +1249,6 @@ void init() {
 	  ticketTakerLock[i] = new Lock("TT_LOCK");
 	  ticketTakerCV[i] = new Condition("TT_CV");
 	  ticketTakerIsWorking[i] = true;
-
-	  // Fork off a new thread for a ticketTaker
-	  DEBUG('p', "Forking new thread: ticketTaker%i\n", i);
-	  t = new Thread("tt");
-	  t->Fork((VoidFunctionPtr)ticketTaker, i);
 	}
 	
 	// Initialize concessionClerk values
@@ -1298,11 +1268,6 @@ void init() {
 	  numPopcornsOrdered[i] = 0;
 	  numSodasOrdered[i] = 0;
 	  concessionClerkIsWorking[i] = true;
-	  
-	  // Fork off a new thread for a concessionClerk
-	  DEBUG('p', "Forking new thread: concessionClerk%i\n", i);
-	  t = new Thread("cc");
-	  t->Fork((VoidFunctionPtr)concessionClerk, i);
 	}
 	
 	// Initialize movieTechnician values
@@ -1313,6 +1278,66 @@ void init() {
 	movieFinishedLock = new Lock("MFL");
 	movieStatusLock = new Lock("MS_LOCK");
 	numSeatsOccupied = 0; 
+	
+	// Initialize manager values
+	totalRevenue = 0;
+}
+
+// Initialize players in this theater
+void init() {
+  DEBUG('p', "Initializing values and players in the movie theater.\n");
+	init_values();
+  
+	Thread *t;
+	
+  /*
+  int custsLeftToAssign = MAX_CUST;
+  int aGroups[MAX_CUST];
+  int aNumGroups = 0;
+  while(custsLeftToAssign > 0) {
+    int addNum = rand()%5+1;      // Random number of customers from 1-5
+    if(addNum > custsLeftToAssign)
+      addNum = custsLeftToAssign;
+    aGroups[aNumGroups] = addNum;
+    aNumGroups++;
+    custsLeftToAssign -= addNum;
+  }
+  */
+  
+	int aGroups[] = {3, 1, 4, 5, 3, 4, 2, 1, 5, 2, 3};
+  int aNumGroups = len(aGroups);
+	for(int i=0; i<MAX_TC; i++) 
+	{ 
+	  // Fork off a new thread for a ticketClerk
+	  DEBUG('p', "Forking new thread: ticketClerk%i\n", i);
+	  t = new Thread("tc");
+	  t->Fork((VoidFunctionPtr)ticketClerk,i);
+	}
+	
+  // Initialize customers
+  customerInit(aGroups, aNumGroups);
+	for(int i=0; i<aNumGroups; i++) 
+	{
+	  // Fork off a new thread for a customer
+	  DEBUG('p', "Forking new thread: customerGroup%i\n", groupHeads[i]);
+	  t = new Thread("cust");
+	  t->Fork((VoidFunctionPtr)groupHead,groupHeads[i]);
+	}
+
+	for(int i=0; i<MAX_TT; i++)
+	{
+	  // Fork off a new thread for a ticketTaker
+	  DEBUG('p', "Forking new thread: ticketTaker%i\n", i);
+	  t = new Thread("tt");
+	  t->Fork((VoidFunctionPtr)ticketTaker, i);
+	}
+	
+	for(int i=0; i<MAX_CC; i++) {
+	  // Fork off a new thread for a concessionClerk
+	  DEBUG('p', "Forking new thread: concessionClerk%i\n", i);
+	  t = new Thread("cc");
+	  t->Fork((VoidFunctionPtr)concessionClerk, i);
+	}
   
 	DEBUG('p', "Forking new thread: movieTech.\n");
 	t = new Thread("mt");
