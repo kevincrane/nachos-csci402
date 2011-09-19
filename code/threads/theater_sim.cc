@@ -131,7 +131,8 @@ Condition* movieStatusLockCV;             // Condition variable to wait after th
 
 int movieStatus;                          // 0 = need to start, 1 = playing, 2 = finished
 int movieLength;                          // "Length" of the movie - a number of yields between 200 and 300
-
+bool theaterDone = false;									// Flag for when the theater is finished
+bool theaterStarted = false;							// Flag for once manager has checked everything first
 
 // Customer Code
 
@@ -204,7 +205,7 @@ void doBuyTickets(int custIndex, int groupIndex)
   do {
     myTicketClerk = -1;
     findNewLine = false;
-
+		DEBUG('p', "cust%i: Acquiring ticketClerkLineLock\n", custIndex);
     ticketClerkLineLock->Acquire();
     //See if any TicketClerk not busy
     for(int i=0; i<MAX_TC; i++) 
@@ -296,7 +297,7 @@ void doGiveTickets(int custIndex, int groupIndex)
           //Found a clerk who's not busy
           myTicketTaker = i;             // and now you belong to me
           ticketTakerState[i] = 1;
-          printf("Customer %i in Group %i is getting in TicketTaker line %i\n",
+          printf("Customer %i in Group %i is getting in 	 %i\n",
           custIndex, groupIndex, myTicketTaker);
           DEBUG('p', "cust%i: talking to tt%i.\n", custIndex, myTicketTaker);
           break;
@@ -306,16 +307,15 @@ void doGiveTickets(int custIndex, int groupIndex)
     // All ticketTakers were occupied, find the shortest line instead
     if(myTicketTaker == -1) {
       DEBUG('p', "cust%i: all tt's occupied, looking for shortest line.\n", custIndex);
-      int shortestTTLine = -1;     // default the first line to current shortest
-      int shortestTTLineLength = 10000;
+      int shortestTTLine = 0;     // default the first line to current shortest
+      int shortestTTLineLength = ticketTakerLineCount[0];
       for(int i=0; i<MAX_TT; i++) {
         if((ticketTakerState[i] == 1) && (shortestTTLineLength > ticketTakerLineCount[i])) {
           //current line is shorter
           shortestTTLine = i;
           shortestTTLineLength = ticketTakerLineCount[i];
         }
-      }
-    
+      }			
       // Found the TicketClerk with the shortest line
       myTicketTaker = shortestTTLine;
       printf("Customer %i in Group %i is getting in TicketTaker line %i\n", 
@@ -705,8 +705,9 @@ void ticketClerk(int myIndex)
     }
     
     DEBUG('p', "tc%i: Acquiring lock on self.\n", myIndex);
-    ticketClerkLock[myIndex]->Acquire();                            // Call dibs on this current ticketClerk for a while
     ticketClerkLineLock->Release();
+		ticketClerkLock[myIndex]->Acquire();                            // Call dibs on this current ticketClerk for a while
+    
     
     //Wait for Customer to come to my counter and ask for tickets; tell him what he owes.
     ticketClerkCV[myIndex]->Wait(ticketClerkLock[myIndex]);
@@ -777,9 +778,9 @@ void concessionClerk(int myIndex) {
     //Wait for customer to tell me their soda order
     concessionClerkCV[myIndex]->Wait(concessionClerkLock[myIndex]);
 
-    DEBUG('p',"cc: Got customer's soda order of %i sodas.\n", numSodasOrdered[myIndex]);
-    DEBUG('p',"cc: Passing customer %i popcorns.\n", numPopcornsOrdered[myIndex]);
-    DEBUG('p',"cc: Passing customer %i sodas.\n", numSodasOrdered[myIndex]);
+    DEBUG('p',"cc%i: Got customer's soda order of %i sodas.\n", myIndex, numSodasOrdered[myIndex]);
+    DEBUG('p',"cc%i: Passing customer %i popcorns.\n", myIndex, numPopcornsOrdered[myIndex]);
+    DEBUG('p',"cc%i: Passing customer %i sodas.\n", myIndex, numSodasOrdered[myIndex]);
 
     // Wake up customer so they can take food
     concessionClerkCV[myIndex]->Signal(concessionClerkLock[myIndex]);
@@ -881,6 +882,7 @@ void ticketTaker(int myIndex)
     totalTicketsTaken += numTicketsReceived[myIndex];
     ticketTakerCounterLock->Release();
     ticketTakerCV[myIndex]->Wait(ticketTakerLock[myIndex]);
+		ticketTakerLock[myIndex]->Release();
     // TicketTaker is done with customer, allows them to move into the theater
   }
 }
@@ -989,7 +991,8 @@ void manager(int myIndex)
   			}
 				ticketClerkLineLock->Release();
 				break;
-  	  } else {
+  	  } else 
+			{
         ticketClerkLock[i]->Acquire();
    	    if(ticketClerkWorking > 0)
         {
@@ -1001,8 +1004,9 @@ void manager(int myIndex)
    	    	}
    	    ticketClerkLock[i]->Release();
    	  	}
+				DEBUG('p', "Manager: Releasing TicketClerkLineLock.\n");
+				ticketClerkLineLock->Release();
    	  }
-      ticketClerkLineLock->Release();
     }	
   	
   	// Take Employee Off Break
@@ -1015,6 +1019,10 @@ void manager(int myIndex)
 			{
 				DEBUG('p', "Manager: Found line longer than 5. Flagging ticketTaker%i to come off break.\n",i);
 				ticketTakerWorkNow = true;						//Set status to having the employee work
+				break;
+			}
+			else if(ticketTakerWorking == 0 && ticketTakerLineCount[0] > 0){
+				DEBUG('p', "Manager: Found a line without an employee, grabbing an employee to come off break. \n",i);
 				break;
 			}
 			ticketTakerLineLock->Release();
@@ -1076,7 +1084,7 @@ void manager(int myIndex)
   	DEBUG('p', "Manager: Checking movie to see if it needs to be restarted.\n");
     //Check to start movie
     DEBUG('p', "MovieStatus = %i.\n", movieStatus);
-    if(movieStatus == 2)		//Stopped
+    if(movieStatus == 2 && theaterStarted)		//Stopped
     {
 			DEBUG('p', "TotalTicketsTaken = %i\n", totalTicketsTaken);
 			DEBUG('p', "NumSeatsOccupied = %i\n", numSeatsOccupied);
@@ -1133,12 +1141,14 @@ void manager(int myIndex)
 		//TODO: Check theater sim complete
 		if(totalCustomersServed == totalCustomers){
 			DEBUG('p', "\n\nManager: Everyone is happy and has left. Closing the theater.\n\n\n");
+			theaterDone = true;
 			break;
 		}
 		
 		//Pause  ---   NOT SURE HOW LONG TO MAKE MANAGER YIELD - ryan
-		for(int i=0; i<50; i++)
+		for(int i=0; i<3; i++)
 		{
+			theaterStarted = true;
 			currentThread->Yield();
 		}
 	}	
@@ -1146,7 +1156,7 @@ void manager(int myIndex)
 
 // MOVIE TECHNICIAN
 void movieTech(int myIndex) {
-  while(true) {
+  while(true) {			//!theaterDone
     DEBUG('p',"Total Tickets Taken: %i. Num Seats Occupied: %i.\n", totalTicketsTaken, numSeatsOccupied);
     if(movieStatus == 0 && (totalTicketsTaken == numSeatsOccupied)) {
       DEBUG('p', "MOVIE TECH ATTEMPTING TO START MOVIE\n");
@@ -1159,7 +1169,7 @@ void movieTech(int myIndex) {
       movieLength = 10;             //rand()%100 + 200; // Random number between 200 and 300
       while(movieLength > 0) {
         currentThread->Yield();
-        DEBUG('p', "MOVIE IS PLAYING");
+        DEBUG('p', "MOVIE IS PLAYING\n");
 	      movieLength--;
       }
 
@@ -1179,7 +1189,7 @@ void movieTech(int myIndex) {
       for(int i=0; i<NUM_ROWS; i++)
         freeSeatsInRow[i] = NUM_COLS;
         
-      printf("The MovieTechnician has told all customers to leave the theater room.");
+      printf("The MovieTechnician has told all customers to leave the theater room.\n");
     }
 
     if(movieStatus == 0) {
