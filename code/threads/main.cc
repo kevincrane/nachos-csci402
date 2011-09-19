@@ -53,6 +53,7 @@
 #include "utility.h"
 #include "system.h"
 #include "theater_sim.cc"
+#include "theater_sim_test.cc"
 
 // External functions used by this file
 
@@ -64,6 +65,7 @@ extern void MailTest(int networkID);
 #ifdef THREADS
 extern void TestSuite(void); //Problem2(void)
 extern void Theater_Sim(void);
+extern void Theater_Sim_Test(void);
 #endif
 
 //----------------------------------------------------------------------
@@ -99,7 +101,8 @@ main(int argc, char **argv)
             printf (copyright);
 #ifdef THREADS
 	if (!strcmp(*argv, "-T"))               // Test Suite: link for this code is at the bottom of part 1 description
-    	TestSuite();
+    	//TestSuite();
+			Theater_Sim_Test();
   if (!strcmp(*argv, "-P2"))               // Problem 2: for part 2
       Theater_Sim();
 #endif
