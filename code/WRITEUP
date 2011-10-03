@@ -1,0 +1,1361 @@
+Title: Writeup for Assignment 1: Build a synchronized, multi-threaded system
+Date: 9/18/11
+Group Number: 8
+
+Name			Email
+Michelle Forcier	mforcier@usc.edu
+Ryan Ball		rball@usc.edu
+Kevin Crane		kevincra@usc.edu
+
+PLEASE SEE ADDITIONAL NOTES AT THE BOTTOM OF THIS DOCUMENT
+
+I. Requirements:
+
+	Part 1 -Implement locks and condition variables. Follow the given
+		public interface, define the private data necessary, and
+		implement the methods.
+	
+		A. Lock Constructor: Defined the private data.
+
+		B. Lock Destructor: Deleted anything with a "new" for memory
+		   management purposes.
+
+		C. Lock Acquire Method: For mutually exclusive transactions
+		   implemented the acquire method which allows the caller to
+		   keep others out of a critical sections while caller's thread
+		   is in it.
+
+		D. Lock Release Method: For mutually exclusive transactions,
+		   makes the lock free again to be acquired by another thread.
+
+		E. Condition Constructor: Defined the private data.
+
+		F. Condition Destructor: Deleted anything with a "new" for 
+		   memory management purposes.
+
+		G. Condition Wait Method: To allow sequencing, puts the calling
+		   thread to sleep until it is woken up at a later time.
+
+		H. Condition Signal Method: To allow sequencing, wakes up
+		   a thread that has been waiting (sleeping), so that it can
+		   continue doing work.
+
+		I. Condition Broadcast Method: Wakes up all threads that have
+		   been waiting, so they can all continue doing work.
+
+	Part 2 -Simulate the operation of a movie theater.
+	
+		A. Theater Room: Has 5 rows of 5 seats
+	
+		B. Customers: One member of each group of customers buys
+		   all tickets and food for the group. The same customer
+		   gives the Ticket Taker the tickets. Groups can have 1-5 
+		   people. Groups travel together (except after the movie, 
+		   when some members use the restroom). Groups try to sit
+		   together. Customers always get in the shortest line. 
+		   If the movie has started, customers wait in the lobby.
+		   Customers have a 75% chance of wanting popcorn and a 75%
+		   chance of wanting soda. There are at least 40 customers. 
+
+		C. Ticket Clerk: They sell tickets to customers. Each ticket
+		   is $12.00. Ticket Clerk tells the Customer how much to pay 
+		   and gives the Customer their tickets after payment. Ticket
+		   clerks go on break if the manager tells them too, they each
+		   have a line. There are 1-5 Ticket Clerks.
+
+		D. Concession Clerk: Customer tells Concession Clerk how many
+		   orders of soda and popcorn they want. Each popcorn is $5 and
+		   each soda is $4. Concession Clerks pass food to Customer and
+		   go on break when the Manager says so. There are 1-5 
+		   Concession Clerks.
+
+		E. Ticket Takers: Handle one group at a time, each. Keep track
+		   of when Customers are allowed in the theater. There are 1-3
+		   Ticket Takers.
+
+		F. Movie Technician: Starts the movie when told to do so by the
+		   Manager and everyone is seated. Tells the Customers that the
+		   movie is over. There is 1 Movie Technician.
+		
+		G. Manager: Tells employees when to go on break. If employee
+		   has no one in their line, Manager tells them to break 20% of
+		   the time. If employee has < 3 Customers in line, Manager 
+		   tells them to break 20% of the time. Manager brings employees
+		   off break when lines are long. Tells Movie Technician when
+		   to start the movie and keeps track of how much money the
+		   movie theater is making. There is 1 Manager.
+
+
+II. Assumptions:
+
+	Part 1 -
+		A. Error conditions like threads trying to release locks that
+		   they do not own can occur. (AKA not trusting the programmer)
+
+		B. The Condition variable is always used with the same lock.
+		
+		C. We are implementing Mesa monitor semantics.
+
+	Part 2 - 
+		A. There are never more than 5 Ticket Clerks or Concession Clerks
+		
+		B. There are never more than 3 Ticket Takers
+
+III. Design:
+
+	Part 1 -
+		A. Lock(char* debugName) {
+			// Initialize all private variables
+			name = debugName;
+			waitQueue = new List;
+			isFree = true;
+			lockOwner = Null;
+		   }
+
+		B. ~Lock() {
+			// Delete anything created with a "new"
+			delete waitQueue;
+		   }
+
+		C. void Acquire() {
+			// Disable Interrupts
+			
+			if(currenThread == lockOwner) {
+				// Enable Interrupts
+				return;
+			}
+
+			if(lockIsFree) {
+				// Make lock not free
+				// Make currentThread the lockOwner
+			} else {
+				// Add to lock wait queue
+				// Put to sleep
+			}
+			// Enable Interrupts
+		  }
+
+		  Error Conditions: 
+			Makes sure that if the lock owner calls acquire, 
+			they are not added to the lock wait queue again.
+			Does this by immediately checking if the calling
+			thread is the lock owner and returning.
+
+		D. void Release() {
+			// Disable Interrupts
+			
+			if(currentThread != lockOwner) {
+				// Restore Interrupts
+				return;
+			}
+
+			if(Threads are waiting for the lock) {
+				// Remove a thread from lock's wait queue
+				if(thread != NULL) {
+					// Put in ready queue in ready state
+					// Make lock owner
+				}
+			} else {
+				// Make lock free
+				// Clear lock ownership
+			}
+			// Restor interrupts
+		  }
+
+		  Error Conditions:
+			Checks that the calling thread is indeed the lock owner,
+			if it is not, ignores the release request. Checks
+			that a thread being removed from the wait queue is not
+			NULL, if it is, does not make it the lock owner.
+
+		E. Condition(char* debugName) {
+			name = debugName;
+			waitQueue = new List;
+			waitingLock = NULL;
+		   }
+
+		F. ~Condition() {
+			delete waitQueue;
+		   }
+
+		G. void Wait(Lock* conditionLock) {
+			// Disable interrupts
+
+			if(conditionLock == NULL) {
+				// Print error
+				// Restore interrupts
+				return;
+			}
+			if(waitingLock == NULL) {
+				// Make conditionLock the waitingLock
+			}
+			if(waitingLock != conditionLock) {
+				// Print error
+				// Restore interrupts
+				return;
+			}
+			// Release Lock
+			// Add lock to wait queue
+			// Go to sleep
+			// Acquire lock
+			// Restore interrupts
+		  }
+		  Error Conditions: Checks that the lock that you're waiting
+		  on is not NULL, if it is, ignores the request. Checks that
+		  the lock you are waiting on is the waiting lock for the CV,
+		  if it is not, ignores the request. 
+
+		H. void Signal(Lock* conditionLock) {
+			// Disable Interrupts
+			// If no threads waiting, restore interrupts and return
+
+			if(waitingLock != conditionLock) {
+				// Print error
+				// Restore interrupts
+				return;
+			}
+			// Remove a thread from wait wqueue
+			if(thread != NULL) {
+				// Put in ready queue in ready state
+			}
+			if(no threads are waiting) {
+				// Make waiting lock NULL
+			}
+			// Restore interrupts
+		  }
+		  Error Conditions: Checks if no threads are waiting, if so, 
+		  ignores the request. Checks that the lock is the waiting lock,
+		  if not, ignores the request. Checks that the next thread to
+		  put in the ready state is not NULL.	
+
+	Part 2 - 
+	
+		A. Global Definitions
+		
+			MAX_CUST  = 100 // Maximum Number of Customers
+			MAX_TC    = 5   // Maximum Number of Ticket Clerks
+			MAX_TT    = 3   // Maximum Number of Ticket Takers
+			MAX_CC    = 5   // Maximum Number of Concession Clerks
+			MAX_SEATS = 25  // Maximum Number of seats in theater
+			NUM_ROWS  = 5   // Number of rows in theater
+			NUM_COLS  = 5   // Number of seats/row
+			TICKET_PRICE = 12  // Price of a movie ticket
+			POPCORN_PRICE = 5  // Price of popcorn
+			SODA_PRICE = 4     // Price of soda
+
+		B. Customer
+
+			Data:
+				CustomerStruct Data - 
+					bool isLeader	 	
+					int index
+					int group
+					int money
+					int numTickets
+					int seatRow
+					int seatCol
+					bool hasSoda
+					bool hasPopcorn
+					bool wantsPopcorn
+					bool wantsSoda
+					bool needsRestroom
+					int totalPopcorns
+					int totalSodas
+				
+				CustomerStruct customers[MAX_CUST]
+				int totalCustomers
+				int toalCustomersServed
+				int totalGroups
+				int freeSeatsInRow[NUM_ROWS]
+				Lock* customerLobbyLock
+				Condition* customerLobbyCV
+				Lock* waitingOnGroupLock[MAX_CUST]
+				Condition* waitingOnGroupLock[MAX_CUST]
+
+				Group Global Variables - 
+					int groupHeads[MAX_CUST]
+					int groupSize[MAX_CUST]
+
+			Functions:
+
+				Head customer goes to ticket clerk to buy tickets
+				- void doBuyTickets(int custIndex, int groupIndex)
+				
+				Head customer gives tickets to the ticket taker and
+				either goes into the theater or the lobby
+				- void doGiveTickets(int custIndex, int groupIndex)
+
+				Customer has chosen to sit in position [row, col]
+				- void choseSeat(int custIndex, int row, int col)
+
+				Customer trys to find ideal seats in the theater
+				- void doChooseSeats(int custIndex, int groupIndex)
+
+				Head customer takes food orders from other customers
+				in the group
+				- void takeFoodOrders(int custIndex)
+
+				Head customers buys food from the Concession Clerk
+				- void doBuyFood(int custIndex, int groupIndex)
+
+				Customers return from the restroom
+				- void doReturnFromRestroom(int myIndex)
+
+				Customers leave the theater and some go to restroom
+				- void doLeaveTheaterAndUseRestroom(int custIndex, int groupIndex)
+
+				Defines behavior routine for all groups of customers
+				- void groupHead(int custIndex)
+				
+				
+
+		C. Ticket Clerk
+
+			Data:
+				int   ticketClerkState[MAX_TC]
+				Lock* ticketClerkLock[MAX_TC]
+				Condition*  ticketClerkCV[MAX_TC]        
+				int   ticketClerkLineCount[MAX_TC]       
+				int   numberOfTicketsNeeded[MAX_TC]      
+				int   amountOwedTickets[MAX_TC]
+				int   ticketClerkRegister[MAX_TC]
+				int   theaterOnTicket = 1
+				int   ticketClerkWorking
+
+				Lock* ticketClerkLineLock
+				Condition*  ticketClerkLineCV[MAX_TC]
+				Lock* ticketClerkBreakLock
+				Condition* ticketClerkBreakCV
+				bool ticketClerkIsWorking[MAX_TC]
+
+			Functions:
+				Main thread to interact with customers buying tickets
+				- void ticketClerk(int myIndex)
+
+		D. Ticket Taker
+
+			Data: 
+				int   ticketTakerState[MAX_TT]
+				Lock* ticketTakerLock[MAX_TT]
+				Condition*  ticketTakerCV[MAX_TT]
+				int   ticketTakerLineCount[MAX_TT]
+
+				bool allowedIn[MAX_TT]
+				int   numTicketsReceived[MAX_TT]
+				int   totalTicketsTaken=0
+				bool  movieStarted
+				int ticketTakerWorking
+				Lock* ticketTakerLineLock
+				Condition*  ticketTakerLineCV[MAX_TT]
+				Lock* ticketTakerMovieLock
+				Condition* ticketTakerMovieCV
+				Lock* ticketTakerBreakLock
+				Condition* ticketTakerBreakCV
+				bool ticketTakerIsWorking[MAX_TT]
+				Lock* ticketTakerCounterLock = new Lock("counter");
+
+			Functions:
+				Main thread to interact with Customers and Manager
+				- void ticketTaker(int myIndex)
+
+		E. Concession Clerk
+	
+			Data: 
+				Lock* concessionClerkLineLock
+				Lock* concessionClerkLock[MAX_CC]
+				Lock* concessionClerkBreakLock
+
+				Condition* concessionClerkLineCV[MAX_CC]
+				Condition* concessionClerkCV[MAX_CC]
+				Condition* concessionClerkBreakCV
+
+				int concessionClerkLineCount[MAX_CC]
+				int concessionClerkState[MAX_CC]
+				int concessionClerkRegister[MAX_CC]
+				int concessionClerkWorking
+				int amountOwed[MAX_CC]
+				int numPopcornsOrdered[MAX_CC]
+				int numSodasOrdered[MAX_CC]
+				bool concessionClerkIsWorking[MAX_CC]
+
+			Functions:
+				
+				Main thread for Concession Clerk to interact with Customer
+				- void concessionClerk(int myIndex)
+
+		F. Movie Technician
+
+			Data:
+				int numSeatsOccupied
+				Lock* movieStatusLock
+				Lock* movieFinishedLock
+				Condition* movieFinishedLockCV
+				Condition* movieStatusLockCV
+
+				int movieStatus
+				int movieLength
+				bool theaterDone = false								
+				bool theaterStarted = false
+
+			Functions:
+				Main thread to start and stop movie
+				- void movieTech(int myIndex)
+
+		G. Manager
+
+			Data:
+				int totalRevenue
+			
+			Functions:
+				Main thread, never sleeps, for manager to put
+				employees on break, start movies, and check revenue
+				- void manager(int myIndex)						
+
+IV. Implementation:
+	
+	Files Modified: 
+
+		Part 1 - synch.cc
+			 synch.h
+		
+		Part 2 - Makefile.common
+			 main.cc
+
+	Files Added:
+	
+		Part 1 - None
+		
+		Part 2 - theater_sim.cc
+			 theater_sim.h
+
+V. Testing:
+
+	Instructions For Testing Part 1: Go to main.cc, uncomment TestSuite() 
+					 and comment out Theater_Sim_Test() - 
+					 our theater tests are currently set
+					 to run with nachos -T
+
+	Expected Output:
+
+		Starting Test 1
+		t1_t1: Acquired Lock t1_l1, waiting for t3
+		t1_t2: trying to acquire lock t1_l1
+		t1_t3: Trying to release Lock t1_l1
+		Error: Thread (t1_t3) is not the lock owner (t1_t1)!
+		t1_t3: Trying to release Lock t1_l1
+		Error: Thread (t1_t3) is not the lock owner (t1_t1)!
+		t1_t3: Trying to release Lock t1_l1
+		Error: Thread (t1_t3) is not the lock owner (t1_t1)!
+		t1_t1: working in CS
+		t1_t1: Releasing lock t1_l1
+		t1_t2: Acquired Lock t1_l1, working in CS
+		t1_t2: Releasing Lock t1_l1
+
+		Starting Test 2. Note that it is an error if t2_t2 completes
+		t2_t1: Lock t2_l1 acquired, signalling t2_c1
+		Error: this is not the waiting lock!
+		t2_t1: Releasing Lock t2_l1
+		t2_t2: Lock t2_l1 acquired, waiting on t2_c1
+
+		Starting Test 3
+		t3_waiter0: Lock t3_l1 acquired, waiting on t3_c1
+		t3_waiter1: Lock t3_l1 acquired, waiting on t3_c1
+		t3_waiter2: Lock t3_l1 acquired, waiting on t3_c1
+		t3_waiter3: Lock t3_l1 acquired, waiting on t3_c1
+		t3_waiter4: Lock t3_l1 acquired, waiting on t3_c1
+		t3_signaller: Lock t3_l1 acquired, signalling t3_c1
+		t3_signaller: Releasing t3_l1
+		t3_waiter0: freed from t3_c1
+
+		Starting Test 4
+		t4_waiter0: Lock t4_l1 acquired, waiting on t4_c1
+		t4_waiter1: Lock t4_l1 acquired, waiting on t4_c1
+		t4_waiter2: Lock t4_l1 acquired, waiting on t4_c1
+		t4_waiter3: Lock t4_l1 acquired, waiting on t4_c1
+		t4_waiter4: Lock t4_l1 acquired, waiting on t4_c1
+		t4_signaller: Lock t4_l1 acquired, broadcasting t4_c1
+		t4_signaller: Releasing t4_l1
+		t4_waiter0: freed from t4_c1
+		t4_waiter1: freed from t4_c1
+		t4_waiter2: freed from t4_c1
+		t4_waiter3: freed from t4_c1
+		t4_waiter4: freed from t4_c1
+
+		Starting Test 5.  Note that it is an error if thread t5_t1
+		completes
+		t5_t1: Lock t5_l1 acquired, waiting on t5_c1
+		t5_t2: Lock t5_l2 acquired, signalling t5_c1
+		Error: Signal, waitingLock does not equal conditionLock
+		t5_t2: Releasing Lock t5_l2
+		t5_t2: Releasing Lock t5_l1		
+
+	Instructions For Testing Part 2: to run all tests use nachos -T
+
+	Test A: Managers only read from one Clerk's total money received at a time
+	
+	Test B: Managers get Clerks off their break when lines get too long
+
+	Test C: Clerks wait for customer to signal them to move on
+
+	Test D: Customer always chooses the shortest line
+
+	Expected Successful Output = anything without an "ERROR"
+
+	Sample Output:
+
+	Starting tests.
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	---------------------------------------------------------------------------
+	Test A is Complete 
+	---------------------------------------------------------------------------
+	Test B Clerk got off break successfully
+	---------------------------------------------------------------------------
+	Test B is Complete 
+	---------------------------------------------------------------------------
+	Customer 2 began
+	Customer 2 acquired clerk line lock
+	Clerk has been released!
+	TicketClerk 0 has a line length 1 and is signaling a customer.
+	Clerk is done
+	Clerk has grabbed me
+	---------------------------------------------------------------------------
+	Test C is Complete 
+	---------------------------------------------------------------------------
+	Line 0: 2 | Line 1: 1
+	Customer 1 is getting in line 1| Length : 2
+	Customer 2 is getting in line 0| Length : 3
+	
+	Line 0: 2 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 3
+	Customer 1 is getting in line 0| Length : 4
+
+	Line 0: 0 | Line 1: 1
+	Customer 2 is getting in line 0| Length : 1
+	Customer 1 is getting in line 0| Length : 2
+
+	Line 0: 2 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 3
+	Customer 1 is getting in line 0| Length : 4
+
+	Line 0: 4 | Line 1: 1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 1| Length : 3
+
+	Line 0: 1 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 2
+	Customer 1 is getting in line 0| Length : 3
+
+	Line 0: 4 | Line 1: 1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 1| Length : 3
+
+	Line 0: 4 | Line 1: 3
+	Customer 2 is getting in line 1| Length : 4
+	Customer 1 is getting in line 0| Length : 5
+
+
+	Line 0: 2 | Line 1: 1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 0| Length : 3
+
+	Line 0: 1 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 2
+	Customer 1 is getting in line 0| Length : 3
+
+	Line 0: 3 | Line 1: 1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 1| Length : 3
+
+	Line 0: 2 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 3
+	Customer 1 is getting in line 0| Length : 4
+
+	Line 0: 0 | Line 1: 1
+	Customer 2 is getting in line 0| Length : 1
+	Customer 1 is getting in line 0| Length : 2
+
+	Line 0: 4 | Line 1: 3
+	Customer 2 is getting in line 1| Length : 4
+	Customer 1 is getting in line 0| Length : 5
+
+	Line 0: 1 | Line 1: 1
+	Customer 2 is getting in line 0| Length : 2
+	Customer 1 is getting in line 1| Length : 2
+
+	Line 0: 2 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 3
+	Customer 1 is getting in line 0| Length : 4
+
+	Line 0: 1 | Line 1: 1
+	Customer 2 is getting in line 0| Length : 2
+	Customer 1 is getting in line 1| Length : 2
+
+	Line 0: 4 | Line 1: 3
+	Customer 2 is getting in line 1| Length : 4
+	Customer 1 is getting in line 0| Length : 5
+
+	Line 0: 1 | Line 1: 1
+	Customer 2 is getting in line 0| Length : 2
+	Customer 1 is getting in line 1| Length : 2
+
+	Line 0: 3 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 4
+	Customer 1 is getting in line 1| Length : 4
+
+	Line 0: 4 | Line 1:1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 1| Length : 3
+
+	Line 0: 0 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 1
+	Customer 1 is getting in line 0| Length : 2
+
+	Line 0: 3 | Line 1: 1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 1| Length : 3
+
+	Line 0: 3 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 4
+	Customer 1 is getting in line 1| Length : 4
+
+	Line 0: 1 | Line 1: 1
+	Customer 2 is getting in line 0| Length : 2
+	Customer 1 is getting in line 1| Length : 2
+
+	Line 0: 2 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 3
+	Customer 1 is getting in line 0| Length : 4
+
+	Line 0: 2 | Line 1: 1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 0| Length : 3
+	
+	Line 0: 2 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 3
+	Customer 1 is getting in line 0| Length : 4
+
+	---------------------------------------------------------------------------
+	Test D is Complete 
+	---------------------------------------------------------------------------
+		
+VI. Additional Notes:
+	 We didn't implement the functionality where
+	 the user puts in how many customers there should be. If you
+	 would like to run the program with a different number of 
+	 customers you can change the constant MAX_CUST to the desired
+	 number of customers. 
+
+	 Some random seeds don't work :(	
+
+	
+
+		 Title: Writeup for Assignment 1: Build a synchronized, multi-threaded system
+Date: 9/18/11
+Group Number: 8
+
+Name			Email
+Michelle Forcier	mforcier@usc.edu
+Ryan Ball		rball@usc.edu
+Kevin Crane		kevincra@usc.edu
+
+PLEASE SEE ADDITIONAL NOTES AT THE BOTTOM OF THIS DOCUMENT
+
+I. Requirements:
+
+	Part 1 -Implement locks and condition variables. Follow the given
+		public interface, define the private data necessary, and
+		implement the methods.
+	
+		A. Lock Constructor: Defined the private data.
+
+		B. Lock Destructor: Deleted anything with a "new" for memory
+		   management purposes.
+
+		C. Lock Acquire Method: For mutually exclusive transactions
+		   implemented the acquire method which allows the caller to
+		   keep others out of a critical sections while caller's thread
+		   is in it.
+
+		D. Lock Release Method: For mutually exclusive transactions,
+		   makes the lock free again to be acquired by another thread.
+
+		E. Condition Constructor: Defined the private data.
+
+		F. Condition Destructor: Deleted anything with a "new" for 
+		   memory management purposes.
+
+		G. Condition Wait Method: To allow sequencing, puts the calling
+		   thread to sleep until it is woken up at a later time.
+
+		H. Condition Signal Method: To allow sequencing, wakes up
+		   a thread that has been waiting (sleeping), so that it can
+		   continue doing work.
+
+		I. Condition Broadcast Method: Wakes up all threads that have
+		   been waiting, so they can all continue doing work.
+
+	Part 2 -Simulate the operation of a movie theater.
+	
+		A. Theater Room: Has 5 rows of 5 seats
+	
+		B. Customers: One member of each group of customers buys
+		   all tickets and food for the group. The same customer
+		   gives the Ticket Taker the tickets. Groups can have 1-5 
+		   people. Groups travel together (except after the movie, 
+		   when some members use the restroom). Groups try to sit
+		   together. Customers always get in the shortest line. 
+		   If the movie has started, customers wait in the lobby.
+		   Customers have a 75% chance of wanting popcorn and a 75%
+		   chance of wanting soda. There are at least 40 customers. 
+
+		C. Ticket Clerk: They sell tickets to customers. Each ticket
+		   is $12.00. Ticket Clerk tells the Customer how much to pay 
+		   and gives the Customer their tickets after payment. Ticket
+		   clerks go on break if the manager tells them too, they each
+		   have a line. There are 1-5 Ticket Clerks.
+
+		D. Concession Clerk: Customer tells Concession Clerk how many
+		   orders of soda and popcorn they want. Each popcorn is $5 and
+		   each soda is $4. Concession Clerks pass food to Customer and
+		   go on break when the Manager says so. There are 1-5 
+		   Concession Clerks.
+
+		E. Ticket Takers: Handle one group at a time, each. Keep track
+		   of when Customers are allowed in the theater. There are 1-3
+		   Ticket Takers.
+
+		F. Movie Technician: Starts the movie when told to do so by the
+		   Manager and everyone is seated. Tells the Customers that the
+		   movie is over. There is 1 Movie Technician.
+		
+		G. Manager: Tells employees when to go on break. If employee
+		   has no one in their line, Manager tells them to break 20% of
+		   the time. If employee has < 3 Customers in line, Manager 
+		   tells them to break 20% of the time. Manager brings employees
+		   off break when lines are long. Tells Movie Technician when
+		   to start the movie and keeps track of how much money the
+		   movie theater is making. There is 1 Manager.
+
+
+II. Assumptions:
+
+	Part 1 -
+		A. Error conditions like threads trying to release locks that
+		   they do not own can occur. (AKA not trusting the programmer)
+
+		B. The Condition variable is always used with the same lock.
+		
+		C. We are implementing Mesa monitor semantics.
+
+	Part 2 - 
+		A. There are never more than 5 Ticket Clerks or Concession Clerks
+		
+		B. There are never more than 3 Ticket Takers
+
+III. Design:
+
+	Part 1 -
+		A. Lock(char* debugName) {
+			// Initialize all private variables
+			name = debugName;
+			waitQueue = new List;
+			isFree = true;
+			lockOwner = Null;
+		   }
+
+		B. ~Lock() {
+			// Delete anything created with a "new"
+			delete waitQueue;
+		   }
+
+		C. void Acquire() {
+			// Disable Interrupts
+			
+			if(currenThread == lockOwner) {
+				// Enable Interrupts
+				return;
+			}
+
+			if(lockIsFree) {
+				// Make lock not free
+				// Make currentThread the lockOwner
+			} else {
+				// Add to lock wait queue
+				// Put to sleep
+			}
+			// Enable Interrupts
+		  }
+
+		  Error Conditions: 
+			Makes sure that if the lock owner calls acquire, 
+			they are not added to the lock wait queue again.
+			Does this by immediately checking if the calling
+			thread is the lock owner and returning.
+
+		D. void Release() {
+			// Disable Interrupts
+			
+			if(currentThread != lockOwner) {
+				// Restore Interrupts
+				return;
+			}
+
+			if(Threads are waiting for the lock) {
+				// Remove a thread from lock's wait queue
+				if(thread != NULL) {
+					// Put in ready queue in ready state
+					// Make lock owner
+				}
+			} else {
+				// Make lock free
+				// Clear lock ownership
+			}
+			// Restor interrupts
+		  }
+
+		  Error Conditions:
+			Checks that the calling thread is indeed the lock owner,
+			if it is not, ignores the release request. Checks
+			that a thread being removed from the wait queue is not
+			NULL, if it is, does not make it the lock owner.
+
+		E. Condition(char* debugName) {
+			name = debugName;
+			waitQueue = new List;
+			waitingLock = NULL;
+		   }
+
+		F. ~Condition() {
+			delete waitQueue;
+		   }
+
+		G. void Wait(Lock* conditionLock) {
+			// Disable interrupts
+
+			if(conditionLock == NULL) {
+				// Print error
+				// Restore interrupts
+				return;
+			}
+			if(waitingLock == NULL) {
+				// Make conditionLock the waitingLock
+			}
+			if(waitingLock != conditionLock) {
+				// Print error
+				// Restore interrupts
+				return;
+			}
+			// Release Lock
+			// Add lock to wait queue
+			// Go to sleep
+			// Acquire lock
+			// Restore interrupts
+		  }
+		  Error Conditions: Checks that the lock that you're waiting
+		  on is not NULL, if it is, ignores the request. Checks that
+		  the lock you are waiting on is the waiting lock for the CV,
+		  if it is not, ignores the request. 
+
+		H. void Signal(Lock* conditionLock) {
+			// Disable Interrupts
+			// If no threads waiting, restore interrupts and return
+
+			if(waitingLock != conditionLock) {
+				// Print error
+				// Restore interrupts
+				return;
+			}
+			// Remove a thread from wait wqueue
+			if(thread != NULL) {
+				// Put in ready queue in ready state
+			}
+			if(no threads are waiting) {
+				// Make waiting lock NULL
+			}
+			// Restore interrupts
+		  }
+		  Error Conditions: Checks if no threads are waiting, if so, 
+		  ignores the request. Checks that the lock is the waiting lock,
+		  if not, ignores the request. Checks that the next thread to
+		  put in the ready state is not NULL.	
+
+	Part 2 - 
+	
+		A. Global Definitions
+		
+			MAX_CUST  = 100 // Maximum Number of Customers
+			MAX_TC    = 5   // Maximum Number of Ticket Clerks
+			MAX_TT    = 3   // Maximum Number of Ticket Takers
+			MAX_CC    = 5   // Maximum Number of Concession Clerks
+			MAX_SEATS = 25  // Maximum Number of seats in theater
+			NUM_ROWS  = 5   // Number of rows in theater
+			NUM_COLS  = 5   // Number of seats/row
+			TICKET_PRICE = 12  // Price of a movie ticket
+			POPCORN_PRICE = 5  // Price of popcorn
+			SODA_PRICE = 4     // Price of soda
+
+		B. Customer
+
+			Data:
+				CustomerStruct Data - 
+					bool isLeader	 	
+					int index
+					int group
+					int money
+					int numTickets
+					int seatRow
+					int seatCol
+					bool hasSoda
+					bool hasPopcorn
+					bool wantsPopcorn
+					bool wantsSoda
+					bool needsRestroom
+					int totalPopcorns
+					int totalSodas
+				
+				CustomerStruct customers[MAX_CUST]
+				int totalCustomers
+				int toalCustomersServed
+				int totalGroups
+				int freeSeatsInRow[NUM_ROWS]
+				Lock* customerLobbyLock
+				Condition* customerLobbyCV
+				Lock* waitingOnGroupLock[MAX_CUST]
+				Condition* waitingOnGroupLock[MAX_CUST]
+
+				Group Global Variables - 
+					int groupHeads[MAX_CUST]
+					int groupSize[MAX_CUST]
+
+			Functions:
+
+				Head customer goes to ticket clerk to buy tickets
+				- void doBuyTickets(int custIndex, int groupIndex)
+				
+				Head customer gives tickets to the ticket taker and
+				either goes into the theater or the lobby
+				- void doGiveTickets(int custIndex, int groupIndex)
+
+				Customer has chosen to sit in position [row, col]
+				- void choseSeat(int custIndex, int row, int col)
+
+				Customer trys to find ideal seats in the theater
+				- void doChooseSeats(int custIndex, int groupIndex)
+
+				Head customer takes food orders from other customers
+				in the group
+				- void takeFoodOrders(int custIndex)
+
+				Head customers buys food from the Concession Clerk
+				- void doBuyFood(int custIndex, int groupIndex)
+
+				Customers return from the restroom
+				- void doReturnFromRestroom(int myIndex)
+
+				Customers leave the theater and some go to restroom
+				- void doLeaveTheaterAndUseRestroom(int custIndex, int groupIndex)
+
+				Defines behavior routine for all groups of customers
+				- void groupHead(int custIndex)
+				
+				
+
+		C. Ticket Clerk
+
+			Data:
+				int   ticketClerkState[MAX_TC]
+				Lock* ticketClerkLock[MAX_TC]
+				Condition*  ticketClerkCV[MAX_TC]        
+				int   ticketClerkLineCount[MAX_TC]       
+				int   numberOfTicketsNeeded[MAX_TC]      
+				int   amountOwedTickets[MAX_TC]
+				int   ticketClerkRegister[MAX_TC]
+				int   theaterOnTicket = 1
+				int   ticketClerkWorking
+
+				Lock* ticketClerkLineLock
+				Condition*  ticketClerkLineCV[MAX_TC]
+				Lock* ticketClerkBreakLock
+				Condition* ticketClerkBreakCV
+				bool ticketClerkIsWorking[MAX_TC]
+
+			Functions:
+				Main thread to interact with customers buying tickets
+				- void ticketClerk(int myIndex)
+
+		D. Ticket Taker
+
+			Data: 
+				int   ticketTakerState[MAX_TT]
+				Lock* ticketTakerLock[MAX_TT]
+				Condition*  ticketTakerCV[MAX_TT]
+				int   ticketTakerLineCount[MAX_TT]
+
+				bool allowedIn[MAX_TT]
+				int   numTicketsReceived[MAX_TT]
+				int   totalTicketsTaken=0
+				bool  movieStarted
+				int ticketTakerWorking
+				Lock* ticketTakerLineLock
+				Condition*  ticketTakerLineCV[MAX_TT]
+				Lock* ticketTakerMovieLock
+				Condition* ticketTakerMovieCV
+				Lock* ticketTakerBreakLock
+				Condition* ticketTakerBreakCV
+				bool ticketTakerIsWorking[MAX_TT]
+				Lock* ticketTakerCounterLock = new Lock("counter");
+
+			Functions:
+				Main thread to interact with Customers and Manager
+				- void ticketTaker(int myIndex)
+
+		E. Concession Clerk
+	
+			Data: 
+				Lock* concessionClerkLineLock
+				Lock* concessionClerkLock[MAX_CC]
+				Lock* concessionClerkBreakLock
+
+				Condition* concessionClerkLineCV[MAX_CC]
+				Condition* concessionClerkCV[MAX_CC]
+				Condition* concessionClerkBreakCV
+
+				int concessionClerkLineCount[MAX_CC]
+				int concessionClerkState[MAX_CC]
+				int concessionClerkRegister[MAX_CC]
+				int concessionClerkWorking
+				int amountOwed[MAX_CC]
+				int numPopcornsOrdered[MAX_CC]
+				int numSodasOrdered[MAX_CC]
+				bool concessionClerkIsWorking[MAX_CC]
+
+			Functions:
+				
+				Main thread for Concession Clerk to interact with Customer
+				- void concessionClerk(int myIndex)
+
+		F. Movie Technician
+
+			Data:
+				int numSeatsOccupied
+				Lock* movieStatusLock
+				Lock* movieFinishedLock
+				Condition* movieFinishedLockCV
+				Condition* movieStatusLockCV
+
+				int movieStatus
+				int movieLength
+				bool theaterDone = false								
+				bool theaterStarted = false
+
+			Functions:
+				Main thread to start and stop movie
+				- void movieTech(int myIndex)
+
+		G. Manager
+
+			Data:
+				int totalRevenue
+			
+			Functions:
+				Main thread, never sleeps, for manager to put
+				employees on break, start movies, and check revenue
+				- void manager(int myIndex)						
+
+IV. Implementation:
+	
+	Files Modified: 
+
+		Part 1 - synch.cc
+			 synch.h
+		
+		Part 2 - Makefile.common
+			 main.cc
+
+	Files Added:
+	
+		Part 1 - None
+		
+		Part 2 - theater_sim.cc
+			 theater_sim.h
+
+V. Testing:
+
+	Instructions For Testing Part 1: Go to main.cc, uncomment TestSuite() 
+					 and comment out Theater_Sim_Test() - 
+					 our theater tests are currently set
+					 to run with nachos -T
+
+	Expected Output:
+
+		Starting Test 1
+		t1_t1: Acquired Lock t1_l1, waiting for t3
+		t1_t2: trying to acquire lock t1_l1
+		t1_t3: Trying to release Lock t1_l1
+		Error: Thread (t1_t3) is not the lock owner (t1_t1)!
+		t1_t3: Trying to release Lock t1_l1
+		Error: Thread (t1_t3) is not the lock owner (t1_t1)!
+		t1_t3: Trying to release Lock t1_l1
+		Error: Thread (t1_t3) is not the lock owner (t1_t1)!
+		t1_t1: working in CS
+		t1_t1: Releasing lock t1_l1
+		t1_t2: Acquired Lock t1_l1, working in CS
+		t1_t2: Releasing Lock t1_l1
+
+		Starting Test 2. Note that it is an error if t2_t2 completes
+		t2_t1: Lock t2_l1 acquired, signalling t2_c1
+		Error: this is not the waiting lock!
+		t2_t1: Releasing Lock t2_l1
+		t2_t2: Lock t2_l1 acquired, waiting on t2_c1
+
+		Starting Test 3
+		t3_waiter0: Lock t3_l1 acquired, waiting on t3_c1
+		t3_waiter1: Lock t3_l1 acquired, waiting on t3_c1
+		t3_waiter2: Lock t3_l1 acquired, waiting on t3_c1
+		t3_waiter3: Lock t3_l1 acquired, waiting on t3_c1
+		t3_waiter4: Lock t3_l1 acquired, waiting on t3_c1
+		t3_signaller: Lock t3_l1 acquired, signalling t3_c1
+		t3_signaller: Releasing t3_l1
+		t3_waiter0: freed from t3_c1
+
+		Starting Test 4
+		t4_waiter0: Lock t4_l1 acquired, waiting on t4_c1
+		t4_waiter1: Lock t4_l1 acquired, waiting on t4_c1
+		t4_waiter2: Lock t4_l1 acquired, waiting on t4_c1
+		t4_waiter3: Lock t4_l1 acquired, waiting on t4_c1
+		t4_waiter4: Lock t4_l1 acquired, waiting on t4_c1
+		t4_signaller: Lock t4_l1 acquired, broadcasting t4_c1
+		t4_signaller: Releasing t4_l1
+		t4_waiter0: freed from t4_c1
+		t4_waiter1: freed from t4_c1
+		t4_waiter2: freed from t4_c1
+		t4_waiter3: freed from t4_c1
+		t4_waiter4: freed from t4_c1
+
+		Starting Test 5.  Note that it is an error if thread t5_t1
+		completes
+		t5_t1: Lock t5_l1 acquired, waiting on t5_c1
+		t5_t2: Lock t5_l2 acquired, signalling t5_c1
+		Error: Signal, waitingLock does not equal conditionLock
+		t5_t2: Releasing Lock t5_l2
+		t5_t2: Releasing Lock t5_l1		
+
+	Instructions For Testing Part 2: to run all tests use nachos -T
+
+	Test A: Managers only read from one Clerk's total money received at a time
+	
+	Test B: Managers get Clerks off their break when lines get too long
+
+	Test C: Clerks wait for customer to signal them to move on
+
+	Test D: Customer always chooses the shortest line
+
+	Expected Successful Output = anything without an "ERROR"
+
+	Sample Output:
+
+	Starting tests.
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	Manager collected [100] from TicketClerk[0].
+	Manager collected [150] from TicketClerk[1].
+	---------------------------------------------------------------------------
+	Test A is Complete 
+	---------------------------------------------------------------------------
+	Test B Clerk got off break successfully
+	---------------------------------------------------------------------------
+	Test B is Complete 
+	---------------------------------------------------------------------------
+	Customer 2 began
+	Customer 2 acquired clerk line lock
+	Clerk has been released!
+	TicketClerk 0 has a line length 1 and is signaling a customer.
+	Clerk is done
+	Clerk has grabbed me
+	---------------------------------------------------------------------------
+	Test C is Complete 
+	---------------------------------------------------------------------------
+	Line 0: 2 | Line 1: 1
+	Customer 1 is getting in line 1| Length : 2
+	Customer 2 is getting in line 0| Length : 3
+	
+	Line 0: 2 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 3
+	Customer 1 is getting in line 0| Length : 4
+
+	Line 0: 0 | Line 1: 1
+	Customer 2 is getting in line 0| Length : 1
+	Customer 1 is getting in line 0| Length : 2
+
+	Line 0: 2 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 3
+	Customer 1 is getting in line 0| Length : 4
+
+	Line 0: 4 | Line 1: 1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 1| Length : 3
+
+	Line 0: 1 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 2
+	Customer 1 is getting in line 0| Length : 3
+
+	Line 0: 4 | Line 1: 1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 1| Length : 3
+
+	Line 0: 4 | Line 1: 3
+	Customer 2 is getting in line 1| Length : 4
+	Customer 1 is getting in line 0| Length : 5
+
+
+	Line 0: 2 | Line 1: 1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 0| Length : 3
+
+	Line 0: 1 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 2
+	Customer 1 is getting in line 0| Length : 3
+
+	Line 0: 3 | Line 1: 1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 1| Length : 3
+
+	Line 0: 2 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 3
+	Customer 1 is getting in line 0| Length : 4
+
+	Line 0: 0 | Line 1: 1
+	Customer 2 is getting in line 0| Length : 1
+	Customer 1 is getting in line 0| Length : 2
+
+	Line 0: 4 | Line 1: 3
+	Customer 2 is getting in line 1| Length : 4
+	Customer 1 is getting in line 0| Length : 5
+
+	Line 0: 1 | Line 1: 1
+	Customer 2 is getting in line 0| Length : 2
+	Customer 1 is getting in line 1| Length : 2
+
+	Line 0: 2 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 3
+	Customer 1 is getting in line 0| Length : 4
+
+	Line 0: 1 | Line 1: 1
+	Customer 2 is getting in line 0| Length : 2
+	Customer 1 is getting in line 1| Length : 2
+
+	Line 0: 4 | Line 1: 3
+	Customer 2 is getting in line 1| Length : 4
+	Customer 1 is getting in line 0| Length : 5
+
+	Line 0: 1 | Line 1: 1
+	Customer 2 is getting in line 0| Length : 2
+	Customer 1 is getting in line 1| Length : 2
+
+	Line 0: 3 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 4
+	Customer 1 is getting in line 1| Length : 4
+
+	Line 0: 4 | Line 1:1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 1| Length : 3
+
+	Line 0: 0 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 1
+	Customer 1 is getting in line 0| Length : 2
+
+	Line 0: 3 | Line 1: 1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 1| Length : 3
+
+	Line 0: 3 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 4
+	Customer 1 is getting in line 1| Length : 4
+
+	Line 0: 1 | Line 1: 1
+	Customer 2 is getting in line 0| Length : 2
+	Customer 1 is getting in line 1| Length : 2
+
+	Line 0: 2 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 3
+	Customer 1 is getting in line 0| Length : 4
+
+	Line 0: 2 | Line 1: 1
+	Customer 2 is getting in line 1| Length : 2
+	Customer 1 is getting in line 0| Length : 3
+	
+	Line 0: 2 | Line 1: 3
+	Customer 2 is getting in line 0| Length : 3
+	Customer 1 is getting in line 0| Length : 4
+
+	---------------------------------------------------------------------------
+	Test D is Complete 
+	---------------------------------------------------------------------------
+		
+VI. Additional Notes:
+	 We didn't implement the functionality where
+	 the user puts in how many customers there should be. If you
+	 would like to run the program with a different number of 
+	 customers you can change the constant MAX_CUST to the desired
+	 number of customers. 
+
+	 Some random seeds don't work :(	
+
+	
+
+		 
