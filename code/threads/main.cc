@@ -101,10 +101,11 @@ main(int argc, char **argv)
             printf (copyright);
 #ifdef THREADS
 	if (!strcmp(*argv, "-T"))               // Test Suite: link for this code is at the bottom of part 1 description
-    	//TestSuite();
-			Theater_Sim_Test();
+    	TestSuite();
   if (!strcmp(*argv, "-P2"))               // Problem 2: for part 2
       Theater_Sim();
+  if (!strcmp(*argv, "-P2T"))			   // Testing for Problem 2
+	Theater_Sim_Test();
 #endif
 #ifdef USER_PROGRAM
   if (!strcmp(*argv, "-x")) {        	// run a user program
