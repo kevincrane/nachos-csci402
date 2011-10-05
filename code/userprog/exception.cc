@@ -270,13 +270,13 @@ void Fork_Syscall(int vAddress)
 {
   // TODO: check for max threads, whether vAddress is outside size of page table
   
-  int id = currentThread->space->threadTable.Put(t);             // add new thread to thread table
+  int num = currentThread->space->threadTable.Put(t);             // add new thread to thread table
   int processID = currentThread->space->getProcessID();
   char* name = currentThread->space->getProcessName();
   sprintf(name, "%s%d", name, id);
   
   Thread *t=new Thread(name);
-  t->setID(id);
+  t->setThreadNum(num);
   t->setProcessID(processID);
   t->space = currentThread->space;      // Set new thread to currentThread's address space
   

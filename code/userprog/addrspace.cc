@@ -122,15 +122,15 @@ void AddrSpace::newKernelThread(int vAddress)
   RestoreState();
   
   // Set the StackReg to the new starting position of the stack for this thread (jump up in stack in increments of UserStackSize)
-  machine->WriteRegister(StackReg, stackEndRegister - (currentThread->getID()*UserStackSize));
-  DEBUG('p', "newKernelThread: Writing to StackReg 0x%d\n", stackEndRegister-(currentThread->getID()*UserStackSize));
+  machine->WriteRegister(StackReg, endStackReg - (currentThread->getThreadNum()*UserStackSize));
+  DEBUG('p', "newKernelThread: Writing to StackReg 0x%d\n", endStackReg-(currentThread->getThreadNum()*UserStackSize));
   
   // Increment number of threads running and release lock
   numThreadsRunning++;
   kernThreadLock->Release();
 
   // Run the new kernel thread
-  machine->Run()
+  machine->Run();
 }
 
 //----------------------------------------------------------------------
@@ -259,9 +259,9 @@ AddrSpace::InitRegisters()
    // Set the stack register to the end of the address space, where we
    // allocated the stack; but subtract off a bit, to make sure we don't
    // accidentally reference off the end!
-    endStack = numPages*PageSize - 16;
-    machine->WriteRegister(StackReg, endStack);
-    DEBUG('a', "Initializing stack register to %x\n", endStack);
+    endStackReg = numPages*PageSize - 16;
+    machine->WriteRegister(StackReg, endStackReg);
+    DEBUG('a', "Initializing stack register to %x\n", endStackReg);
 }
 
 //----------------------------------------------------------------------
