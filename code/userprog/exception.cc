@@ -262,6 +262,9 @@ void Close_Syscall(int fd) {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> fcb1815aca4dea4f8b5ecae7d946aafd95e2c4cc
 // Fork Syscall. Fork new thread from pointer to void function
 void Fork_Syscall(int vAddress)
 {
@@ -281,7 +284,10 @@ void Fork_Syscall(int vAddress)
   t->Fork(currentThread->space->newKernelThread, vAddress);
 }
 
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> fcb1815aca4dea4f8b5ecae7d946aafd95e2c4cc
 void Acquire_Syscall(int lockIndex) {
   printf("Entered Acquire_Syscall.\n");
   
@@ -356,9 +362,12 @@ void Release_Syscall(int lockIndex) {
   lockArray->Release();
 }
 
+<<<<<<< HEAD
 void Fork_Syscall() {
   printf("Entered Fork_Syscall.\n");
 }
+=======
+>>>>>>> fcb1815aca4dea4f8b5ecae7d946aafd95e2c4cc
 
 void Exec_Syscall() {
   printf("Entered Exec_Syscall.\n");
@@ -366,6 +375,25 @@ void Exec_Syscall() {
 
 void Exit_Syscall() {
   printf("Entered Exit_Syscall.\n");
+<<<<<<< HEAD
+=======
+
+  // Last executing thread in the last process
+  interrupt->Halt();
+
+  // Thread in a process, not the last executing thread in the process, nor is
+  // it the last process
+
+  // Release stack memory pages for this thread, only the pages where the valid
+  // bit is true
+
+  // Last executing thread in a process - not the last process
+
+  // Clear out all valid entries in the page table
+
+  // Clear out all locks/cvs for that process
+  
+>>>>>>> fcb1815aca4dea4f8b5ecae7d946aafd95e2c4cc
 }
 
 void Yield_Syscall() {
@@ -500,6 +528,10 @@ void Signal_Syscall(int cvIndex, int lockIndex) {
     lockArray->Release();
     return;
   } 
+<<<<<<< HEAD
+=======
+  // SWITCH THESE?
+>>>>>>> fcb1815aca4dea4f8b5ecae7d946aafd95e2c4cc
   conditions[cvIndex].numActiveThreads--; // One less thread using the condition
   conditions[cvIndex].condition->Signal(locks[lockIndex].lock);
 
@@ -700,7 +732,10 @@ void DestroyCondition_Syscall(int cvIndex) {
   cvArray->Release();
   return;
 }
+<<<<<<< HEAD
 >>>>>>> b303e463ba81ff0dade2980204631e1b363e9d4b
+=======
+>>>>>>> fcb1815aca4dea4f8b5ecae7d946aafd95e2c4cc
 
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
