@@ -37,19 +37,23 @@ class AddrSpace {
     void RestoreState();		// info on a context switch
     Table fileTable;			// Table of openfiles
     
-    Table threadTable;      // Table of threads in current process
+    Table *threadTable;      // Table of threads in current process
     Lock *threadLock;       // Lock for actions on current thread
     
     Lock *kernThreadLock;   // Lock for creating a new kernel thread
     
     
     
-//    void addThread(int);    // Add a new thread to the address space
-    void newKernelThread(int);  // Create a new kernel thread  
+    void addThread(int);    // Add a new thread to the address space
+//    void newKernelThread(int);  // Create a new kernel thread  
     
     char* getProcessName() { return processName; }
     int getProcessID() { return processID; }
+    int getEndStackReg() { return endStackReg; }
+    
     int getNumThreadsRunning() { return numThreadsRunning; }
+    void incNumThreadsRunning() { numThreadsRunning++; }
+    void decNumThreadsRunning() { numThreadsRunning--; }
 
 
   private:
@@ -62,6 +66,7 @@ class AddrSpace {
 		int processID;          // ID of process in current address space
 		int endStackReg;        // Defines value for end of stack based on size of pageTable
 		int numThreadsRunning;  // Number of threads running in this address space
+		int numPagesReserved;   // Number of pages used so far
 };
 
 #endif // ADDRSPACE_H

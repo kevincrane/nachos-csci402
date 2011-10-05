@@ -105,32 +105,35 @@ SwapHeader (NoffHeader *noffH)
 // - Creates a new kernel thread in this address space
 // - Takes virtual address of thread as an argument; returns void
 // - Should only be run off of Fork call, meaning it is currentThread
-void AddrSpace::newKernelThread(int vAddress)
+// - NOTE: in order to pass as VoidFunctionPtr to t->Fork, needed to remove association with AddrSpace
+//   - as a result, need to call currentThread manually for function/values
+void newKernelThread(int vAddress)
 {
 
   //TODO: Checks for valid thread, debug statements
   
-  kernThreadLock->Acquire();
+  currentThread->space->kernThreadLock->Acquire();
   DEBUG('p', "newKernelThread: Starting a new kernel thread in process %s at address %d\n", 
-      processName, vAddress);
+      currentThread->space->getProcessName(), vAddress);
   
   // Set PCReg (and NextPCReg) to kernel thread's virtual address
   machine->WriteRegister(PCReg, vAddress);
   machine->WriteRegister(NextPCReg, vAddress+4);
   
   // Prevent info loss during context switch
-  RestoreState();
+  currentThread->space->RestoreState();
   
   // Set the StackReg to the new starting position of the stack for this thread (jump up in stack in increments of UserStackSize)
-  machine->WriteRegister(StackReg, stackEndRegister - (currentThread->getID()*UserStackSize));
-  DEBUG('p', "newKernelThread: Writing to StackReg 0x%d\n", stackEndRegister-(currentThread->getID()*UserStackSize));
+  machine->WriteRegister(StackReg, currentThread->space->getEndStackReg() - (currentThread->getThreadNum()*UserStackSize));
+  DEBUG('p', "newKernelThread: Writing to StackReg 0x%d\n", 
+      currentThread->space->getEndStackReg()-(currentThread->getThreadNum()*UserStackSize));
   
   // Increment number of threads running and release lock
-  numThreadsRunning++;
-  kernThreadLock->Release();
+  currentThread->space->incNumThreadsRunning();
+  currentThread->space->kernThreadLock->Release();
 
   // Run the new kernel thread
-  machine->Run()
+  machine->Run();
 }
 
 //----------------------------------------------------------------------
@@ -186,7 +189,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     for (i = 0; i < numPages; i++) {
       pageLock->Acquire();
       pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-      pageTable[i].physicalPage = pageMap->Read();    // Find a free slot in physical memory
+      pageTable[i].physicalPage = pageMap->Find();    // Find a free slot in physical memory
       pageTable[i].valid = TRUE;
       pageTable[i].use = FALSE;
       pageTable[i].dirty = FALSE;
@@ -197,7 +200,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
       
       // Copy one page of code/data segment into memory if they exist
       executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage*PageSize]), PageSize, (noffH.code.inFileAddr + i*PageSize));
-      totalPagesReserved++;
+      numPagesReserved++;
       DEBUG('a', "Page copied to pageTable at phys add: %d. Code/data of size %d copied from %d.\n", 
           pageTable[i].physicalPage*PageSize, PageSize, (noffH.code.inFileAddr + i*PageSize));
     }
@@ -259,9 +262,9 @@ AddrSpace::InitRegisters()
    // Set the stack register to the end of the address space, where we
    // allocated the stack; but subtract off a bit, to make sure we don't
    // accidentally reference off the end!
-    endStack = numPages*PageSize - 16;
-    machine->WriteRegister(StackReg, endStack);
-    DEBUG('a', "Initializing stack register to %x\n", endStack);
+    endStackReg = numPages*PageSize - 16;
+    machine->WriteRegister(StackReg, endStackReg);
+    DEBUG('a', "Initializing stack register to %x\n", endStackReg);
 }
 
 //----------------------------------------------------------------------
@@ -289,15 +292,25 @@ void AddrSpace::RestoreState()
     machine->pageTableSize = numPages;
 }
 
-/*
+
+
 // AddThread
 // Add new thread to address space of current process
 void AddrSpace::addThread(int vAddress) {
-	
-	
-	
-	Create a New thread. This would be a kernel thread.
-  Update the Process Table for Multiprogramming part.
-  Allocate the addrespace to the thread being forked which is essentially current thread's addresspsace because threads share the process addressspace. 
+  // TODO: check for max threads, whether vAddress is outside size of page table
+  char* name = currentThread->space->getProcessName();
+  Thread *t=new Thread(name);
+  
+  int num = currentThread->space->threadTable->Put(t);             // add new thread to thread table
+  int procID = currentThread->space->getProcessID();
+  sprintf(name, "%s%d", name, num);
+  
+  t->setThreadNum(num);
+  t->setProcessID(processID);
+  t->space = currentThread->space;      // Set new thread to currentThread's address space
+  
+  // Finally Fork a new kernel thread 
+  t->Fork((VoidFunctionPtr)(newKernelThread), vAddress);
 }
-*/
+
+
