@@ -261,13 +261,6 @@ void Close_Syscall(int fd) {
     }
 }
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> fcb1815aca4dea4f8b5ecae7d946aafd95e2c4cc
->>>>>>> 775a692fad1ca094b90219b1c5c731a6ac88feeb
 // Fork Syscall. Fork new thread from pointer to void function
 void Fork_Syscall(int vAddress)
 {
@@ -276,18 +269,10 @@ void Fork_Syscall(int vAddress)
   char* name = currentThread->space->getProcessName();
   Thread *t=new Thread(name);
   
-<<<<<<< HEAD
   int num = currentThread->space->threadTable->Put(t);             // add new thread to thread table
-=======
-  int num = currentThread->space->threadTable.Put(t);             // add new thread to thread table
->>>>>>> 775a692fad1ca094b90219b1c5c731a6ac88feeb
   int processID = currentThread->space->getProcessID();
   sprintf(name, "%s%d", name, num);
   
-<<<<<<< HEAD
-=======
-  Thread *t=new Thread(name);
->>>>>>> 775a692fad1ca094b90219b1c5c731a6ac88feeb
   t->setThreadNum(num);
   t->setProcessID(processID);
   t->space = currentThread->space;      // Set new thread to currentThread's address space
@@ -299,13 +284,6 @@ void Fork_Syscall(int vAddress)
   currentThread->space->addThread(vAddress);
 }
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-=======
->>>>>>> fcb1815aca4dea4f8b5ecae7d946aafd95e2c4cc
->>>>>>> 775a692fad1ca094b90219b1c5c731a6ac88feeb
 void Acquire_Syscall(int lockIndex) {
   printf("Entered Acquire_Syscall.\n");
   
@@ -380,27 +358,12 @@ void Release_Syscall(int lockIndex) {
   lockArray->Release();
 }
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-void Fork_Syscall() {
-  printf("Entered Fork_Syscall.\n");
-}
-=======
->>>>>>> fcb1815aca4dea4f8b5ecae7d946aafd95e2c4cc
-
->>>>>>> 775a692fad1ca094b90219b1c5c731a6ac88feeb
 void Exec_Syscall() {
   printf("Entered Exec_Syscall.\n");
 }
 
 void Exit_Syscall() {
   printf("Entered Exit_Syscall.\n");
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
->>>>>>> 775a692fad1ca094b90219b1c5c731a6ac88feeb
 
   // Last executing thread in the last process
   interrupt->Halt();
@@ -415,13 +378,7 @@ void Exit_Syscall() {
 
   // Clear out all valid entries in the page table
 
-<<<<<<< HEAD
-  // Clear out all locks/cvs for that process  
-=======
   // Clear out all locks/cvs for that process
-  
->>>>>>> fcb1815aca4dea4f8b5ecae7d946aafd95e2c4cc
->>>>>>> 775a692fad1ca094b90219b1c5c731a6ac88feeb
 }
 
 void Yield_Syscall() {
@@ -556,15 +513,7 @@ void Signal_Syscall(int cvIndex, int lockIndex) {
     lockArray->Release();
     return;
   } 
-<<<<<<< HEAD
-
-  // TODO: SWITCH THESE?
-=======
-<<<<<<< HEAD
-=======
   // SWITCH THESE?
->>>>>>> fcb1815aca4dea4f8b5ecae7d946aafd95e2c4cc
->>>>>>> 775a692fad1ca094b90219b1c5c731a6ac88feeb
   conditions[cvIndex].numActiveThreads--; // One less thread using the condition
   conditions[cvIndex].condition->Signal(locks[lockIndex].lock);
 
@@ -765,13 +714,6 @@ void DestroyCondition_Syscall(int cvIndex) {
   cvArray->Release();
   return;
 }
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> b303e463ba81ff0dade2980204631e1b363e9d4b
-=======
->>>>>>> fcb1815aca4dea4f8b5ecae7d946aafd95e2c4cc
->>>>>>> 775a692fad1ca094b90219b1c5c731a6ac88feeb
 
 
 // Fatty exception handler

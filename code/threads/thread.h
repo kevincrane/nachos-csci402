@@ -104,11 +104,8 @@ class Thread {
     
     int getThreadNum() { return threadNum; }
     void setThreadNum(int num) { threadNum = num; }
-<<<<<<< HEAD
     int getProcessID() { return processId; }
     void setProcessID(int pID) { processId = pID; }
-=======
->>>>>>> 775a692fad1ca094b90219b1c5c731a6ac88feeb
 
   private:
     // some of the private data for this class is listed above
@@ -119,10 +116,7 @@ class Thread {
     ThreadStatus status;		// ready, running or blocked
     char* name;
     int threadNum;
-<<<<<<< HEAD
     int processId;
-=======
->>>>>>> 775a692fad1ca094b90219b1c5c731a6ac88feeb
 
     void StackAllocate(VoidFunctionPtr func, int arg);
     					// Allocate a stack for thread.

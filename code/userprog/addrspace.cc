@@ -124,14 +124,9 @@ void newKernelThread(int vAddress)
   currentThread->space->RestoreState();
   
   // Set the StackReg to the new starting position of the stack for this thread (jump up in stack in increments of UserStackSize)
-<<<<<<< HEAD
   machine->WriteRegister(StackReg, currentThread->space->getEndStackReg() - (currentThread->getThreadNum()*UserStackSize));
   DEBUG('p', "newKernelThread: Writing to StackReg 0x%d\n", 
       currentThread->space->getEndStackReg()-(currentThread->getThreadNum()*UserStackSize));
-=======
-  machine->WriteRegister(StackReg, endStackReg - (currentThread->getThreadNum()*UserStackSize));
-  DEBUG('p', "newKernelThread: Writing to StackReg 0x%d\n", endStackReg-(currentThread->getThreadNum()*UserStackSize));
->>>>>>> 775a692fad1ca094b90219b1c5c731a6ac88feeb
   
   // Increment number of threads running and release lock
   currentThread->space->incNumThreadsRunning();
