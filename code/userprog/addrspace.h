@@ -17,7 +17,8 @@
 #include "filesys.h"
 #include "table.h"
 
-#define UserStackSize		1024 	// increase this as necessary!
+#define UserStackSize   1024   // increase this as necessary!
+#define MaxNumProgs     10     // max number of programs/stacks
 
 #define MaxOpenFiles 256
 #define MaxChildSpaces 256
@@ -35,12 +36,32 @@ class AddrSpace {
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch
     Table fileTable;			// Table of openfiles
+    
+    Table threadTable;      // Table of threads in current process
+    Lock *threadLock;       // Lock for actions on current thread
+    
+    Lock *kernThreadLock;   // Lock for creating a new kernel thread
+    
+    
+    
+//    void addThread(int);    // Add a new thread to the address space
+    void newKernelThread(int);  // Create a new kernel thread  
+    
+    char* getProcessName() { return processName; }
+    int getProcessID() { return processID; }
+    int getNumThreadsRunning() { return numThreadsRunning; }
 
- private:
+
+  private:
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!
     unsigned int numPages;		// Number of pages in the virtual 
 					// address space
+
+		char* processName;      // Name of process in current address space
+		int processID;          // ID of process in current address space
+		int endStackReg;        // Defines value for end of stack based on size of pageTable
+		int numThreadsRunning;  // Number of threads running in this address space
 };
 
 #endif // ADDRSPACE_H
