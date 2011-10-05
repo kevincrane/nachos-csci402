@@ -24,10 +24,40 @@
 #include "copyright.h"
 #include "system.h"
 #include "syscall.h"
+#include "../threads/synch.h"
 #include <stdio.h>
 #include <iostream>
 
 using namespace std;
+
+#define MAX_LOCKS 1000
+#define MAX_CVS 1000
+
+// To hold all of the data about a created lock
+struct lockData{
+  Lock* lock;                
+  AddrSpace *space;        // AddrSpace of the owning process
+  bool isDeleted;          // If the lock has been deleted
+  bool toBeDeleted;        // If the lock is supposed to be deleted once all active threads finish
+  int numActiveThreads;    // Number of threads waiting on or using the lock
+};
+
+lockData locks[MAX_LOCKS];                // Array of all locks used by user programs
+Lock* lockArray = new Lock("lockArray");  // To lock the array of locks
+int nextLockPos = 0;                      // Next position available in the array of locks
+
+// To hold all of the data about a created condition
+struct cvData{
+  Condition* condition;
+  AddrSpace *space;         // AddrSpace of the owning process
+  bool isDeleted;           // If the condition has been deleted
+  bool toBeDeleted;         // If the condition is supposed to be deleted once all active threads finish
+  int numActiveThreads;     // Number of threads waiting on a condition
+};
+
+cvData conditions[MAX_CVS];               // Array of conditions used by user programs
+Lock* cvArray = new Lock("CVArray");      // To lock the array of conditions
+int nextCVPos = 0;                        // Next position available in the array
 
 int copyin(unsigned int vaddr, int len, char *buf) {
     // Copy len bytes from the current thread's virtual address vaddr.
@@ -231,6 +261,7 @@ void Close_Syscall(int fd) {
     }
 }
 
+<<<<<<< HEAD
 // Fork Syscall. Fork new thread from pointer to void function
 void Fork_Syscall(int vAddress)
 {
@@ -250,12 +281,433 @@ void Fork_Syscall(int vAddress)
   t->Fork(currentThread->space->newKernelThread, vAddress);
 }
 
+=======
+void Acquire_Syscall(int lockIndex) {
+  printf("Entered Acquire_Syscall.\n");
+  
+  lockArray->Acquire();
+
+  // Check that the index is valid
+  if(lockIndex < 0 || lockIndex >= nextLockPos) {
+    printf("ERROR: The given lock index is not valid.\n");
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock belongs to the calling process
+  else if (locks[lockIndex].space != currentThread->space) {
+    printf("ERROR: This process does not own the lock!\n");
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock has not been deleted
+  else if (locks[lockIndex].isDeleted) {
+    printf("ERROR: This lock has been deleted.\n");
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock is not to be deleted
+  else if (locks[lockIndex].toBeDeleted) {
+    printf("ERROR: This lock is to be deleted.\n");
+    lockArray->Release();
+    return;
+  }
+  locks[lockIndex].numActiveThreads++; // A new thread is using this lock
+  locks[lockIndex].lock->Acquire();
+  lockArray->Release();
+}
+
+void Release_Syscall(int lockIndex) {
+  printf("Entered Release_Syscall.\n");
+
+  lockArray->Acquire();
+
+  // Check that the index is valid
+  if(lockIndex < 0 || lockIndex >= nextLockPos) {
+    printf("ERROR: The given lock index is not valid.\n");
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock belongs to the calling process
+  else if (locks[lockIndex].space != currentThread->space) {
+    printf("ERROR: This process does not own the lock!\n");
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock has not been deleted
+  else if (locks[lockIndex].isDeleted) {
+    printf("ERROR: This lock has been deleted.\n");
+    lockArray->Release();
+    return;
+  }
+  locks[lockIndex].lock->Release();
+  locks[lockIndex].numActiveThreads--; // A thread is no longer using this lock
+
+  // Check if the lock was waiting to be deleted, if so, delete it
+  if(locks[lockIndex].toBeDeleted && (locks[lockIndex].numActiveThreads == 0)) {
+    locks[lockIndex].isDeleted = true;
+    printf("Deleted lock %i.\n", lockIndex);
+  }
+
+  lockArray->Release();
+}
+
+void Fork_Syscall() {
+  printf("Entered Fork_Syscall.\n");
+}
+
+void Exec_Syscall() {
+  printf("Entered Exec_Syscall.\n");
+}
+
+void Exit_Syscall() {
+  printf("Entered Exit_Syscall.\n");
+}
+
+void Yield_Syscall() {
+  printf("Entered Yield_Syscall.\n");
+  currentThread->Yield();
+}
+
+void Wait_Syscall(int cvIndex, int lockIndex) {
+  printf("Entered Wait_Syscall.\n");
+  cvArray->Acquire();
+  lockArray->Acquire();
+
+  // Check that the index is valid
+  if(cvIndex < 0 || cvIndex >= nextCVPos) {
+    printf("ERROR: The given cv index is not valid.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the condition belongs to the calling thread
+  else if (conditions[cvIndex].space != currentThread->space) {
+    printf("ERROR: This process does not own the condition!\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock index is valid
+  else if (lockIndex < 0 || lockIndex >= nextLockPos) {
+    printf("ERROR: The given lock index is not valid.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock belongs to the calling thread
+  else if (locks[lockIndex].space != currentThread->space) {
+    printf("ERROR: This process does not own the lock!\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the condition has not been deleted
+  else if (conditions[cvIndex].isDeleted) {
+    printf("ERROR: This condition has been deleted.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the condition is not to be deleted
+  else if (conditions[cvIndex].toBeDeleted) {
+    printf("ERROR: This condition is to be deleted.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock is not deleted
+  else if (locks[lockIndex].isDeleted) {
+    printf("ERROR: This lock has been deleted.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock is not to be deleted
+  else if (locks[lockIndex].toBeDeleted) {
+    printf("ERROR: This lock is to be deleted.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  }
+  conditions[cvIndex].numActiveThreads++;   // Add a thread using the condition
+  conditions[cvIndex].condition->Wait(locks[lockIndex].lock);
+  cvArray->Release();
+  lockArray->Release();
+}
+
+void Signal_Syscall(int cvIndex, int lockIndex) {
+  printf("Entered Signal_Syscall.\n");
+  
+  cvArray->Acquire();
+  lockArray->Acquire();
+
+  // Check that the index is valid
+  if(cvIndex < 0 || cvIndex >= nextCVPos) {
+    printf("ERROR: The given cv index is not valid.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the condition belongs to the calling process
+  else if (conditions[cvIndex].space != currentThread->space) {
+    printf("ERROR: This process does not own the condition!\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock index is valid
+  else if (lockIndex < 0 || lockIndex >= nextLockPos) {
+    printf("ERROR: The given lock index is not valid.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock belongs to the calling process
+  else if (locks[lockIndex].space != currentThread->space) {
+    printf("ERROR: This process does not own the lock!\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the condition has not been deleted
+  else if (conditions[cvIndex].isDeleted) {
+    printf("ERROR: This condition has been deleted.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock has not been deleted
+  else if (locks[lockIndex].isDeleted) {
+    printf("ERROR: This lock has been deleted.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+  conditions[cvIndex].numActiveThreads--; // One less thread using the condition
+  conditions[cvIndex].condition->Signal(locks[lockIndex].lock);
+
+  // Check if the condition is to be deleted, if so, delete it
+  if(conditions[cvIndex].toBeDeleted && (conditions[cvIndex].numActiveThreads == 0)) {
+    conditions[cvIndex].isDeleted = true;
+    printf("Deleted condition %i.\n", cvIndex);
+  }
+  cvArray->Release();
+  lockArray->Release();
+}
+
+void Broadcast_Syscall(int cvIndex, int lockIndex) {
+  printf("Entered Broadcast_Syscall.\n");
+ 
+  cvArray->Acquire();
+  lockArray->Acquire();
+
+  // Check that the index is valid
+  if(cvIndex < 0 || cvIndex >= nextCVPos) {
+    printf("ERROR: The given cv index is not valid.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the condition belongs to the calling process
+  else if (conditions[cvIndex].space != currentThread->space) {
+    printf("ERROR: This process does not own the condition!\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock index is valid
+  else if (lockIndex < 0 || lockIndex >= nextLockPos) {
+    printf("ERROR: The given lock index is not valid.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock belongs to the calling process
+  else if (locks[lockIndex].space != currentThread->space) {
+    printf("ERROR: This process does not own the lock!\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the condition has not been deleted
+  else if (conditions[cvIndex].isDeleted) {
+    printf("ERROR: This condition has been deleted.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock has not been deleted
+  else if (locks[lockIndex].isDeleted) {
+    printf("ERROR: This lock has been deleted.\n");
+    cvArray->Release();
+    lockArray->Release();
+    return;
+  }  
+  conditions[cvIndex].condition->Broadcast(locks[lockIndex].lock);
+  conditions[cvIndex].numActiveThreads = 0;
+
+  // Check if the condition is to be deleted, if so, delete it
+  if(conditions[cvIndex].toBeDeleted && (conditions[cvIndex].numActiveThreads == 0)) {
+    conditions[cvIndex].isDeleted = true;
+    printf("Deleted condition %i.\n", cvIndex);
+  }
+  cvArray->Release();
+  lockArray->Release();
+}
+
+int CreateLock_Syscall() {
+  printf("Entered CreateLock_Syscall.\n");
+  lockData myLock;
+  myLock.lock = new Lock("L");
+  myLock.space = currentThread->space;
+  myLock.isDeleted = false;
+  myLock.toBeDeleted = false;
+  myLock.numActiveThreads = 0;
+
+  lockArray->Acquire();
+
+  locks[nextLockPos] = myLock;
+  nextLockPos++;
+  
+  lockArray->Release();
+
+  return (nextLockPos-1);
+}
+
+void DestroyLock_Syscall(int lockIndex) {
+  printf("Entered DestroyLock_Syscall.\n");
+  
+  lockArray->Acquire();
+
+  // Check that the index is valid
+  if(lockIndex < 0 || lockIndex >= nextLockPos) {
+    printf("ERROR: The given lock index is not valid.\n");
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock belongs to the calling process
+  else if (locks[lockIndex].space != currentThread->space) {
+    printf("ERROR: This process does not own the lock!\n");
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock hasn't been deleted
+  else if (locks[lockIndex].isDeleted) {
+    printf("ERROR: This lock has already been deleted.\n");
+    lockArray->Release();
+    return;
+  } 
+
+  // Check that the lock isn't already to be deleted
+  else if (locks[lockIndex].toBeDeleted) {
+    lockArray->Release();
+    return;
+  } 
+
+  // Check if there are still threads using the lock
+  else if(locks[lockIndex].numActiveThreads > 0) {
+    locks[lockIndex].toBeDeleted = true;
+  } else {
+    locks[lockIndex].isDeleted = true;
+    printf("Deleted lock %i.\n", lockIndex);
+  }
+  lockArray->Release();
+  return;
+}
+
+int CreateCondition_Syscall() {
+  printf("Entered CreateCondition_Syscall.\n");
+  cvData myCV;
+  myCV.condition = new Condition("C");
+  myCV.space = currentThread->space;
+  myCV.isDeleted = false;
+  myCV.toBeDeleted = false;
+  myCV.numActiveThreads = 0;
+
+  cvArray->Acquire();
+
+  conditions[nextCVPos] = myCV;
+  nextCVPos++;
+  
+  cvArray->Release();
+
+  return (nextCVPos-1);
+  return 0;
+}
+
+void DestroyCondition_Syscall(int cvIndex) {
+  printf("Entered DestroyCondition_Syscall.\n");
+  cvArray->Acquire();
+
+  // Check that the index is valid
+  if(cvIndex < 0 || cvIndex >= nextCVPos) {
+    printf("ERROR: The given condition index is not valid.\n");
+    cvArray->Release();
+    return;
+  } 
+
+  // Check that the condition belongs to the calling thread
+  else if (conditions[cvIndex].space != currentThread->space) {
+    printf("ERROR: This process does not own the cv!\n");
+    cvArray->Release();
+    return;
+  } 
+
+  // Check that the condition hasn't already been deleted
+  else if (conditions[cvIndex].isDeleted) {
+    printf("ERROR: This lock has already been deleted.\n");
+    cvArray->Release();
+    return;
+  } 
+
+  // Check that the condition isn't already set to tobeDeleted
+  else if (conditions[cvIndex].toBeDeleted) {
+    cvArray->Release();
+    return;
+  } 
+
+  // Check that there are no more active threads
+  else if(conditions[cvIndex].numActiveThreads > 0) {
+    conditions[cvIndex].toBeDeleted = true;
+  } else {
+    conditions[cvIndex].isDeleted = true;
+    printf("Deleted condition %i.\n", cvIndex);
+  }
+  cvArray->Release();
+  return;
+}
+>>>>>>> b303e463ba81ff0dade2980204631e1b363e9d4b
 
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
     int rv=0; 	// the return value from a syscall
 
     if ( which == SyscallException ) {
+<<<<<<< HEAD
 		switch (type) {
 			default:
 			DEBUG('a', "Unknown syscall - shutting down.\n");
@@ -293,6 +745,96 @@ void ExceptionHandler(ExceptionType which) {
 			break;
 		
 		}
+=======
+	switch (type) {
+	    default:
+		DEBUG('a', "Unknown syscall - shutting down.\n");
+	    case SC_Halt:
+		DEBUG('a', "Shutdown, initiated by user program.\n");
+		interrupt->Halt();
+		break;
+	    case SC_Create:
+		DEBUG('a', "Create syscall.\n");
+		Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+		break;
+	    case SC_Open:
+		DEBUG('a', "Open syscall.\n");
+		rv = Open_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+		break;
+	    case SC_Write:
+		DEBUG('a', "Write syscall.\n");
+		Write_Syscall(machine->ReadRegister(4),
+			      machine->ReadRegister(5),
+			      machine->ReadRegister(6));
+		break;
+	    case SC_Read:
+		DEBUG('a', "Read syscall.\n");
+		rv = Read_Syscall(machine->ReadRegister(4),
+			      machine->ReadRegister(5),
+			      machine->ReadRegister(6));
+		break;
+	    case SC_Close:
+	        DEBUG('a', "Close syscall.\n");
+	        Close_Syscall(machine->ReadRegister(4));
+	        break;
+	    case SC_Acquire:
+	        DEBUG('a', "Acquire syscall.\n");
+	        Acquire_Syscall(machine->ReadRegister(4));
+		break;
+	    case SC_Release:
+	        DEBUG('a', "Release syscall.\n");
+	        Release_Syscall(machine->ReadRegister(4));
+		break;
+	    case SC_Fork:
+	        DEBUG('a', "Fork syscall.n");
+	        Fork_Syscall();
+		break;
+	    case SC_Exec:
+	        DEBUG('a', "Exec syscall.\n");
+	        Exec_Syscall();
+		break;
+    	    case SC_Exit:
+	        DEBUG('a', "Exit syscall.\n");
+	        Exit_Syscall();
+		break;
+	    case SC_Yield:
+	        DEBUG('a', "Yield syscall.\n");
+	        Yield_Syscall();
+		break;
+	    case SC_Wait:
+	        DEBUG('a', "Wait syscall.\n");
+	        Wait_Syscall(machine->ReadRegister(4), 
+			     machine->ReadRegister(5));
+		break;
+	    case SC_Signal:
+	        DEBUG('a', "Signal syscall.\n");
+	        Signal_Syscall(machine->ReadRegister(4),
+			       machine->ReadRegister(5));
+		break;
+	    case SC_Broadcast:
+	        DEBUG('a', "Broadcast syscall.\n");
+	        Broadcast_Syscall(machine->ReadRegister(4),
+				  machine->ReadRegister(5));
+		break;
+	    case SC_CreateLock:
+	        DEBUG('a', "CreateLock syscall.\n");
+	        rv = CreateLock_Syscall();
+		break;
+	    case SC_DestroyLock:
+	        DEBUG('a', "DestroyLock syscall.\n");
+	        DestroyLock_Syscall(machine->ReadRegister(4));
+		break;
+	    case SC_CreateCondition:
+	        DEBUG('a', "CreateCondition syscall.\n");
+	        rv = CreateCondition_Syscall();
+		break;
+	    case SC_DestroyCondition:
+	        DEBUG('a', "DestroyCondition syscall.\n");
+	        DestroyCondition_Syscall(machine->ReadRegister(4));
+		break;
+		
+	}
+>>>>>>> b303e463ba81ff0dade2980204631e1b363e9d4b
 
 		// Put in the return value and increment the PC
 		machine->WriteRegister(2,rv);
