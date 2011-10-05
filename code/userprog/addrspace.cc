@@ -100,6 +100,39 @@ SwapHeader (NoffHeader *noffH)
 	noffH->uninitData.inFileAddr = WordToHost(noffH->uninitData.inFileAddr);
 }
 
+
+// newKernelThread(int vAddress)
+// - Creates a new kernel thread in this address space
+// - Takes virtual address of thread as an argument; returns void
+// - Should only be run off of Fork call, meaning it is currentThread
+void AddrSpace::newKernelThread(int vAddress)
+{
+
+  //TODO: Checks for valid thread, debug statements
+  
+  kernThreadLock->Acquire();
+  DEBUG('p', "newKernelThread: Starting a new kernel thread in process %s at address %d\n", 
+      processName, vAddress);
+  
+  // Set PCReg (and NextPCReg) to kernel thread's virtual address
+  machine->WriteRegister(PCReg, vAddress);
+  machine->WriteRegister(NextPCReg, vAddress+4);
+  
+  // Prevent info loss during context switch
+  RestoreState();
+  
+  // Set the StackReg to the new starting position of the stack for this thread (jump up in stack in increments of UserStackSize)
+  machine->WriteRegister(StackReg, stackEndRegister - (currentThread->getID()*UserStackSize));
+  DEBUG('p', "newKernelThread: Writing to StackReg 0x%d\n", stackEndRegister-(currentThread->getID()*UserStackSize));
+  
+  // Increment number of threads running and release lock
+  numThreadsRunning++;
+  kernThreadLock->Release();
+
+  // Run the new kernel thread
+  machine->Run()
+}
+
 //----------------------------------------------------------------------
 // AddrSpace::AddrSpace
 // 	Create an address space to run a user program.
@@ -124,45 +157,53 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     // Don't allocate the input or output to disk files
     fileTable.Put(0);
     fileTable.Put(0);
+    
+    // Initialize table of threads
+    threadTable = new Table(60);		// Arbitrary number of maximum threads
+    
+    kernThreadLock = new Lock("KernelThread Lock");
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
-		(WordToHost(noffH.noffMagic) == NOFFMAGIC))
-    	SwapHeader(&noffH);
+        (WordToHost(noffH.noffMagic) == NOFFMAGIC))
+      SwapHeader(&noffH);
     ASSERT(noffH.noffMagic == NOFFMAGIC);
 
     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size ;
-    numPages = divRoundUp(size, PageSize) + divRoundUp(UserStackSize,PageSize);
-                                                // we need to increase the size
-						// to leave room for the stack
+    numPages = divRoundUp(size, PageSize) + divRoundUp(UserStackSize*MaxNumProgs,PageSize);
+                                                
     size = numPages * PageSize;
 
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
-						// to run anything too big --
-						// at least until we have
-						// virtual memory
-
-    DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
-					numPages, size);
-// first, set up the translation 
-    pageTable = new TranslationEntry[numPages];
-    for (i = 0; i < numPages; i++) {
-	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-	pageTable[i].physicalPage = i;
-	pageTable[i].valid = TRUE;
-	pageTable[i].use = FALSE;
-	pageTable[i].dirty = FALSE;
-	pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
-					// a separate page, we could set its 
-					// pages to be read-only
-    }
-    
-// zero out the entire address space, to zero the unitialized data segment 
-// and the stack segment
+    // Verify there are enough free pages left
+    ASSERT((numPagesReserved + numPages) <= NumPhysPages);		// check we're not trying
+						
+    // zero out the entire address space, to zero the unitialized data segment 
     bzero(machine->mainMemory, size);
 
+    DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
+    // Set up translation of virtual address to physical address
+    pageTable = new TranslationEntry[numPages];
+    for (i = 0; i < numPages; i++) {
+      pageLock->Acquire();
+      pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+      pageTable[i].physicalPage = pageMap->Read();    // Find a free slot in physical memory
+      pageTable[i].valid = TRUE;
+      pageTable[i].use = FALSE;
+      pageTable[i].dirty = FALSE;
+      pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
+                                      // a separate page, we could set its 
+                                      // pages to be read-only
+      pageLock->Release();
+      
+      // Copy one page of code/data segment into memory if they exist
+      executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage*PageSize]), PageSize, (noffH.code.inFileAddr + i*PageSize));
+      totalPagesReserved++;
+      DEBUG('a', "Page copied to pageTable at phys add: %d. Code/data of size %d copied from %d.\n", 
+          pageTable[i].physicalPage*PageSize, PageSize, (noffH.code.inFileAddr + i*PageSize));
+    }
+
 // then, copy in the code and data segments into memory
-    if (noffH.code.size > 0) {
+/*    if (noffH.code.size > 0) {
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			noffH.code.virtualAddr, noffH.code.size);
         executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),
@@ -174,6 +215,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
         executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
+*/
 
 }
 
@@ -205,7 +247,7 @@ AddrSpace::InitRegisters()
     int i;
 
     for (i = 0; i < NumTotalRegs; i++)
-	machine->WriteRegister(i, 0);
+      machine->WriteRegister(i, 0);
 
     // Initial program counter -- must be location of "Start"
     machine->WriteRegister(PCReg, 0);	
@@ -217,8 +259,9 @@ AddrSpace::InitRegisters()
    // Set the stack register to the end of the address space, where we
    // allocated the stack; but subtract off a bit, to make sure we don't
    // accidentally reference off the end!
-    machine->WriteRegister(StackReg, numPages * PageSize - 16);
-    DEBUG('a', "Initializing stack register to %x\n", numPages * PageSize - 16);
+    endStack = numPages*PageSize - 16;
+    machine->WriteRegister(StackReg, endStack);
+    DEBUG('a', "Initializing stack register to %x\n", endStack);
 }
 
 //----------------------------------------------------------------------
@@ -245,3 +288,16 @@ void AddrSpace::RestoreState()
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
 }
+
+/*
+// AddThread
+// Add new thread to address space of current process
+void AddrSpace::addThread(int vAddress) {
+	
+	
+	
+	Create a New thread. This would be a kernel thread.
+  Update the Process Table for Multiprogramming part.
+  Allocate the addrespace to the thread being forked which is essentially current thread's addresspsace because threads share the process addressspace. 
+}
+*/

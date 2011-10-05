@@ -261,6 +261,27 @@ void Close_Syscall(int fd) {
     }
 }
 
+<<<<<<< HEAD
+// Fork Syscall. Fork new thread from pointer to void function
+void Fork_Syscall(int vAddress)
+{
+  // TODO: check for max threads, whether vAddress is outside size of page table
+  
+  int id = currentThread->space->threadTable.Put(t);             // add new thread to thread table
+  int processID = currentThread->space->getProcessID();
+  char* name = currentThread->space->getProcessName();
+  sprintf(name, "%s%d", name, id);
+  
+  Thread *t=new Thread(name);
+  t->setID(id);
+  t->setProcessID(processID);
+  t->space = currentThread->space;      // Set new thread to currentThread's address space
+  
+  // Finally Fork a new kernel thread
+  t->Fork(currentThread->space->newKernelThread, vAddress);
+}
+
+=======
 void Acquire_Syscall(int lockIndex) {
   printf("Entered Acquire_Syscall.\n");
   
@@ -696,12 +717,52 @@ void DestroyCondition_Syscall(int cvIndex) {
   cvArray->Release();
   return;
 }
+>>>>>>> b303e463ba81ff0dade2980204631e1b363e9d4b
 
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
     int rv=0; 	// the return value from a syscall
 
     if ( which == SyscallException ) {
+<<<<<<< HEAD
+		switch (type) {
+			default:
+			DEBUG('a', "Unknown syscall - shutting down.\n");
+			case SC_Halt:
+				DEBUG('a', "Shutdown, initiated by user program.\n");
+				interrupt->Halt();
+			break;
+			case SC_Create:
+				DEBUG('a', "Create syscall.\n");
+				Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+			break;
+			case SC_Open:
+				DEBUG('a', "Open syscall.\n");
+				rv = Open_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+			break;
+			case SC_Write:
+				DEBUG('a', "Write syscall.\n");
+				Write_Syscall(machine->ReadRegister(4),
+						  machine->ReadRegister(5),
+						  machine->ReadRegister(6));
+			break;
+			case SC_Read:
+				DEBUG('a', "Read syscall.\n");
+				rv = Read_Syscall(machine->ReadRegister(4),
+						  machine->ReadRegister(5),
+						  machine->ReadRegister(6));
+			break;
+			case SC_Close:
+				DEBUG('a', "Close syscall.\n");
+				Close_Syscall(machine->ReadRegister(4));
+			break;
+			case SC_Fork:
+				DEBUG('a', "Fork syscall.\n");
+				Fork_Syscall(machine->ReadRegister(4));		//TODO: should I be receiving a return value?
+			break;
+		
+		}
+=======
 	switch (type) {
 	    default:
 		DEBUG('a', "Unknown syscall - shutting down.\n");
@@ -790,13 +851,14 @@ void ExceptionHandler(ExceptionType which) {
 		break;
 		
 	}
+>>>>>>> b303e463ba81ff0dade2980204631e1b363e9d4b
 
-	// Put in the return value and increment the PC
-	machine->WriteRegister(2,rv);
-	machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
-	machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
-	machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
-	return;
+		// Put in the return value and increment the PC
+		machine->WriteRegister(2,rv);
+		machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
+		machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
+		machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
+		return;
     } else {
       cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
       interrupt->Halt();

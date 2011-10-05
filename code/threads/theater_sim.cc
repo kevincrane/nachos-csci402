@@ -61,7 +61,6 @@ Lock* waitingOnGroupLock[MAX_CUST];       // Lock for when cust is waiting for g
 Condition* waitingOnGroupCV[MAX_CUST];          
 Lock* chooseSeatsLock = new Lock("CHOOSE");
 
-
 // Group Global variables
 int groupHeads[MAX_CUST];                 // List of indices pointing to the leaders of each group
 int groupSize[MAX_CUST];                  // The size of each group
@@ -147,6 +146,7 @@ void customerInit(int groups[], int numGroups)
   totalCustomers = 0;
   totalGroups = numGroups;
   int randNum = 0;
+  
   
   // Iterate through each of the groups passed in; each int is number of people in group
   for(int i=0; i<numGroups; i++) 
@@ -671,6 +671,7 @@ void groupHead(int custIndex)
   {
     printf("Customer %i in Group %i has left the movie theater\n", i, customers[i].group);
   }
+  
 }
 
 
@@ -1096,7 +1097,7 @@ void manager(int myIndex)
     {
 			DEBUG('p', "TotalTicketsTaken = %i\n", totalTicketsTaken);
 			DEBUG('p', "NumSeatsOccupied = %i\n", numSeatsOccupied);
-    	if((theaterFull || (totalCustomers-totalCustomersServed+numSeatsOccupied) <= (MAX_SEATS-numSeatsOccupied))  && totalTicketsTaken != 0) { //!theaterFull || (totalTicketsTaken == 0 && numSeatsOccupied == 0)) {
+    	if((theaterFull || (totalCustomers-(totalCustomersServed+numSeatsOccupied)) <= (MAX_SEATS-numSeatsOccupied))  && totalTicketsTaken != 0) { //!theaterFull || (totalTicketsTaken == 0 && numSeatsOccupied == 0)) {
 
        	// Set movie ready to start
        	movieStarted = true;
@@ -1113,6 +1114,7 @@ void manager(int myIndex)
        	
      	} else printf("OH NOESSS\n");
     }
+    
     
     //Check clerk money levels
 		for(int i = 0; i<MAX_CC; i++)
@@ -1155,7 +1157,7 @@ void movieTech(int myIndex) {
   while(!theaterDone) {	
     DEBUG('p',"Total Tickets Taken: %i. Num Seats Occupied: %i. Movie Status: %i. Full: %i\n", 
         totalTicketsTaken, numSeatsOccupied, movieStatus, theaterFull);
-    if(theaterFull || (totalCustomers-totalCustomersServed+numSeatsOccupied) <= (MAX_SEATS-numSeatsOccupied) || true) {
+    if(theaterFull || (totalCustomers-(totalCustomersServed+numSeatsOccupied)) <= (MAX_SEATS-numSeatsOccupied) || true) {
       DEBUG('p', "MOVIE TECH ATTEMPTING TO START MOVIE\n");
       movieStatusLock->Acquire();
       movieStatus = 1;
