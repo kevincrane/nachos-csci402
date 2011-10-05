@@ -345,6 +345,22 @@ void Exec_Syscall() {
 
 void Exit_Syscall() {
   printf("Entered Exit_Syscall.\n");
+
+  // Last executing thread in the last process
+  interrupt->Halt();
+
+  // Thread in a process, not the last executing thread in the process, nor is
+  // it the last process
+
+  // Release stack memory pages for this thread, only the pages where the valid
+  // bit is true
+
+  // Last executing thread in a process - not the last process
+
+  // Clear out all valid entries in the page table
+
+  // Clear out all locks/cvs for that process
+  
 }
 
 void Yield_Syscall() {
@@ -479,6 +495,7 @@ void Signal_Syscall(int cvIndex, int lockIndex) {
     lockArray->Release();
     return;
   } 
+  // SWITCH THESE?
   conditions[cvIndex].numActiveThreads--; // One less thread using the condition
   conditions[cvIndex].condition->Signal(locks[lockIndex].lock);
 
