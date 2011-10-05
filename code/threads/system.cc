@@ -29,6 +29,9 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
+BitMap *pageMap;    // BitMap to determine which slots in pageTable are in use
+Lock *pageLock;     // Lock corresponding to pageTable operations
+int totalPagesReserved;   // Number of pages reserved for address spaces
 #endif
 
 #ifdef NETWORK
@@ -148,7 +151,11 @@ Initialize(int argc, char **argv)
     CallOnUserAbort(Cleanup);			// if user hits ctl-C
     
 #ifdef USER_PROGRAM
+    // Initialize all global values used by user programs
     machine = new Machine(debugUserProg);	// this must come first
+    pageMap = new BitMap(NumPhysPages);   
+    pageLock = new Lock("Page Map Lock");
+    totalPagesReserved = 0;
 #endif
 
 #ifdef FILESYS

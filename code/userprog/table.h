@@ -20,6 +20,8 @@ class Table {
     void *Get(int);
     int Put(void *);
     void *Remove(int);
+    
+    int Size(){return size;}
 };
 
 
