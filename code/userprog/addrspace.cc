@@ -177,18 +177,22 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     numPages = divRoundUp(size, PageSize) + divRoundUp(UserStackSize*MaxNumProgs,PageSize);
                                                 
     size = numPages * PageSize;
-
+	
+	DEBUG('r', "numPagesReserved: %i, numPages: %i, NumPhysPages: %i", numPagesReserved, numPages, NumPhysPages);
     // Verify there are enough free pages left
     ASSERT((numPagesReserved + numPages) <= NumPhysPages);		// check we're not trying
 						
     // zero out the entire address space, to zero the unitialized data segment 
     bzero(machine->mainMemory, size);
 
-    DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
+    DEBUG('r', "Initializing address space, num pages %d, size %d\n", numPages, size);
+	DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
     // Set up translation of virtual address to physical address
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
+	  DEBUG('r', "Acquiring page lock, times looped: %i\n", i);
       pageLock->Acquire();
+	  DEBUG('r', "Acquired page lock\n");
       pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
       pageTable[i].physicalPage = pageMap->Find();    // Find a free slot in physical memory
       pageTable[i].valid = TRUE;
@@ -202,7 +206,8 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
       // Copy one page of code/data segment into memory if they exist
       executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage*PageSize]), PageSize, (noffH.code.inFileAddr + i*PageSize));
       numPagesReserved++;
-      DEBUG('a', "Page copied to pageTable at phys add: %d. Code/data of size %d copied from %d.\n", 
+
+	  DEBUG('a', "Page copied to pageTable at phys add: %d. Code/data of size %d copied from %d.\n", 
           pageTable[i].physicalPage*PageSize, PageSize, (noffH.code.inFileAddr + i*PageSize));
     }
 
