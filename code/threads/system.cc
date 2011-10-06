@@ -154,7 +154,7 @@ Initialize(int argc, char **argv)
     // Initialize all global values used by user programs
     machine = new Machine(debugUserProg);	// this must come first
     pageMap = new BitMap(NumPhysPages);   
-//    pageLock = new Lock("Page Map Lock");
+    pageLock = new Lock("Page Map Lock");
     totalPagesReserved = 0;
 #endif
 

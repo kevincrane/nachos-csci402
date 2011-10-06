@@ -6,7 +6,6 @@
 #define TABLE_H
 
 #include "bitmap.h"
-
 class Lock;
 
 class Table {
