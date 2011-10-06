@@ -44,7 +44,7 @@ class AddrSpace {
     
     
     
-    void addThread(int);    // Add a new thread to the address space
+//    void addThread(int);    // Add a new thread to the address space
 //    void newKernelThread(int);  // Create a new kernel thread  
     
     char* getProcessName() { return processName; }

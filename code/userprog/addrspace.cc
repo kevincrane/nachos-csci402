@@ -107,7 +107,7 @@ SwapHeader (NoffHeader *noffH)
 // - Should only be run off of Fork call, meaning it is currentThread
 // - NOTE: in order to pass as VoidFunctionPtr to t->Fork, needed to remove association with AddrSpace
 //   - as a result, need to call currentThread manually for function/values
-void newKernelThread(int vAddress)
+/*void newKernelThread(int vAddress)
 {
 
   //TODO: Checks for valid thread, debug statements
@@ -135,6 +135,7 @@ void newKernelThread(int vAddress)
   // Run the new kernel thread
   machine->Run();
 }
+*/
 
 //----------------------------------------------------------------------
 // AddrSpace::AddrSpace
@@ -296,7 +297,7 @@ void AddrSpace::RestoreState()
 
 // AddThread
 // Add new thread to address space of current process
-void AddrSpace::addThread(int vAddress) {
+/*void AddrSpace::addThread(int vAddress) {
   // TODO: check for max threads, whether vAddress is outside size of page table
   char* name = currentThread->space->getProcessName();
   Thread *t=new Thread(name);
@@ -312,5 +313,5 @@ void AddrSpace::addThread(int vAddress) {
   // Finally Fork a new kernel thread 
   t->Fork((VoidFunctionPtr)(newKernelThread), vAddress);
 }
-
+*/
 
