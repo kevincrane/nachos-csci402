@@ -133,38 +133,37 @@ void Create_Syscall(unsigned int vaddr, int len) {
 }
 
 int Open_Syscall(unsigned int vaddr, int len) {
-    // Open the file with the name in the user buffer pointed to by
-    // vaddr.  The file name is at most MAXFILENAME chars long.  If
-    // the file is opened successfully, it is put in the address
-    // space's file table and an id returned that can find the file
-    // later.  If there are any errors, -1 is returned.
-    char *buf = new char[len+1];	// Kernel buffer to put the name in
-    OpenFile *f;			// The new open file
-    int id;				// The openfile id
+  // Open the file with the name in the user buffer pointed to by
+  // vaddr.  The file name is at most MAXFILENAME chars long.  If
+  // the file is opened successfully, it is put in the address
+  // space's file table and an id returned that can find the file
+  // later.  If there are any errors, -1 is returned.
+  char *buf = new char[len+1];	// Kernel buffer to put the name in
+  OpenFile *f;			// The new open file
+  int id;				// The openfile id
 
-    if (!buf) {
-	printf("%s","Can't allocate kernel buffer in Open\n");
-	return -1;
-    }
+  if (!buf) {
+    printf("%s","Can't allocate kernel buffer in Open\n");
+    return -1;
+  }
 
-    if( copyin(vaddr,len,buf) == -1 ) {
-	printf("%s","Bad pointer passed to Open\n");
-	delete[] buf;
-	return -1;
-    }
-
-    buf[len]='\0';
-
-    f = fileSystem->Open(buf);
+  if( copyin(vaddr,len,buf) == -1 ) {
+    printf("%s","Bad pointer passed to Open\n");
     delete[] buf;
+    return -1;
+  }
 
-    if ( f ) {
-	if ((id = currentThread->space->fileTable.Put(f)) == -1 )
-	    delete f;
-	return id;
-    }
-    else
-	return -1;
+  buf[len]='\0';
+
+  f = fileSystem->Open(buf);
+  delete[] buf;
+
+  if ( f ) {
+    if ((id = currentThread->space->fileTable.Put(f)) == -1 )
+      delete f;
+    return id;
+  } else
+    return -1;
 }
 
 void Write_Syscall(unsigned int vaddr, int len, int id) {
@@ -261,28 +260,6 @@ void Close_Syscall(int fd) {
     }
 }
 
-// Fork Syscall. Fork new thread from pointer to void function
-void Fork_Syscall(int vAddress)
-{
-  /*
-  // TODO: check for max threads, whether vAddress is outside size of page table
-  char* name = currentThread->space->getProcessName();
-  Thread *t=new Thread(name);
-  
-  int num = currentThread->space->threadTable->Put(t);             // add new thread to thread table
-  int processID = currentThread->space->getProcessID();
-  sprintf(name, "%s%d", name, num);
-  
-  t->setThreadNum(num);
-  t->setProcessID(processID);
-  t->space = currentThread->space;      // Set new thread to currentThread's address space
-  
-  // Finally Fork a new kernel thread 
-  t->Fork((VoidFunctionPtr)newKernelThread, vAddress);
-  */
-  DEBUG('p', "Called Fork syscall");
-  currentThread->space->addThread(vAddress);
-}
 
 void Acquire_Syscall(int lockIndex) {
   printf("Entered Acquire_Syscall.\n");
@@ -358,8 +335,63 @@ void Release_Syscall(int lockIndex) {
   lockArray->Release();
 }
 
-void Exec_Syscall() {
+
+// Fork Syscall. Fork new thread from pointer to void function
+void Fork_Syscall(int vAddress)
+{
+  /*
+  // TODO: check for max threads, whether vAddress is outside size of page table
+  char* name = currentThread->space->getProcessName();
+  Thread *t=new Thread(name);
+  
+  int num = currentThread->space->threadTable->Put(t);             // add new thread to thread table
+  int processID = currentThread->space->getProcessID();
+  sprintf(name, "%s%d", name, num);
+  
+  t->setThreadNum(num);
+  t->setProcessID(processID);
+  t->space = currentThread->space;      // Set new thread to currentThread's address space
+  
+  // Finally Fork a new kernel thread 
+  t->Fork((VoidFunctionPtr)newKernelThread, vAddress);
+  */
+  printf("Entered Fork_Syscall.\n");
+  currentThread->space->addThread(vAddress);
+}
+
+// Exec Syscall. Create a new process with own address space, etc.
+int Exec_Syscall(int vAddress, int len) {
   printf("Entered Exec_Syscall.\n");
+  
+/*  // Ripped from Open_Syscall; if help needed, refer back there
+  char *buf = new char[len+1];  // Kernel buffer to put the name in
+  OpenFile *f;                  // The new open file
+  int fileID;                       // The openfile id
+
+  // Error checking
+  if (!buf) {
+    printf("%s","Can't allocate kernel buffer in Exec\n");
+    return -1;
+  }
+  if( copyin(vaddr,len,buf) == -1 ) {
+    printf("%s","Bad pointer passed to Exec\n");
+    delete[] buf;
+    return -1;
+  }
+
+  buf[len]='\0';
+
+  f = fileSystem->Open(buf);
+*/
+/*  this shit
+  http://www-scf.usc.edu/~csci402/assignment2/p2_doc_new3.html
+  look at requirements here: http://www-scf.usc.edu/~csci402/assignment2/assignment2_f2011.html
+  - switching between threads/processes
+  - processtable
+  - Exec call
+  - Exit call
+  - how to convert theater to user prog*/
+  return 0;
 }
 
 void Exit_Syscall() {
@@ -765,11 +797,12 @@ void ExceptionHandler(ExceptionType which) {
 
       case SC_Fork:
         DEBUG('a', "Fork syscall.\n");
-        Fork_Syscall(machine->ReadRegister(4));		//TODO: should I be receiving a return value?
+        Fork_Syscall(machine->ReadRegister(4));
       break;
       case SC_Exec:
         DEBUG('a', "Exec syscall.\n");
-        Exec_Syscall();
+        rv = Exec_Syscall(machine->ReadRegister(4),
+            machine->ReadRegister(5));
       break;
       case SC_Exit:
         DEBUG('a', "Exit syscall.\n");
