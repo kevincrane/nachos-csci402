@@ -22,15 +22,27 @@ int lock_3;
 /* Create Lock */
 
 /* Default Test */
-	create_Lock_Test(){
+	create_Lock_Test() {
 	  Write("\n\nTesting CreateLock syscall. Calling CreateLock()\n", sizeof("\n\nTesting CreateLock syscall. Calling CreateLock()\n"), ConsoleOutput);
 		lock_1 =  CreateLock();
 	}
 
 /* Fork */
-  fork_Test(){
+  void forkThread1(){
+    Write("Forked test thread1\n", 20, ConsoleOutput);
+    Exit(0);
+  }
+  
+  void forkThread2() {
+    Write("Forked test thread2\n", 20, ConsoleOutput);
+    Exit(0);
+  }
+
+  fork_Test() {
     Write("\n\nTesting Fork syscall. Calling Fork()\n", sizeof("\n\nTesting Fork syscall. Calling Fork()\n"), ConsoleOutput);
-    /*TODO: some shit to test fork. figure out mother fucker*/
+
+    Fork((void *)forkThread1);
+    Fork((void *)forkThread2);
   }
   
 /* Exec */

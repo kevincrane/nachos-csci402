@@ -126,7 +126,7 @@ void newKernelThread(int vAddress)
   //TODO: Checks for valid thread, debug statements
   
   currentThread->space->kernThreadLock->Acquire();
-  DEBUG('p', "newKernelThread: Starting a new kernel thread in process %s at address %d\n", 
+  DEBUG('u', "newKernelThread: Starting a new kernel thread in process %s at address %d\n", 
       currentThread->space->getProcessName(), vAddress);
   
   // Set PCReg (and NextPCReg) to kernel thread's virtual address
@@ -138,7 +138,7 @@ void newKernelThread(int vAddress)
   
   // Set the StackReg to the new starting position of the stack for this thread (jump up in stack in increments of UserStackSize)
   machine->WriteRegister(StackReg, currentThread->space->getEndStackReg() - (currentThread->getThreadNum()*UserStackSize));
-  DEBUG('p', "newKernelThread: Writing to StackReg 0x%d\n", 
+  DEBUG('u', "newKernelThread: Writing to StackReg 0x%d\n", 
       currentThread->space->getEndStackReg()-(currentThread->getThreadNum()*UserStackSize));
   
   // Increment number of threads running and release lock
@@ -379,18 +379,21 @@ void Release_Syscall(int lockIndex) {
 void Fork_Syscall(int vAddress)
 {
   printf("Entered Fork_Syscall.\n");
-  
   // TODO: check for max threads, whether vAddress is outside size of page table
+  printf("whorechild\n");
   char* name = currentThread->space->getProcessName();
+  printf("Buttslut.\n");
   Thread *t=new Thread(name);
   
   int num = currentThread->space->threadTable->Put(t);             // add new thread to thread table
   int processID = currentThread->space->getProcessID();
   sprintf(name, "%s%d", name, num);
   
+  t->setName(name);
   t->setThreadNum(num);
   t->setProcessID(processID);
   t->space = currentThread->space;      // Set new thread to currentThread's address space
+  DEBUG('u', "New thread named '%s'; thread# %d with processID %d\n", name, num, processID);
   
   // Finally Fork a new kernel thread 
   t->Fork((VoidFunctionPtr)newKernelThread, vAddress);

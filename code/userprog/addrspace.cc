@@ -158,6 +158,8 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     NoffHeader noffH;
     unsigned int i, size;
 
+    processName = "AddrSpace";       // Temporary name, in case the addrspace is accessed before real name set
+
     // Don't allocate the input or output to disk files
     fileTable.Put(0);
     fileTable.Put(0);
@@ -178,19 +180,19 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
                                                 
     size = numPages * PageSize;
 	
-	DEBUG('r', "numPagesReserved: %i, numPages: %i, NumPhysPages: %i", numPagesReserved, numPages, NumPhysPages);
+	DEBUG('u', "numPagesReserved: %i, numPages: %i, NumPhysPages: %i", numPagesReserved, numPages, NumPhysPages);
     // Verify there are enough free pages left
     ASSERT((numPagesReserved + numPages) <= NumPhysPages);		// check we're not trying
 						
     // zero out the entire address space, to zero the unitialized data segment 
     bzero(machine->mainMemory, size);
 
-    DEBUG('r', "Initializing address space, num pages %d, size %d\n", numPages, size);
+    DEBUG('u', "Initializing address space, num pages %d, size %d\n", numPages, size);
 	DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
     // Set up translation of virtual address to physical address
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
-	  DEBUG('r', "Acquiring page lock, times looped: %i\n", i);
+	  DEBUG('u', "Acquiring page lock, times looped: %i\n", i);
       pageLock->Acquire();
 	  DEBUG('r', "Acquired page lock\n");
       pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
