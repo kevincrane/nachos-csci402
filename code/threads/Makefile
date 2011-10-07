@@ -168,7 +168,7 @@ system.o: ../threads/system.cc ../threads/copyright.h ../threads/system.h \
   /usr/include/v7/sys/psr.h /usr/include/sys/fsr.h ../threads/thread.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../threads/utility.h
+  ../threads/utility.h ../threads/synch.h
 thread.o: ../threads/thread.cc ../threads/copyright.h ../threads/thread.h \
   ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \
   ../threads/copyright.h \

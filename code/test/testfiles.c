@@ -23,10 +23,22 @@ int lock_3;
 
 /* Default Test */
 	create_Lock_Test(){
+	  Write("\n\nTesting CreateLock syscall. Calling CreateLock()\n", sizeof("\n\nTesting CreateLock syscall. Calling CreateLock()\n"), ConsoleOutput);
 		lock_1 =  CreateLock();
 	}
 
-
+/* Fork */
+  fork_Test(){
+    Write("\n\nTesting Fork syscall. Calling Fork()\n", sizeof("\n\nTesting Fork syscall. Calling Fork()\n"), ConsoleOutput);
+    /*TODO: some shit to test fork. figure out mother fucker*/
+  }
+  
+/* Exec */
+  exec_Test() {
+    Write("\n\nTesting Exec syscall. Calling Exec()\n", sizeof("\n\nTesting Exec syscall. Calling Exec()\n"), ConsoleOutput);
+    /*TODO: some shit to test fork. figure out mother fucker*/
+  }
+  
 
 int main() {
 	OpenFileId fd;
@@ -38,15 +50,21 @@ int main() {
 	/* Lock Tests */
 	create_Lock_Test();
   
-
+  /* Forking bitches */
+  fork_Test();
+  
+  /* Executing all kinds of threads */
+  exec_Test();
+  
     Create("testfile", 8);
     fd = Open("testfile", 8);
 
-    Write("testing a write\n", 16, fd );
+    Write("Testing a Write syscall.\n", 25, fd );
     Close(fd);
 
 
     fd = Open("testfile", 8);
+    Write("Testing a Read syscall.\n", 24, fd);
     bytesread = Read( buf, 100, fd );
     Write( buf, bytesread, ConsoleOutput );
     Close(fd);
