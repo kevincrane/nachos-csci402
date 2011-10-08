@@ -55,6 +55,9 @@ class AddrSpace {
     void incNumThreadsRunning() { numThreadsRunning++; }
     void decNumThreadsRunning() { numThreadsRunning--; }
 
+    void removePage(int i);
+    int getNumPages() {return numPages;}
+
 
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation

@@ -22,6 +22,8 @@
 #include "table.h"
 #include "synch.h"
 
+#define MAXTHREADS 500
+
 extern "C" { int bzero(char *, int); };
 
 Table::Table(int s) : map(s), table(0), lock(0), size(s) {
@@ -56,7 +58,7 @@ int Table::Put(void *f) {
     i = map.Find();
     lock->Release();
     if ( i != -1)
-	table[i] = f;
+      table[i] = f;
     return i;
 }
 
@@ -107,7 +109,7 @@ SwapHeader (NoffHeader *noffH)
 // - Should only be run off of Fork call, meaning it is currentThread
 // - NOTE: in order to pass as VoidFunctionPtr to t->Fork, needed to remove association with AddrSpace
 //   - as a result, need to call currentThread manually for function/values
-void newKernelThread(int vAddress)
+/*void newKernelThread(int vAddress)
 {
 
   //TODO: Checks for valid thread, debug statements
@@ -135,6 +137,7 @@ void newKernelThread(int vAddress)
   // Run the new kernel thread
   machine->Run();
 }
+*/
 
 //----------------------------------------------------------------------
 // AddrSpace::AddrSpace
@@ -157,6 +160,8 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     NoffHeader noffH;
     unsigned int i, size;
 
+    processName = "AddrSpace";       // Temporary name, in case the addrspace is accessed before real name set
+
     // Don't allocate the input or output to disk files
     fileTable.Put(0);
     fileTable.Put(0);
@@ -177,21 +182,21 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
                                                 
     size = numPages * PageSize;
 	
-	DEBUG('r', "numPagesReserved: %i, numPages: %i, NumPhysPages: %i", numPagesReserved, numPages, NumPhysPages);
+	DEBUG('u', "numPagesReserved: %i, numPages: %i, NumPhysPages: %i", numPagesReserved, numPages, NumPhysPages);
     // Verify there are enough free pages left
     ASSERT((numPagesReserved + numPages) <= NumPhysPages);		// check we're not trying
 						
     // zero out the entire address space, to zero the unitialized data segment 
     bzero(machine->mainMemory, size);
 
-    DEBUG('r', "Initializing address space, num pages %d, size %d\n", numPages, size);
-	DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
+    DEBUG('u', "Initializing address space, num pages %d, size %d\n", numPages, size);
+    DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
     // Set up translation of virtual address to physical address
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
-	  DEBUG('r', "Acquiring page lock, times looped: %i\n", i);
+      DEBUG('u', "Acquiring page lock, times looped: %i\n", i);
       pageLock->Acquire();
-	  DEBUG('r', "Acquired page lock\n");
+      DEBUG('r', "Acquired page lock\n");
       pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
       pageTable[i].physicalPage = pageMap->Find();    // Find a free slot in physical memory
       pageTable[i].valid = TRUE;
@@ -301,21 +306,27 @@ void AddrSpace::RestoreState()
 
 // AddThread
 // Add new thread to address space of current process
-void AddrSpace::addThread(int vAddress) {
+/*void AddrSpace::addThread(int vAddress) {
   // TODO: check for max threads, whether vAddress is outside size of page table
+
   char* name = currentThread->space->getProcessName();
-  Thread *t=new Thread(name);
-  
-  int num = currentThread->space->threadTable->Put(t);             // add new thread to thread table
+  Thread *t = new Thread(name);
+
+  int num = currentThread->space->threadTable->Put(t);
   int procID = currentThread->space->getProcessID();
   sprintf(name, "%s%d", name, num);
-  
+
   t->setThreadNum(num);
   t->setProcessID(processID);
-  t->space = currentThread->space;      // Set new thread to currentThread's address space
+  t->space = currentThread->space;
   
-  // Finally Fork a new kernel thread 
   t->Fork((VoidFunctionPtr)(newKernelThread), vAddress);
 }
+*/
 
+// Remove page
+void AddrSpace::removePage(int i) {
+  pageTable[i].valid = FALSE;
+  pageMap->Clear(pageTable[i].physicalPage);
+}
 

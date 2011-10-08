@@ -32,6 +32,7 @@ using namespace std;
 
 #define MAX_LOCKS 1000
 #define MAX_CVS 1000
+#define MAX_PROCESSES 1000
 
 // To hold all of the data about a created lock
 struct lockData{
@@ -58,6 +59,13 @@ struct cvData{
 cvData conditions[MAX_CVS];               // Array of conditions used by user programs
 Lock* cvArray = new Lock("CVArray");      // To lock the array of conditions
 int nextCVPos = 0;                        // Next position available in the array
+
+// Data for creating new process
+Lock* procLock = new Lock("NewProcess Lock");
+
+// Data for accessing process table
+Lock* processTableLock = new Lock("Process Table Lock");
+Table* processTable = new Table(MAX_PROCESSES);
 
 int copyin(unsigned int vaddr, int len, char *buf) {
     // Copy len bytes from the current thread's virtual address vaddr.
@@ -110,6 +118,42 @@ int copyout(unsigned int vaddr, int len, char *buf) {
 
     return n;
 }
+
+// newKernelThread(int vAddress)
+// - Creates a new kernel thread in this address space
+// - Takes virtual address of thread as an argument; returns void
+// - Should only be run off of Fork call, meaning it is currentThread
+// - NOTE: in order to pass as VoidFunctionPtr to t->Fork, needed to remove association with AddrSpace
+//   - as a result, need to call currentThread manually for function/values
+void newKernelThread(int vAddress)
+{
+
+  //TODO: Checks for valid thread, debug statements
+  
+  currentThread->space->kernThreadLock->Acquire();
+  DEBUG('u', "newKernelThread: Starting a new kernel thread in process %s at address %d\n", 
+      currentThread->space->getProcessName(), vAddress);
+  
+  // Set PCReg (and NextPCReg) to kernel thread's virtual address
+  machine->WriteRegister(PCReg, vAddress);
+  machine->WriteRegister(NextPCReg, vAddress+4);
+  
+  // Prevent info loss during context switch
+  currentThread->space->RestoreState();
+  
+  // Set the StackReg to the new starting position of the stack for this thread (jump up in stack in increments of UserStackSize)
+  machine->WriteRegister(StackReg, currentThread->space->getEndStackReg() - (currentThread->getThreadNum()*UserStackSize));
+  DEBUG('u', "newKernelThread: Writing to StackReg 0x%d\n", 
+      currentThread->space->getEndStackReg()-(currentThread->getThreadNum()*UserStackSize));
+  
+  // Increment number of threads running and release lock
+  currentThread->space->incNumThreadsRunning();
+  currentThread->space->kernThreadLock->Release();
+
+  // Run the new kernel thread
+  machine->Run();
+}
+
 
 void Create_Syscall(unsigned int vaddr, int len) {
     // Create the file with the name in the user buffer pointed to by
@@ -339,31 +383,35 @@ void Release_Syscall(int lockIndex) {
 // Fork Syscall. Fork new thread from pointer to void function
 void Fork_Syscall(int vAddress)
 {
-  /*
+  printf("Entered Fork_Syscall.\n");
   // TODO: check for max threads, whether vAddress is outside size of page table
+  printf("whorechild\n");
   char* name = currentThread->space->getProcessName();
+  printf("Buttslut.\n");
   Thread *t=new Thread(name);
   
   int num = currentThread->space->threadTable->Put(t);             // add new thread to thread table
   int processID = currentThread->space->getProcessID();
   sprintf(name, "%s%d", name, num);
   
+  t->setName(name);
   t->setThreadNum(num);
   t->setProcessID(processID);
   t->space = currentThread->space;      // Set new thread to currentThread's address space
-  
+  DEBUG('u', "New thread named '%s'; thread# %d with processID %d\n", name, num, processID);
+ 
+  //t->space->incNumThreadsRunning();
   // Finally Fork a new kernel thread 
   t->Fork((VoidFunctionPtr)newKernelThread, vAddress);
-  */
-  printf("Entered Fork_Syscall.\n");
-  currentThread->space->addThread(vAddress);
+
+//  currentThread->space->addThread(vAddress);
 }
 
 // Exec Syscall. Create a new process with own address space, etc.
 int Exec_Syscall(int vAddress, int len) {
   printf("Entered Exec_Syscall.\n");
   
-/*  // Ripped from Open_Syscall; if help needed, refer back there
+  // Ripped from Open_Syscall; if help needed, refer back there
   char *buf = new char[len+1];  // Kernel buffer to put the name in
   OpenFile *f;                  // The new open file
   int fileID;                       // The openfile id
@@ -373,7 +421,7 @@ int Exec_Syscall(int vAddress, int len) {
     printf("%s","Can't allocate kernel buffer in Exec\n");
     return -1;
   }
-  if( copyin(vaddr,len,buf) == -1 ) {
+  if( copyin(vAddress,len,buf) == -1 ) {
     printf("%s","Bad pointer passed to Exec\n");
     delete[] buf;
     return -1;
@@ -382,8 +430,29 @@ int Exec_Syscall(int vAddress, int len) {
   buf[len]='\0';
 
   f = fileSystem->Open(buf);
-*/
-/*  this shit
+  if(!f) {
+    printf("Error opening file at %s\n", buf);
+    return -1;
+  }
+  
+  // Create a new address space and add the first thread to the process
+  AddrSpace* processSpace = new AddrSpace(f);
+  processTableLock->Acquire();
+  int pID = processTable->Put(processSpace);
+  processTableLock->Release();
+  
+  // Create first thread to be added to address space
+  Thread* newThread = new Thread(buf);
+  newThread->space = processSpace;
+  int threadNum = processSpace->threadTable->Put(newThread);       // add first new thread to thread table
+  newThread->setThreadNum(threadNum);
+  newThread->setProcessID(pID);
+  //newThread->space->incNumThreadsRunning();
+
+  // Fork this new thread
+  newThread->Fork((VoidFunctionPtr)newKernelThread, vAddress);
+
+/*  TODO:this shit
   http://www-scf.usc.edu/~csci402/assignment2/p2_doc_new3.html
   look at requirements here: http://www-scf.usc.edu/~csci402/assignment2/assignment2_f2011.html
   - switching between threads/processes
@@ -391,26 +460,61 @@ int Exec_Syscall(int vAddress, int len) {
   - Exec call
   - Exit call
   - how to convert theater to user prog*/
-  return 0;
+  
+  // Returns process ID (spaceID) to be written to register 2
+  return pID;
 }
 
 void Exit_Syscall() {
+  
   printf("Entered Exit_Syscall.\n");
 
+  processTableLock->Acquire();
+
+  // If all processes have already exitted
+  if(processTable->Size() == 0) {
+    printf("ERROR: All processes have exitted already, nachos should have halted.\n");
+    processTableLock->Release();
+    interrupt->Halt();
+  }
+
+  // If current thread had an error when making the process
+  if(currentThread->getProcessID() == -1) {
+    printf("ERROR: Can't exit this thread, it is not a valid process.\n");
+    processTableLock->Release();
+    return;
+  }
+
   // Last executing thread in the last process
-  interrupt->Halt();
+  if(processTable->Size() == 1) {
+    if(currentThread->space->getNumThreadsRunning() == 1) {
+      processTableLock->Release();
+      interrupt->Halt();
+    }
+  }
 
   // Thread in a process, not the last executing thread in the process, nor is
   // it the last process
-
-  // Release stack memory pages for this thread, only the pages where the valid
-  // bit is true
+  if(currentThread->space->getNumThreadsRunning() > 1) {
+    currentThread->space->threadTable->Remove(currentThread->getThreadNum());
+    currentThread->space->decNumThreadsRunning();
+    // TODO: Remove stack pages for this thread
+  }
 
   // Last executing thread in a process - not the last process
+  if(currentThread->space->getNumThreadsRunning() == 1) {
+    processTable->Remove(currentThread->getProcessID());
+    currentThread->space->threadTable->Remove(currentThread->getThreadNum());
+    currentThread->space->decNumThreadsRunning();
 
-  // Clear out all valid entries in the page table
+    for(int i = 0; i < currentThread->space->getNumPages(); i++) {
+      currentThread->space->removePage(i);
+    }
+  }
 
-  // Clear out all locks/cvs for that process
+  processTableLock->Release();
+  
+  currentThread->Finish();
 }
 
 void Yield_Syscall() {
@@ -858,3 +962,4 @@ void ExceptionHandler(ExceptionType which) {
       interrupt->Halt();
     }
 }
+
