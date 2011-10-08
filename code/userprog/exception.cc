@@ -59,9 +59,6 @@ cvData conditions[MAX_CVS];               // Array of conditions used by user pr
 Lock* cvArray = new Lock("CVArray");      // To lock the array of conditions
 int nextCVPos = 0;                        // Next position available in the array
 
-// Data for creating new process
-Lock* procLock = new Lock("NewProcess Lock");
-
 int copyin(unsigned int vaddr, int len, char *buf) {
     // Copy len bytes from the current thread's virtual address vaddr.
     // Return the number of bytes so read, or -1 if an error occors.
@@ -113,42 +110,6 @@ int copyout(unsigned int vaddr, int len, char *buf) {
 
     return n;
 }
-
-// newKernelThread(int vAddress)
-// - Creates a new kernel thread in this address space
-// - Takes virtual address of thread as an argument; returns void
-// - Should only be run off of Fork call, meaning it is currentThread
-// - NOTE: in order to pass as VoidFunctionPtr to t->Fork, needed to remove association with AddrSpace
-//   - as a result, need to call currentThread manually for function/values
-void newKernelThread(int vAddress)
-{
-
-  //TODO: Checks for valid thread, debug statements
-  
-  currentThread->space->kernThreadLock->Acquire();
-  DEBUG('p', "newKernelThread: Starting a new kernel thread in process %s at address %d\n", 
-      currentThread->space->getProcessName(), vAddress);
-  
-  // Set PCReg (and NextPCReg) to kernel thread's virtual address
-  machine->WriteRegister(PCReg, vAddress);
-  machine->WriteRegister(NextPCReg, vAddress+4);
-  
-  // Prevent info loss during context switch
-  currentThread->space->RestoreState();
-  
-  // Set the StackReg to the new starting position of the stack for this thread (jump up in stack in increments of UserStackSize)
-  machine->WriteRegister(StackReg, currentThread->space->getEndStackReg() - (currentThread->getThreadNum()*UserStackSize));
-  DEBUG('p', "newKernelThread: Writing to StackReg 0x%d\n", 
-      currentThread->space->getEndStackReg()-(currentThread->getThreadNum()*UserStackSize));
-  
-  // Increment number of threads running and release lock
-  currentThread->space->incNumThreadsRunning();
-  currentThread->space->kernThreadLock->Release();
-
-  // Run the new kernel thread
-  machine->Run();
-}
-
 
 void Create_Syscall(unsigned int vaddr, int len) {
     // Create the file with the name in the user buffer pointed to by
@@ -378,8 +339,7 @@ void Release_Syscall(int lockIndex) {
 // Fork Syscall. Fork new thread from pointer to void function
 void Fork_Syscall(int vAddress)
 {
-  printf("Entered Fork_Syscall.\n");
-  
+  /*
   // TODO: check for max threads, whether vAddress is outside size of page table
   char* name = currentThread->space->getProcessName();
   Thread *t=new Thread(name);
@@ -394,15 +354,16 @@ void Fork_Syscall(int vAddress)
   
   // Finally Fork a new kernel thread 
   t->Fork((VoidFunctionPtr)newKernelThread, vAddress);
-
-//  currentThread->space->addThread(vAddress);
+  */
+  printf("Entered Fork_Syscall.\n");
+  currentThread->space->addThread(vAddress);
 }
 
 // Exec Syscall. Create a new process with own address space, etc.
 int Exec_Syscall(int vAddress, int len) {
   printf("Entered Exec_Syscall.\n");
   
-  // Ripped from Open_Syscall; if help needed, refer back there
+/*  // Ripped from Open_Syscall; if help needed, refer back there
   char *buf = new char[len+1];  // Kernel buffer to put the name in
   OpenFile *f;                  // The new open file
   int fileID;                       // The openfile id
@@ -412,7 +373,7 @@ int Exec_Syscall(int vAddress, int len) {
     printf("%s","Can't allocate kernel buffer in Exec\n");
     return -1;
   }
-  if( copyin(vAddress,len,buf) == -1 ) {
+  if( copyin(vaddr,len,buf) == -1 ) {
     printf("%s","Bad pointer passed to Exec\n");
     delete[] buf;
     return -1;
@@ -421,26 +382,8 @@ int Exec_Syscall(int vAddress, int len) {
   buf[len]='\0';
 
   f = fileSystem->Open(buf);
-  if(!f) {
-    printf("Error opening file at %s\n", buf);
-    return -1;
-  }
-  
-  // Create a new address space and add the first thread to the process
-  AddrSpace* processSpace = new AddrSpace(f);
-  int pID = 0;//TODO: FIX DIS SHIT - processTable->Put(processSpace);
-  
-  // Create first thread to be added to address space
-  Thread* newThread = new Thread(buf);
-  newThread->space = processSpace;
-  int threadNum = processSpace->threadTable->Put(newThread);       // add first new thread to thread table
-  newThread->setThreadNum(threadNum);
-  newThread->setProcessID(pID);
-  
-  // Fork this new thread
-  newThread->Fork((VoidFunctionPtr)newKernelThread, vAddress);
-
-/*  TODO:this shit
+*/
+/*  this shit
   http://www-scf.usc.edu/~csci402/assignment2/p2_doc_new3.html
   look at requirements here: http://www-scf.usc.edu/~csci402/assignment2/assignment2_f2011.html
   - switching between threads/processes
@@ -448,9 +391,7 @@ int Exec_Syscall(int vAddress, int len) {
   - Exec call
   - Exit call
   - how to convert theater to user prog*/
-  
-  // Returns process ID (spaceID) to be written to register 2
-  return pID;
+  return 0;
 }
 
 void Exit_Syscall() {
