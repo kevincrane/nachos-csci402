@@ -10,7 +10,7 @@
 	*DestroyLock
 	*CreateCV
 	*DestroyCV
-	AcquireLock
+	*AcquireLock
 	ReleaseLock
 	Wait
 	Signal
@@ -160,8 +160,53 @@ int cv_10;
 
 	destroy_Lock_Thread_Using_CV();*/ 
 
+	/* Acquire */
+	void acquire_Lock_Test(){
+		Write("Testing Acquire on lock_2\n", sizeof("Testing Acquire on lock_2\n"), ConsoleOutput);
+		Acquire(lock_2);
+	}
 
-
+	void acquire_Lock_Bad_Index(){
+		Write("Testing Acquire on negative index\n", sizeof("Testing Acquire on negative index\n"), ConsoleOutput);
+		Acquire(-1);
+		Write("Testing Acquire on out of bounds index\n", sizeof("Testing Acquire on out of bounds index\n"), ConsoleOutput);
+		Acquire(12);
+	}
+	
+	void acquire_Lock_Wrong_Process(){}
+	
+	void acquire_Lock_Already_Deleted(){
+		Write("Testing Acquire on on deleted lock, lock_1\n", sizeof("Testing Acquire on on deleted lock, lock_1\n"), ConsoleOutput);
+		Acquire(lock_1);
+	}
+	
+	void acquire_Lock_To_Be_Deleted(){}
+	
+	/* Release */
+	void release_Lock_Test(){
+		Write("Testing Release on lock_2\n", sizeof("Testing Release on lock_2\n"), ConsoleOutput);
+		Release(lock_2);
+	}
+	
+	void release_Lock_Without_Acquire(){
+		Write("Testing Release on lock_2 again\n", sizeof("Testing Relese on lock_2 again\n"), ConsoleOutput);
+		Release(lock_2);
+	}
+	
+	void release_Lock_Bad_Index(){
+		Write("Testing Release on negative index\n", sizeof("Testing Release on negative index\n"), ConsoleOutput);
+		Release(-1);
+		Write("Testing Release on out of bounds index\n", sizeof("Testing Release on out of bounds index\n"), ConsoleOutput);
+		Release(12);
+	}
+	
+	void release_Lock_Already_Deleted(){
+		Write("Testing Release on deleted lock, lock_1\n", sizeof("Testing Release on deleted lock, lock_1\n"), ConsoleOutput);
+		Release(lock_1);
+	}
+	
+	void release_Lock_To_Be_Deleted(){}
+	
 /* Fork */
   void forkThread1(){
     Write("Forked test thread1\n", 20, ConsoleOutput);
@@ -229,7 +274,27 @@ int main() {
 
 	destroy_Lock_Thread_Using_CV();*/ 
 
+	
+	/* Acquire/Release Tests */
+	acquire_Lock_Test();
 
+	acquire_Lock_Bad_Index();
+	/* acquire_Lock_Wrong_Process(); */
+	
+	acquire_Lock_Already_Deleted();
+	
+	/* acquire_Lock_To_Be_Deleted(); */
+	
+	release_Lock_Test();
+	
+	/* release_Lock_Without_Acquire();    TODO CURRENTLY SEG FAULTS!!!! - Ryan */
+	
+	release_Lock_Bad_Index();
+	
+	release_Lock_Already_Deleted();
+	
+	/* void release_Lock_To_Be_Deleted() */
+	
   /* Forking bitches */
   /*fork_Test();		CURRENTLY NOT WORKING!!!*/
   
