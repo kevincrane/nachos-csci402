@@ -3,7 +3,6 @@
  */
 
 #include "syscall.h"
-
 /* TESTS TO MAKE 
 	*Yield
 	*CreateLock
@@ -11,8 +10,8 @@
 	*CreateCV
 	*DestroyCV
 	*AcquireLock
-	ReleaseLock
-	Wait
+	*ReleaseLock
+	*Wait
 	Signal
 	Broadcast
 	Fork
@@ -44,6 +43,7 @@ int cv_7;
 int cv_8;
 int cv_9;
 int cv_10;
+
 
 
 /*Yield Test */
@@ -200,11 +200,38 @@ int cv_10;
 	}
 	
 	void release_Lock_To_Be_Deleted(){}
+
+
 	
+/* Wait */
+	void wait_Test(){
+		Write("Testing Wait, Nachos should end now\n", sizeof("Testing Wait, Nachos should end now\n"), ConsoleOutput);
+		Acquire(lock_2);
+		Wait(cv_2, lock_2);
+	}
+
+	void wait_Bad_Index(){
+		Write("Testing Wait on a negative cv index\n", sizeof("Testing Wait on a negative cv index\n"), ConsoleOutput);
+		Wait(-1, lock_2);
+		Write("Testing Wait on a out of bounds cv index\n", sizeof("Testing Wait on a out of bounds cv index\n"), ConsoleOutput);
+		Wait(12, lock_2);
+		Write("Testing Wait on a negative lock index\n", sizeof("Testing Wait on a negative lock index\n"), ConsoleOutput);
+		Wait(cv_2, -1);
+		Write("Testing Wait on a out of bounds lock index\n", sizeof("Testing Wait on a out of bounds lock index\n"), ConsoleOutput);
+		Wait(cv_2, 12);
+	}
+	
+	void wait_Already_Deleted(){
+		Write("Testing Wait on a deleted cv\n", sizeof("Testing Wait on a deleted cv\n"), ConsoleOutput);
+		Wait(cv_1, lock_2);
+		Write("Testing Wait on a deleted lock\n", sizeof("Testing Wait on a deleted lock\n"), ConsoleOutput);
+		Wait(cv_2, lock_1);
+	}
+	void wait_Wrong_Process(){}
+
 /* Fork */
   void forkThread1(){
     Write("Forked test thread1\n", 20, ConsoleOutput);
-    Exit(0);
   }
   
   void forkThread2() {
@@ -216,6 +243,29 @@ int cv_10;
     Write("Forked test thread3\n", 20, ConsoleOutput);
     Exit(0);
   }
+
+	void forkTest1() {
+		Write("Fork Test 1 ready\n", sizeof("Fork Test 1 ready\n"), ConsoleOutput);
+		
+		Acquire(lock_3);
+		Write("Fork Test 1 Acquiring lock_3\n", sizeof("Fork Test 1 Acquiring lock_3\n"), ConsoleOutput);
+		Wait(cv_3, lock_3);
+		Write("Hi, #1 got out of wait succsssfully!\n", sizeof("Hi, #1 got out of wait succsssfully!\n"), ConsoleOutput);
+	}
+
+	void forkTest2() {
+		Write("Fork Test 2 ready\n", sizeof("Fork Test 1 ready\n"), ConsoleOutput);
+		Acquire(lock_3);
+		Write("Fork Test 2 Acquiring lock_3\n", sizeof("Fork Test 1 Acquiring lock_3\n"), ConsoleOutput);
+		Signal(cv_3, lock_3);
+		Write("Fork Test 1 Signaled lock_3\n", sizeof("Fork Test 1 Signaled lock_3\n"), ConsoleOutput);
+	}
+	
+	fork_2_Threads() {
+		Write("Forking 2 threads for testing purposes\n", sizeof("Forking 2 threads for testing purposes\n"), ConsoleOutput);
+		Fork((void *)forkTest1);
+		Fork((void *)forkTest2);
+	}
 
   fork_Test() {
     Write("\n\nTesting Fork syscall. Calling Fork()\n", sizeof("\n\nTesting Fork syscall. Calling Fork()\n"), ConsoleOutput);
@@ -239,9 +289,11 @@ int main() {
   char buf[20];
   
 	/* Yield Test */
+	Write("\n*** YIELD TEST ***\n", sizeof("\n*** YIELD TEST ***\n"), ConsoleOutput);
 	yield_Test();
 
 	/* Lock Tests */
+	Write("\n*** LOCK TEST ***\n", sizeof("\n*** LOCK TEST ***\n"), ConsoleOutput);
 	create_Lock_Test();
 
   create_Many_Locks_Test();
@@ -259,6 +311,7 @@ int main() {
 	destroy_Lock_Thread_Using_Lock();*/
 
 	/* CV Tests */
+	Write("\n*** CV TEST ***\n", sizeof("\n*** CV TEST ***\n"), ConsoleOutput);
 	create_CV_Test();
 
   create_Many_CVs_Test();
@@ -277,6 +330,7 @@ int main() {
 
 	
 	/* Acquire/Release Tests */
+	Write("\n*** ACQUIRE TEST ***\n", sizeof("\n*** ACQUIRE TEST ***\n"), ConsoleOutput);
 	acquire_Lock_Test();
 
 	acquire_Lock_Bad_Index();
@@ -285,10 +339,10 @@ int main() {
 	acquire_Lock_Already_Deleted();
 	
 	/* acquire_Lock_To_Be_Deleted(); */
-	
+	Write("\n*** RELEASE TEST ***\n", sizeof("\n*** RELEASE TEST ***\n"), ConsoleOutput);
 	release_Lock_Test();
 	
-	/* release_Lock_Without_Acquire();    TODO CURRENTLY SEG FAULTS!!!! - Ryan */
+	release_Lock_Without_Acquire();   /* TODO CURRENTLY SEG FAULTS!!!! - Ryan */
 	
 	release_Lock_Bad_Index();
 	
@@ -296,9 +350,24 @@ int main() {
 	
 	/* void release_Lock_To_Be_Deleted() */
 	
+
+	/* CV Operation Tests */
+	Write("\n*** WAIT TEST ***\n", sizeof("\n*** WAIT TEST ***\n"), ConsoleOutput);
+	wait_Bad_Index();	
+
+	wait_Already_Deleted();
+
+	Fork((void *)wait_Test);
+
+	Write("\n*** SIGNAL TEST ***\n", sizeof("\n*** SIGNAL TEST ***\n"), ConsoleOutput);
+
+	Write("\n*** BROADCAST TEST ***\n", sizeof("\n*** BROADCAST TEST ***\n"), ConsoleOutput);
+
+	
   /* Forking bitches */
   fork_Test();
   
+	fork_2_Threads();
   /* Executing all kinds of threads */
   exec_Test();
   

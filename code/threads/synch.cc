@@ -134,14 +134,18 @@ void Lock::Acquire() {
 void Lock::Release() {
   Thread *thread;
   IntStatus oldLevel = interrupt->SetLevel(IntOff); // disable interrupts
-
-  if(currentThread != lockOwner) {
-    printf ("Error: Thread (%s) is not the lock owner (%s)!\n", currentThread->getName(), lockOwner->getName()); // print error message
+	if(currentThread != lockOwner) {
+		if(lockOwner!= NULL){
+    	printf ("Error: Thread (%s) is not the lock owner (%s)!\n", currentThread->getName(), lockOwner->getName()); // print error message
+		}
+		else{
+			printf("Error: There is no lock owner; thread (%s) cannot release the lock!\n", currentThread->getName());
+		}
     (void) interrupt->SetLevel(oldLevel);            // restore interrupts
     return;
   }
-  if(!(waitQueue->IsEmpty())) {
-    thread = (Thread *)waitQueue->Remove(); // remove a thread from lock's wait queue
+	if(!(waitQueue->IsEmpty())) {
+		thread = (Thread *)waitQueue->Remove(); // remove a thread from lock's wait queue
     if(thread != NULL) {
       scheduler->ReadyToRun(thread);    // put in ready queue in ready state
       lockOwner = thread;               // make lock owner
@@ -149,6 +153,9 @@ void Lock::Release() {
   } else {
     isFree = true;                      // make lock free
     lockOwner = NULL;                   // clear lock ownership
+				
+		
+		
   }
   (void) interrupt->SetLevel(oldLevel); // restore interrupts
 }
