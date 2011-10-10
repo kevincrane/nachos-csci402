@@ -33,6 +33,10 @@ Machine *machine;	// user program memory and registers
 BitMap *pageMap;    // BitMap to determine which slots in pageTable are in use
 Lock *pageLock;     // Lock corresponding to pageTable operations
 int totalPagesReserved;   // Number of pages reserved for address spaces
+
+// Data for accessing process table
+Lock* processTableLock;
+Table* processTable;
 #endif
 
 #ifdef NETWORK
@@ -157,6 +161,10 @@ Initialize(int argc, char **argv)
     pageMap = new BitMap(NumPhysPages);   
     pageLock = new Lock("Page Map Lock");
     totalPagesReserved = 0;
+    
+    // Data for accessing process table
+    processTableLock = new Lock("Process Table Lock");
+    processTable = new Table(1000);
 #endif
 
 #ifdef FILESYS

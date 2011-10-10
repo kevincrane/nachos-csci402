@@ -26,8 +26,8 @@
 
 extern "C" { int bzero(char *, int); };
 
-Table::Table(int s) : map(s), table(0), lock(0), size(s) {
-    table = new void *[size];
+Table::Table(int s) : map(s), table(0), lock(0), maxSize(s), size(0) {
+    table = new void *[maxSize];
     lock = new Lock("TableLock");
 }
 
@@ -57,8 +57,10 @@ int Table::Put(void *f) {
     lock->Acquire();
     i = map.Find();
     lock->Release();
-    if ( i != -1)
+    if ( i != -1) {
       table[i] = f;
+      size++;
+    }
     return i;
 }
 
@@ -74,6 +76,7 @@ void *Table::Remove(int i) {
 	    map.Clear(i);
 	    f = table[i];
 	    table[i] = 0;
+	    size--;
 	}
 	lock->Release();
     }
@@ -167,9 +170,10 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     fileTable.Put(0);
     
     // Initialize table of threads
-    threadTable = new Table(60);		// Arbitrary number of maximum threads
+    threadTable = new Table(MaxNumThreads);		// Arbitrary number of maximum threads
     
     kernThreadLock = new Lock("KernelThread Lock");
+    isMai = 0;
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
@@ -182,19 +186,19 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
                                                 
     size = numPages * PageSize;
 	
-	DEBUG('u', "numPagesReserved: %i, numPages: %i, NumPhysPages: %i", numPagesReserved, numPages, NumPhysPages);
+    DEBUG('u', "numPagesReserved: %i, numPages: %i, NumPhysPages: %i\n", numPagesReserved, numPages, NumPhysPages);
     // Verify there are enough free pages left
     ASSERT((numPagesReserved + numPages) <= NumPhysPages);		// check we're not trying
 						
     // zero out the entire address space, to zero the unitialized data segment 
-    bzero(machine->mainMemory, size);
+//    bzero(machine->mainMemory, size);
 
     DEBUG('u', "Initializing address space, num pages %d, size %d\n", numPages, size);
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
     // Set up translation of virtual address to physical address
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
-      DEBUG('u', "Acquiring page lock, times looped: %i\n", i);
+      DEBUG('a', "Acquiring page lock, times looped: %i\n", i);
       pageLock->Acquire();
       DEBUG('r', "Acquired page lock\n");
       pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
@@ -229,7 +233,6 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
 */
-
 }
 
 //----------------------------------------------------------------------
