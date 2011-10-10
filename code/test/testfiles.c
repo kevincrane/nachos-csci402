@@ -12,11 +12,11 @@
 	*AcquireLock
 	*ReleaseLock
 	*Wait
-	Signal
-	Broadcast
-	Fork
+	*Signal
+	*Broadcast
+	*Fork
 	Exec
-	Exit
+	*Exit
 
 
 
@@ -205,7 +205,7 @@ int cv_10;
 		Release(lock_1);
 	}
 	
-	void release_Lock_To_Be_Deleted(){}
+
 
 
 	
@@ -214,6 +214,7 @@ int cv_10;
 		Write("Testing Wait, Nachos should end now\n", sizeof("Testing Wait, Nachos should end now\n"), ConsoleOutput);
 		Acquire(lock_2);
 		Wait(cv_2, lock_2);
+		Write("wait_Test has woke up\n", sizeof("wait_Test has woke up\n"), ConsoleOutput);
 	}
 
 	void wait_Bad_Index(){
@@ -235,6 +236,23 @@ int cv_10;
 	}
 	void wait_Wrong_Process(){}
 
+/* Signal */
+	void signal_Test(){
+		Write("Testing Signal on cv_2\n", sizeof("Testing Signal on cv_2\n"), ConsoleOutput);
+		Acquire(lock_2);
+		Signal(cv_2, lock_2);
+	}
+
+	void signal_Bad_Index(){
+		Write("Testing Signal on negative cv index\n", sizeof("Testing Signal on negative cv index\n"), ConsoleOutput);
+		Signal(-1, lock_2);
+		Write("Testing Signal on a out of bounds cv index\n", sizeof("Testing Signal on a out of bounds cv index\n"), ConsoleOutput);
+		Signal(12, lock_2);
+		Write("Testing Signal on a out of bounds lock index\n", sizeof("Testing Signal on a out of bounds lock index\n"), ConsoleOutput);
+		Signal(cv_2, 12);
+		Write("Testing Signal on a negative lock index\n", sizeof("Testing Signal on a negative lock index\n"), ConsoleOutput);
+		Signal(cv_2, -1);
+	}
 /* Fork */
   void forkThread1(){
     Write("Forked test thread1\n", 20, ConsoleOutput);
@@ -325,7 +343,7 @@ int main() {
 
 	/*destroy_CV_To_Be_Deleted();
 
-	destroy_Lock_Thread_Using_CV();*/ 
+	destroy_CV_Thread_Using_CV();*/ 
 
 	
 	/* Acquire/Release Tests */
@@ -341,13 +359,13 @@ int main() {
 	Write("\n*** RELEASE TEST ***\n", sizeof("\n*** RELEASE TEST ***\n"), ConsoleOutput);
 	release_Lock_Test();
 	
-	release_Lock_Without_Acquire();   /* TODO CURRENTLY SEG FAULTS!!!! - Ryan */
+	release_Lock_Without_Acquire();   
 	
 	release_Lock_Bad_Index();
 	
 	release_Lock_Already_Deleted();
 	
-	/* void release_Lock_To_Be_Deleted() */
+
 	
 
 	/* CV Operation Tests */
@@ -356,18 +374,32 @@ int main() {
 
 	wait_Already_Deleted();
 
+	/* wait_Wrong_Process() */
+	
 	Fork((void *)wait_Test);
 
 	Write("\n*** SIGNAL TEST ***\n", sizeof("\n*** SIGNAL TEST ***\n"), ConsoleOutput);
 	
+	signal_Test(); /* Signal thread waiting from wait_Test */
 	
+	signal_Bad_Index();
 
+	/*signal_Already_Deleted();  TODO 
+
+	signal_Wrong_Process();
+	*/
 	Write("\n*** BROADCAST TEST ***\n", sizeof("\n*** BROADCAST TEST ***\n"), ConsoleOutput);
+	/*
+	broadcast_Test();
 
+	broadcast_Bad_Index();
 
+	broadcast_Already_Deleted();
+
+	broadcast_Wrong_Process();*/
 	
   /* Forking bitches */
- 	fork_Test();		/* EXIT CURRENTLY NOT WORKING!!!*/
+ 	fork_Test();		
   
 	fork_2_Threads();
   /* Executing all kinds of threads */
