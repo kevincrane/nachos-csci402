@@ -309,7 +309,7 @@ void Acquire_Syscall(int lockIndex) {
   printf("Entered Acquire_Syscall.\n");
   
   lockArray->Acquire();
-
+	DEBUG('y', "1\n");
   // Check that the index is valid
   if(lockIndex < 0 || lockIndex >= nextLockPos) {
     printf("ERROR: The given lock index is not valid.\n");
@@ -337,8 +337,11 @@ void Acquire_Syscall(int lockIndex) {
     lockArray->Release();
     return;
   }
+	DEBUG('y', "2\n");
   locks[lockIndex].numActiveThreads++; // A new thread is using this lock
+	DEBUG('y', "3\n");
   locks[lockIndex].lock->Acquire();
+	DEBUG('y', "4\n");
   lockArray->Release();
 }
 
@@ -346,14 +349,13 @@ void Release_Syscall(int lockIndex) {
   printf("Entered Release_Syscall.\n");
 
   lockArray->Acquire();
-
   // Check that the index is valid
   if(lockIndex < 0 || lockIndex >= nextLockPos) {
     printf("ERROR: The given lock index is not valid.\n");
     lockArray->Release();
     return;
   } 
-
+	
   // Check that the lock belongs to the calling process
   else if (locks[lockIndex].space != currentThread->space) {
     printf("ERROR: This process does not own the lock!\n");
@@ -535,7 +537,7 @@ void Wait_Syscall(int cvIndex, int lockIndex) {
     return;
   } 
 
-  // Check that the condition belongs to the calling thread
+  // Check that the condition belongs to the calling processes
   else if (conditions[cvIndex].space != currentThread->space) {
     printf("ERROR: This process does not own the condition!\n");
     cvArray->Release();
@@ -551,7 +553,7 @@ void Wait_Syscall(int cvIndex, int lockIndex) {
     return;
   } 
 
-  // Check that the lock belongs to the calling thread
+  // Check that the lock belongs to the calling process
   else if (locks[lockIndex].space != currentThread->space) {
     printf("ERROR: This process does not own the lock!\n");
     cvArray->Release();
@@ -591,9 +593,10 @@ void Wait_Syscall(int cvIndex, int lockIndex) {
     return;
   }
   conditions[cvIndex].numActiveThreads++;   // Add a thread using the condition
-  conditions[cvIndex].condition->Wait(locks[lockIndex].lock);
-  cvArray->Release();
+	cvArray->Release();
   lockArray->Release();
+  conditions[cvIndex].condition->Wait(locks[lockIndex].lock);
+  
 }
 
 void Signal_Syscall(int cvIndex, int lockIndex) {
