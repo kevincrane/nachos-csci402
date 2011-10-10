@@ -18,12 +18,6 @@
 	Fork
 	Exec
 	Exit
-
-
-
-
-
-
 */
 
 
@@ -217,19 +211,25 @@ int cv_10;
     Write("Forked test thread2\n", 20, ConsoleOutput);
     Exit(0);
   }
+  
+  void forkThread3() {
+    Write("Forked test thread3\n", 20, ConsoleOutput);
+    Exit(0);
+  }
 
   fork_Test() {
     Write("\n\nTesting Fork syscall. Calling Fork()\n", sizeof("\n\nTesting Fork syscall. Calling Fork()\n"), ConsoleOutput);
 
-
     Fork((void *)forkThread1);
     Fork((void *)forkThread2);
+    Fork((void *)forkThread3);
   }
   
 /* Exec */
   exec_Test() {
     Write("\n\nTesting Exec syscall. Calling Exec()\n", sizeof("\n\nTesting Exec syscall. Calling Exec()\n"), ConsoleOutput);
-    /*TODO: some shit to test fork. figure out mother fucker*/
+    Exec("../test/exectest",sizeof("../test/exectest"));
+    Write("\nDONESTICKS\n", 12, ConsoleOutput);
   }
   
 
@@ -237,6 +237,7 @@ int main() {
 	OpenFileId fd;
   int bytesread;
   char buf[20];
+  
 	/* Yield Test */
 	yield_Test();
 
@@ -296,21 +297,22 @@ int main() {
 	/* void release_Lock_To_Be_Deleted() */
 	
   /* Forking bitches */
-  /*fork_Test();		CURRENTLY NOT WORKING!!!*/
+  fork_Test();
   
   /* Executing all kinds of threads */
-  /*exec_Test();*/
+  exec_Test();
   
-    Create("testfile", 8);
-    fd = Open("testfile", 8);
+  Create("testfile", 8);
+  fd = Open("testfile", 8);
 
-    Write("Testing a Write syscall.\n", 25, fd );
-    Close(fd);
+  Write("Testing a Write syscall.\n", 25, ConsoleOutput );
+  Close(fd);
 
-
-    fd = Open("testfile", 8);
-    Write("Testing a Read syscall.\n", 24, fd);
-    bytesread = Read( buf, 100, fd );
-    Write( buf, bytesread, ConsoleOutput );
-    Close(fd);
+  fd = Open("testfile", 8);
+  Write("Testing a Read/Write syscall.\n", 30, fd);
+  bytesread = Read( buf, 100, fd );
+  Write( buf, bytesread, ConsoleOutput );
+  Close(fd);
+    
+    Exit(0);
 }

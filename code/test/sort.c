@@ -21,12 +21,15 @@ main()
         A[i] = 1024 - i;
 
     /* then sort! */
-    for (i = 0; i < 1023; i++)
+    for (i = 0; i < 1023; i++){
         for (j = i; j < (1023 - i); j++)
 	   if (A[j] > A[j + 1]) {	/* out of order -> need to swap ! */
 	      tmp = A[j];
 	      A[j] = A[j + 1];
 	      A[j + 1] = tmp;
     	   }
+    	   
+    	Write("Sorted sumpin\n", 14, ConsoleOutput);
+    	}
     Exit(A[0]);		/* and then we're done -- should be 0! */
 }

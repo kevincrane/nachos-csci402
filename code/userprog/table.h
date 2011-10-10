@@ -12,6 +12,7 @@ class Table {
     BitMap map;
     void **table;
     Lock *lock;
+    int maxSize;
     int size;
  public:
     Table(int);
@@ -20,7 +21,8 @@ class Table {
     int Put(void *);
     void *Remove(int);
     
-    int Size(){return size;}
+    int Size() { return size; }
+    int MaxSize(){return maxSize;}
 };
 
 

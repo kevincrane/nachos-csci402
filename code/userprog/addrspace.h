@@ -19,6 +19,7 @@
 
 #define UserStackSize   1024   // increase this as necessary!
 #define MaxNumProgs     10     // max number of programs/stacks
+#define MaxNumThreads     60   // max number of threads/addrspace
 
 #define MaxOpenFiles 256
 #define MaxChildSpaces 256
@@ -37,17 +38,15 @@ class AddrSpace {
     void RestoreState();		// info on a context switch
     Table fileTable;			// Table of openfiles
     
-    Table *threadTable;      // Table of threads in current process
+    Table *threadTable;     // Table of threads in current process
     Lock *threadLock;       // Lock for actions on current thread
     
     Lock *kernThreadLock;   // Lock for creating a new kernel thread
     
-    
-    
-    void addThread(int);    // Add a new thread to the address space
 //    void newKernelThread(int);  // Create a new kernel thread  
     
     char* getProcessName() { return processName; }
+    void setProcessName(char* name) { processName = name; }
     int getProcessID() { return processID; }
     int getEndStackReg() { return endStackReg; }
     
@@ -57,6 +56,9 @@ class AddrSpace {
 
     void removePage(int i);
     int getNumPages() {return numPages;}
+    
+    bool isMain() { return isMai; }
+    void setMain() { isMai = true; }
 
 
   private:
@@ -70,6 +72,7 @@ class AddrSpace {
 		int endStackReg;        // Defines value for end of stack based on size of pageTable
 		int numThreadsRunning;  // Number of threads running in this address space
 		int numPagesReserved;   // Number of pages used so far
+		bool isMai;            // Is this the main thread?
 };
 
 #endif // ADDRSPACE_H

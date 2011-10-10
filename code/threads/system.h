@@ -38,6 +38,9 @@ extern Machine* machine;	// user program memory and registers
 
 extern BitMap *pageMap;
 extern Lock *pageLock;
+
+extern Lock* processTableLock;
+extern Table* processTable;
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 
