@@ -312,8 +312,7 @@ void Close_Syscall(int fd) {
 
 
 void Acquire_Syscall(int lockIndex) {
-  printf("Entered Acquire_Syscall.\n");
-  
+   
   lockArray->Acquire();
 	DEBUG('y', "1\n");
   // Check that the index is valid
@@ -352,8 +351,7 @@ void Acquire_Syscall(int lockIndex) {
 }
 
 void Release_Syscall(int lockIndex) {
-  printf("Entered Release_Syscall.\n");
-
+ 
   lockArray->Acquire();
   // Check that the index is valid
   if(lockIndex < 0 || lockIndex >= nextLockPos) {
@@ -389,10 +387,9 @@ void Release_Syscall(int lockIndex) {
 
 
 // Fork Syscall. Fork new thread from pointer to void function
-void Fork_Syscall(int vAddress)
+void Fork_Syscall(int vAddress, int index)
 {
-  printf("Entered Fork_Syscall.\n");
-  
+   
   if(currentThread->space->getNumThreadsRunning() >= 60) {
 		DEBUG('u', "Fork: ERROR: Maximum number of threads reached, bailing.\n");
 		return;
@@ -425,14 +422,14 @@ void Fork_Syscall(int vAddress)
  
   //t->space->incNumThreadsRunning();
   // Finally Fork a new kernel thread 
+  //t->Fork((VoidFunctionPtr)newKernelThread, vAddress);
   t->Fork((VoidFunctionPtr)newKernelThread, vAddress);
-  currentThread->Yield();
+  // currentThread->Yield(); // CHANGED 
 }
 
 
 // Exec Syscall. Create a new process with own address space, etc.
 int Exec_Syscall(int vAddress, int len) {
-//  printf("Entered Exec_Syscall.\n");
   
   // Ripped from Open_Syscall; if help needed, refer back there
   char *buf = new char[len+1];  // Kernel buffer to put the name in
@@ -494,8 +491,6 @@ int Exec_Syscall(int vAddress, int len) {
 
 void Exit_Syscall() {
   
-//  printf("Entered Exit_Syscall.\n");
-
   processTableLock->Acquire();
 
   // If all processes have already exitted
@@ -554,12 +549,10 @@ void Exit_Syscall() {
 }
 
 void Yield_Syscall() {
-  printf("Entered Yield_Syscall.\n");
   currentThread->Yield();
 }
 
 void Wait_Syscall(int cvIndex, int lockIndex) {
-  printf("Entered Wait_Syscall.\n");
   cvArray->Acquire();
   lockArray->Acquire();
 
@@ -634,7 +627,6 @@ void Wait_Syscall(int cvIndex, int lockIndex) {
 }
 
 void Signal_Syscall(int cvIndex, int lockIndex) {
-  printf("Entered Signal_Syscall.\n");
   
   cvArray->Acquire();
   lockArray->Acquire();
@@ -700,7 +692,6 @@ void Signal_Syscall(int cvIndex, int lockIndex) {
 }
 
 void Broadcast_Syscall(int cvIndex, int lockIndex) {
-  printf("Entered Broadcast_Syscall.\n");
  
   cvArray->Acquire();
   lockArray->Acquire();
@@ -766,7 +757,7 @@ void Broadcast_Syscall(int cvIndex, int lockIndex) {
 }
 
 int CreateLock_Syscall() {
-  printf("Entered CreateLock_Syscall.\n");
+
   lockData myLock;
   myLock.lock = new Lock("L");
   myLock.space = currentThread->space;
@@ -785,7 +776,6 @@ int CreateLock_Syscall() {
 }
 
 void DestroyLock_Syscall(int lockIndex) {
-  printf("Entered DestroyLock_Syscall.\n");
   
   lockArray->Acquire();
 
@@ -828,7 +818,7 @@ void DestroyLock_Syscall(int lockIndex) {
 }
 
 int CreateCondition_Syscall() {
-  printf("Entered CreateCondition_Syscall.\n");
+  //  printf("Entered CreateCondition_Syscall.\n");
   cvData myCV;
   myCV.condition = new Condition("C");
   myCV.space = currentThread->space;
@@ -848,7 +838,7 @@ int CreateCondition_Syscall() {
 }
 
 void DestroyCondition_Syscall(int cvIndex) {
-  printf("Entered DestroyCondition_Syscall.\n");
+  //printf("Entered DestroyCondition_Syscall.\n");
   cvArray->Acquire();
 
   // Check that the index is valid
@@ -939,7 +929,8 @@ void ExceptionHandler(ExceptionType which) {
 
       case SC_Fork:
         DEBUG('a', "Fork syscall.\n");
-        Fork_Syscall(machine->ReadRegister(4));
+        Fork_Syscall(machine->ReadRegister(4),
+		     machine->ReadRegister(5));
       break;
       case SC_Exec:
         DEBUG('a', "Exec syscall.\n");
