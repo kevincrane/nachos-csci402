@@ -62,6 +62,8 @@ int nextCVPos = 0;                        // Next position available in the arra
 
 // Data for creating new process
 Lock* procLock = new Lock("NewProcess Lock");
+// Lock for printing formatted strings from user processes
+Lock *printLock= new Lock("Print Lock");
 
 
 int copyin(unsigned int vaddr, int len, char *buf) {
@@ -215,6 +217,42 @@ int Open_Syscall(unsigned int vaddr, int len) {
   } else
     return -1;
 }
+
+void Print_Syscall(unsigned int stPtr, int p1, int p2, int p3) {
+  char *string = new char[100];
+  printLock->Acquire();
+  
+  // Error Checking
+  if(!string || string == 0) {
+    printf("%s","Print: ERROR: invalid string pointer\n");
+    return;
+	}
+  
+  if(copyin(stPtr, 100, string) == -1 ) {
+    printf("%s","Print: ERROR: failed to copy string\n");
+    delete string;
+    return;
+  }
+  
+  if((p1==-1) && (p2==-1) && (p3==-1)) {
+    printf(string);
+  }
+  else if((p2==-1) && (p3==-1)) {
+    printf(string, p1);
+  }
+  else if(p3==-1) {
+    printf(string, p1, p2);
+  }
+  else
+  {
+    printf(string,p1,p2, p3);
+  }
+
+	printLock->Release();
+
+  return;  
+}
+
 
 void Write_Syscall(unsigned int vaddr, int len, int id) {
     // Write the buffer to the given disk file.  If ConsoleOutput is
@@ -897,6 +935,13 @@ void ExceptionHandler(ExceptionType which) {
         Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
       break;
 
+      case SC_Print:
+        DEBUG('a', "Print syscall.\n");
+        Print_Syscall(machine->ReadRegister(4), 
+            machine->ReadRegister(5), 
+            machine->ReadRegister(6), 
+            machine->ReadRegister(7));
+      break;
       case SC_Open:
         DEBUG('a', "Open syscall.\n");
         rv = Open_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));

@@ -38,6 +38,7 @@
 #define SC_DestroyLock      17
 #define SC_CreateCondition  18
 #define SC_DestroyCondition 19	
+#define SC_Print            20
 
 #define MAXFILENAME 256
 
@@ -119,6 +120,9 @@ int Read(char *buffer, int size, OpenFileId id);
 /* Close the file, we're done reading and writing to it. */
 void Close(OpenFileId id);
 
+
+/* Able to print values from user program */
+void Print(char* string, int len, int param1, int param2);
 
 
 /* User-level thread operations: Fork and Yield.  To allow multiple
