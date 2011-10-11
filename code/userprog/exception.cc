@@ -387,7 +387,7 @@ void Release_Syscall(int lockIndex) {
 
 
 // Fork Syscall. Fork new thread from pointer to void function
-void Fork_Syscall(int vAddress, int index)
+void Fork_Syscall(int vAddress)
 {
    
   if(currentThread->space->getNumThreadsRunning() >= 60) {
@@ -408,7 +408,7 @@ void Fork_Syscall(int vAddress, int index)
   char* tName = currentThread->space->getProcessName();
   name = new char[30];
   strcpy(name, tName);
-  sprintf(name, "%s%d", tName, num);
+  sprintf(name, "%s-%d", tName, num);
   DEBUG('u', "pID=%d\n", processID);
   DEBUG('u', "pName=%s\n", currentThread->space->getProcessName());
   DEBUG('u', "pNum=%d\n", num);
@@ -544,7 +544,7 @@ void Exit_Syscall() {
   processTableLock->Release();
   
   DEBUG('u', "Thread %s has been exited (%i).\n", currentThread->getName(), currentThread->space->isMain());
-  if(!(currentThread->space->isMain()))
+  //if(!(currentThread->space->isMain()))
     currentThread->Finish();
 }
 
@@ -764,14 +764,13 @@ int CreateLock_Syscall() {
   myLock.isDeleted = false;
   myLock.toBeDeleted = false;
   myLock.numActiveThreads = 0;
-
+	DEBUG('v', "Before CreateLock Acquire\n");
   lockArray->Acquire();
-
+	DEBUG('v', "After CreateLock Acquire\n");
   locks[nextLockPos] = myLock;
   nextLockPos++;
   
   lockArray->Release();
-
   return (nextLockPos-1);
 }
 
@@ -929,8 +928,7 @@ void ExceptionHandler(ExceptionType which) {
 
       case SC_Fork:
         DEBUG('a', "Fork syscall.\n");
-        Fork_Syscall(machine->ReadRegister(4),
-		     machine->ReadRegister(5));
+        Fork_Syscall(machine->ReadRegister(4));
       break;
       case SC_Exec:
         DEBUG('a', "Exec syscall.\n");

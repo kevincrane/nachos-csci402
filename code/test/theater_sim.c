@@ -734,7 +734,7 @@ void doLeaveTheaterAndUseRestroom(int custIndex, int groupIndex) {
   
   for(i=custIndex; i<custIndex+groupSize[groupIndex]; i++) {
     if(customers[i].needsRestroom == 1) {
-      Fork((void*)doReturnFromRestroom, i);
+      Fork((void*)doReturnFromRestroom);
     }
   }
   
@@ -1527,7 +1527,7 @@ void init() {
   for(i=0; i<MAX_TC; i++) 
     { 
       /* Fork off a new thread for a ticketClerk */
-      Fork((void*)ticketClerk, i);
+      Fork((void*)ticketClerk);
     }
 	
   /* Initialize customers */
@@ -1535,22 +1535,22 @@ void init() {
   for(i=0; i<aNumGroups; i++) 
     {
       /* Fork off a new thread for a customer */
-      Fork((void*)groupHead, groupHeads[i]);
+      Fork((void*)groupHead);
     }
 
   for(i=0; i<MAX_TT; i++)
     {
       /* Fork off a new thread for a ticketTaker */
-      Fork((void*)ticketTaker, i);
+      Fork((void*)ticketTaker);
     }
 	
   for(i=0; i<MAX_CC; i++) {
     /* Fork off a new thread for a concessionClerk */
-    Fork((void*)concessionClerk, i); 
+    Fork((void*)concessionClerk); 
   }
   
-  Fork((void*)movieTech, 1);
-  Fork((void*)manager, 0);
+  Fork((void*)movieTech);
+  Fork((void*)manager);
 }
 
 /* Temporary to check if makefile works */
