@@ -101,10 +101,6 @@ int cv_10;
 		DestroyLock(12);
 	}
 
-	void destroy_Lock_Wrong_Process(){	/* TODO Not sure how to create separate space */
-
-	}
-
 	/* Checks to make sure a already deleted lock deletion will be blocked from reaching the system call */
 	void destroy_Lock_Already_Deleted(){
 		Write("Testing Destroy Lock on already destroyed lock\n", sizeof("Testing Destroy Lock on already destroyed lock\n"), ConsoleOutput);
@@ -160,9 +156,6 @@ int cv_10;
 		DestroyCV(11);
 	}
 
-	void destroy_CV_Wrong_Process(){		/* TODO see lock comment above */
-	}
-
 	/* Test to make sure a already deleted cv will be blocked from reaching the system call  */
 	void destroy_CV_Already_Deleted(){
 		Write("Testing Destroy CV on already deleted CV, cv_1\n", sizeof("Testing Destroy CV on already deleted CV, cv_1\n"), ConsoleOutput);
@@ -197,8 +190,6 @@ int cv_10;
 		Write("Testing Acquire on out of bounds index\n", sizeof("Testing Acquire on out of bounds index\n"), ConsoleOutput);
 		Acquire(12);
 	}
-	
-	void acquire_Lock_Wrong_Process(){} /* TODO */
 	
 	/* Test to make sure that already deleted lock cannot be acquired */
 	void acquire_Lock_Already_Deleted(){
@@ -264,8 +255,6 @@ int cv_10;
 		Write("Testing Wait on a deleted lock\n", sizeof("Testing Wait on a deleted lock\n"), ConsoleOutput);
 		Wait(cv_2, lock_1);
 	}
-	
-	void wait_Wrong_Process(){} /* TODO */
 
 /*-------------------------- Signal */
 	/* Default test to check if signal syscall works */
@@ -295,8 +284,6 @@ int cv_10;
 		Write("Testing Signal on deleted lock\n", sizeof("Testing Signal on deleted lock\n"), ConsoleOutput);
 		Signal(cv_2, lock_1);
 	}
-
-	void signal_Wrong_Process(){} /* TODO */
 	
 
 
@@ -354,7 +341,6 @@ int cv_10;
 		Broadcast(cv_4, lock_1);
 	} 
 
-	void broadcast_Wrong_Process(){} /* TODO */
 
 /*-------------------------- Fork */
 	/* Setup */
@@ -416,7 +402,7 @@ int cv_10;
   exec_Test() {
     Write("\n\nTesting Exec syscall. Calling Exec()\n", sizeof("\n\nTesting Exec syscall. Calling Exec()\n"), ConsoleOutput);
     Exec("../test/exectest",sizeof("../test/exectest"));
-    Write("\nDONESTICKS\n", 12, ConsoleOutput);
+    Write("\nDONESTICKS, Exec called successfully\n", sizeof("\nDONESTICKS, Exec called successfully\n"), ConsoleOutput);
   }
   
 	/* Test to make sure a bad file will be blocked before reaching syscall */
@@ -444,8 +430,6 @@ int main() {
 
 	destroy_Lock_Bad_Index_Test();
 
-	destroy_Lock_Wrong_Process();
-
 	destroy_Lock_Already_Deleted();
 
 	destroy_Lock_Using_Lock_Setup();
@@ -462,8 +446,6 @@ int main() {
 
 	destroy_CV_Bad_Index_Test();
 
-	destroy_CV_Wrong_Process();
-
 	destroy_CV_Already_Deleted();
 
 	Fork((void*)destroy_CV_Setup);
@@ -475,7 +457,6 @@ int main() {
 	acquire_Lock_Test();
 
 	acquire_Lock_Bad_Index();
-	/* acquire_Lock_Wrong_Process(); */
 	
 	acquire_Lock_Already_Deleted();
 	
@@ -504,8 +485,6 @@ int main() {
 
 	Write("Forking thread to test wait\n", sizeof("Forking thread to test wait\n"), ConsoleOutput);
 	Fork((void*)wait_Test);
-	
-	wait_Wrong_Process(); 	/* TODO : Stub created above */
 
 		/* Signal */
 	Write("\n*** SIGNAL TEST ***\n", sizeof("\n*** SIGNAL TEST ***\n"), ConsoleOutput);	
@@ -515,8 +494,6 @@ int main() {
 	signal_Bad_Index();
 
 	signal_Already_Deleted();  
-
-	signal_Wrong_Process(); /* TODO : Stub created above */
 	
 		/* Broadcast */
 	Write("\n*** BROADCAST TEST ***\n", sizeof("\n*** BROADCAST TEST ***\n"), ConsoleOutput);
@@ -526,13 +503,10 @@ int main() {
 	broadcast_Bad_Index();
 
 	broadcast_Already_Deleted();
-
-	broadcast_Wrong_Process(); /* TODO : Stub created above */
 	
 	Yield();
 	
 		/* Fork */
-  /* Forking bitches */
 	Write("\n*** FORK TEST ***\n", sizeof("\n*** FORK TEST ***\n"), ConsoleOutput);
  	fork_Test();		
 

@@ -115,19 +115,15 @@ Lock::~Lock() {
 
 void Lock::Acquire() {
   IntStatus oldLevel = interrupt->SetLevel(IntOff); // disable interrupts
-	DEBUG('v', "Entered Acquire in synch.cc\n");
   if(currentThread == lockOwner) {
     (void) interrupt->SetLevel(oldLevel); // enable interrupts
     return;
   }
-	DEBUG('v', "Before isFree check\n");
   if(isFree) {
     isFree = false;                           	// lock is no longer free
-		DEBUG('v', "Lock is free, going to waitQueue, lockOwner : %s\n", currentThread->getName());
-    lockOwner = currentThread;               	// now owned by currentThread
+		lockOwner = currentThread;               	// now owned by currentThread
   } else {
-		DEBUG('v', "Lock is not free, going to waitQueue, lockOwner : %s\n", lockOwner->getName());
-    waitQueue->Append((void *)currentThread);	// add to lock wait queue
+		waitQueue->Append((void *)currentThread);	// add to lock wait queue
     currentThread->Sleep();                 	// put to sleep
   }
   (void) interrupt->SetLevel(oldLevel); 		// enable interrupts

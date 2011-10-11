@@ -800,9 +800,8 @@ int CreateLock_Syscall() {
   myLock.isDeleted = false;
   myLock.toBeDeleted = false;
   myLock.numActiveThreads = 0;
-	DEBUG('v', "Before CreateLock Acquire\n");
   lockArray->Acquire();
-	DEBUG('v', "After CreateLock Acquire\n");
+	DEBUG('v', "Lock created at position: %i\n",nextLockPos);
   locks[nextLockPos] = myLock;
   nextLockPos++;
   
