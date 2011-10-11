@@ -132,7 +132,7 @@ void Print(char* string, int len, int param1, int param2);
 /* Fork a thread to run a procedure ("func") in the *same* address space 
  * as the current thread.
  */
-void Fork(void (*func)(), int index);
+void Fork(void (*func)());
 
 /* Yield the CPU to another runnable thread, whether in this address space 
  * or not. 
