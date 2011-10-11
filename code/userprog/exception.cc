@@ -781,6 +781,7 @@ void Broadcast_Syscall(int cvIndex, int lockIndex) {
     lockArray->Release();
     return;
   }  
+	DEBUG('w', "Condition %i has %i numActiveThreads\n", cvIndex, conditions[cvIndex].numActiveThreads);
   conditions[cvIndex].condition->Broadcast(locks[lockIndex].lock);
   conditions[cvIndex].numActiveThreads = 0;
 
