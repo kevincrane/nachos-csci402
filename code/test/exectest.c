@@ -18,8 +18,8 @@ void forkThread2() {
 
 /* Starts executing here */
 int main() {
-  Fork((void *)forkThread1);
+  Fork((void *)forkThread1, 0);
   Write("Running test of Exec syscall.\n", 30, ConsoleOutput);
-  Fork((void *)forkThread2);
+  Fork((void *)forkThread2, 0);
   Exit(0);
 }

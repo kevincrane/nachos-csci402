@@ -295,8 +295,8 @@ int cv_10;
 
 	void broadcast_Test(){			
 		Write("Testing Broadcast on cv_4\n", sizeof("Testing Broadcast on cv_3\n"), ConsoleOutput);
-		Fork((void*)broadcast_Setup);
-		Fork((void*)broadcast_Setup2);
+		Fork((void*)broadcast_Setup, 0);
+		Fork((void*)broadcast_Setup2, 0);
 		Acquire(lock_4);
 		Broadcast(cv_4, lock_4);
 		Release(lock_4);
@@ -360,16 +360,16 @@ int cv_10;
 	
 	fork_2_Threads() {
 		Write("Forking 2 threads for testing purposes\n", sizeof("Forking 2 threads for testing purposes\n"), ConsoleOutput);
-		Fork((void *)forkTest1);
-		Fork((void *)forkTest2);
+		Fork((void *)forkTest1, 0);
+		Fork((void *)forkTest2, 0);
 	}
 
   fork_Test() {
     Write("\nTesting Fork syscall. Calling Fork()\n", sizeof("\n\nTesting Fork syscall. Calling Fork()\n"), ConsoleOutput);
 
-    Fork((void *)forkThread1);
-    Fork((void *)forkThread2);
-    Fork((void *)forkThread3);
+    Fork((void *)forkThread1, 0);
+    Fork((void *)forkThread2, 0);
+    Fork((void *)forkThread3, 0);
   }
   
 /*-------------------------- Exec */
@@ -421,7 +421,7 @@ int main() {
 
 	destroy_CV_Already_Deleted();
 
-	Fork((void*)destroy_CV_Setup);
+	Fork((void*)destroy_CV_Setup, 0);
 
 	destroy_CV_Thread_Using_CV();
 	
@@ -452,7 +452,7 @@ int main() {
 	wait_Already_Deleted();
 
 	Write("Forking thread to test wait\n", sizeof("Forking thread to test wait\n"), ConsoleOutput);
-	Fork((void*)wait_Test);
+	Fork((void*)wait_Test, 0);
 	
 	wait_Wrong_Process(); 	/* TODO : Stub created above */
 

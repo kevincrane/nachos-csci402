@@ -582,7 +582,7 @@ void Exit_Syscall() {
   processTableLock->Release();
   
   DEBUG('u', "Thread %s has been exited (%i).\n", currentThread->getName(), currentThread->space->isMain());
-  if(!(currentThread->space->isMain()))
+//  if(!(currentThread->space->isMain()))
     currentThread->Finish();
 }
 
@@ -975,7 +975,7 @@ void ExceptionHandler(ExceptionType which) {
       case SC_Fork:
         DEBUG('a', "Fork syscall.\n");
         Fork_Syscall(machine->ReadRegister(4),
-		     machine->ReadRegister(5));
+		        machine->ReadRegister(5));
       break;
       case SC_Exec:
         DEBUG('a', "Exec syscall.\n");
