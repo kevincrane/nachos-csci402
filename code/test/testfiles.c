@@ -17,6 +17,11 @@
 	*Fork
 	Exec
 	*Exit
+
+	Finish Broadcast Stubs
+				 Fork
+				 Exec
+				 Exit
 */
 
 /* Globals */
@@ -45,18 +50,18 @@ int cv_10;
 
 
 
-/*Yield Test */
+/*-------------------------- Yield Test */
 	yield_Test(){
 		Write("\n\nTesting Yield syscall. Calling Yield()\n", sizeof("\n\nTesting Yield syscall. Calling Yield()\n"), ConsoleOutput);
 		Yield();
 		Write("Yield syscall successful. End of Yield test\n\n", sizeof("Yield syscall successful. End of Yield test\n\n"), ConsoleOutput);
 	}
 
-/* Lock Tests */
+/*-------------------------- Lock Tests */
+
 /* Create Lock */
 
 /* Default Test */
-
 	create_Lock_Test() {
 	  Write("\n\nTesting CreateLock syscall. Calling CreateLock()\n", sizeof("\n\nTesting CreateLock syscall. Calling CreateLock()\n"), ConsoleOutput);
 		lock_1 =  CreateLock();
@@ -101,15 +106,18 @@ int cv_10;
 		DestroyLock(lock_1);
 	}
 
-	/*void destroy_Lock_To_Be_Deleted(){			Not sure how to test since I can't access array
-		Write("Testing Destroy Lock on a lock to be deleted\n", sizeof("Testing Destroy Lock on a lock to be deleted\n"), ConsoleOutput);
-		locks[lock_2].toBeDeleted = true;
-		DestroyLock(lock_2);
-	}*/
+	void destroy_Lock_Thread_Using_Lock(){
+		Write("Destroying Lock 10!!!\n", sizeof("Destroying Lock 10!!!\n"), ConsoleOutput);
+		DestroyLock(lock_10);
+	}
+	
+	void destroy_Lock_Using_Lock_Setup(){
+		Write("Acquiring unused lock_10 to check destroy_Lock\n", sizeof("Acquiring unused lock_10 to check destroy_Lock\n"), ConsoleOutput);
+		Acquire(lock_10);
+	}
 
-/* CV's */
+/* -------------------------- CV's */
 	void create_CV_Test(){
-		Write("END OF LOCK TESTS\n\n", sizeof("END OF LOCK TESTS\n\n"), ConsoleOutput);
 		Write("Testing Create CV. Calling CreateCV()\n", sizeof("Testing Create CV. Calling CreateCV()\n"), ConsoleOutput);
 		cv_1 = CreateCV();
 	}
@@ -149,11 +157,19 @@ int cv_10;
 		DestroyCV(cv_1);
 	}
 
-	/*destroy_CV_To_Be_Deleted();
+	void destroy_CV_Setup(){
+		Write("Acquiring lock_9 and waiting on cv_9\n", sizeof("Acquiring lock_9 and waiting on cv_9\n"), ConsoleOutput);
+		Acquire(lock_9);
+		Wait(cv_9, lock_9);
+		Exit(0);
+	}
 
-	destroy_Lock_Thread_Using_CV();*/ 
+	destroy_CV_Thread_Using_CV(){
+		Write("Testing Destroy CV on waiting cv_9\n", sizeof("Testing Destroy CV on waiting cv_9\n"), ConsoleOutput);
+		DestroyCV(cv_9);
+	}
 
-	/* Acquire */
+	/*-------------------------- Acquire */
 	void acquire_Lock_Test(){
 		Write("Testing Acquire on lock_2\n", sizeof("Testing Acquire on lock_2\n"), ConsoleOutput);
 		Acquire(lock_2);
@@ -166,16 +182,14 @@ int cv_10;
 		Acquire(12);
 	}
 	
-	void acquire_Lock_Wrong_Process(){}
+	void acquire_Lock_Wrong_Process(){} /* TODO */
 	
 	void acquire_Lock_Already_Deleted(){
 		Write("Testing Acquire on on deleted lock, lock_1\n", sizeof("Testing Acquire on on deleted lock, lock_1\n"), ConsoleOutput);
 		Acquire(lock_1);
 	}
 	
-	void acquire_Lock_To_Be_Deleted(){}
-	
-	/* Release */
+	/*-------------------------- Release */
 	void release_Lock_Test(){
 		Write("Testing Release on lock_2\n", sizeof("Testing Release on lock_2\n"), ConsoleOutput);
 		Release(lock_2);
@@ -202,13 +216,15 @@ int cv_10;
 
 
 	
-/* Wait */
+/*-------------------------- Wait */
 	void wait_Test(){
 		Write("Testing Wait, Nachos should end now\n", sizeof("Testing Wait, Nachos should end now\n"), ConsoleOutput);
 		Acquire(lock_2);
 		Wait(cv_2, lock_2);
 		Write("wait_Test has woke up\n", sizeof("wait_Test has woke up\n"), ConsoleOutput);
+		Exit(0);	
 	}
+
 
 	void wait_Bad_Index(){
 		Write("Testing Wait on a negative cv index\n", sizeof("Testing Wait on a negative cv index\n"), ConsoleOutput);
@@ -227,9 +243,9 @@ int cv_10;
 		Write("Testing Wait on a deleted lock\n", sizeof("Testing Wait on a deleted lock\n"), ConsoleOutput);
 		Wait(cv_2, lock_1);
 	}
-	void wait_Wrong_Process(){}
+	void wait_Wrong_Process(){} /* TODO */
 
-/* Signal */
+/*-------------------------- Signal */
 	void signal_Test(){
 		Write("Testing Signal on cv_2\n", sizeof("Testing Signal on cv_2\n"), ConsoleOutput);
 		Acquire(lock_2);
@@ -246,9 +262,71 @@ int cv_10;
 		Write("Testing Signal on a negative lock index\n", sizeof("Testing Signal on a negative lock index\n"), ConsoleOutput);
 		Signal(cv_2, -1);
 	}
-/* Fork */
+	
+	void signal_Already_Deleted(){
+		Write("Testing Signal on deleted cv\n", sizeof("Testing Signal on deleted cv\n"), ConsoleOutput);
+		Signal(cv_1, lock_2);
+		Write("Testing Signal on deleted lock\n", sizeof("Testing Signal on deleted lock\n"), ConsoleOutput);
+		Signal(cv_2, lock_1);
+	}
+
+	void signal_Wrong_Process(){} /* TODO */
+	
+
+
+/*-------------------------- Broadcast */
+	void broadcast_Setup(){
+		Write("Successfully forked Broadcast Setup, Acquiring lock_4\n", sizeof("Successfully forked Broadcast Setup, Acquiring lock_3\n"), ConsoleOutput);
+		Acquire(lock_4);
+		Wait(cv_4, lock_4);
+		Write("Exited wait thru Broadcast\n", sizeof("Exited wait thru Broadcast\n"), ConsoleOutput);
+		Release(lock_4);
+		Exit(0);
+	}
+	
+	void broadcast_Setup2(){
+		Write("Successfully forked Broadcast Setup 2, Acquiring lock_4\n", sizeof("Successfully forked Broadcast Setup 2, Acquiring lock_4\n"), ConsoleOutput);
+		Acquire(lock_4);
+		Wait(cv_4, lock_4);
+		Release(lock_4);
+		Write("Exited wait thru Broadcast 2\n", sizeof("Exited wait thru Broadcast 2\n"), ConsoleOutput);
+		Exit(0);
+	}
+
+	void broadcast_Test(){			
+		Write("Testing Broadcast on cv_4\n", sizeof("Testing Broadcast on cv_3\n"), ConsoleOutput);
+		Fork((void*)broadcast_Setup);
+		Fork((void*)broadcast_Setup2);
+		Acquire(lock_4);
+		Broadcast(cv_4, lock_4);
+		Release(lock_4);
+		Write("Broadcasted on cv_4\n", sizeof("Broadcasted on cv_4\n"), ConsoleOutput);
+	} 
+
+	void broadcast_Bad_Index(){
+		Write("Testing Broadcast on negative cv index\n", sizeof("Testing Broadcast on negative cv index\n"), ConsoleOutput);
+		Broadcast(-1, lock_4);
+		Write("Testing Broadcast on out of bounds cv index\n", sizeof("Testing Broadcast on out of bounds cv index\n"), ConsoleOutput);
+		Broadcast(12, lock_4);
+		Write("Testing Broadcast on negative lock index\n", sizeof("Testing Broadcast on negative lock index\n"), ConsoleOutput);
+		Broadcast(cv_4, -1);
+		Write("Testing Broadcast on out of bounds lock index\n", sizeof("Testing Broadcast on out of bounds lock index\n"), ConsoleOutput);
+		Broadcast(cv_4, 12);
+	} 
+
+	void broadcast_Already_Deleted(){
+		Write("Testing Broadcast on deleted cv\n", sizeof("Testing Broadcast on deleted cv\n"), ConsoleOutput);
+		Broadcast(cv_1, lock_4);
+		Write("Testing Broadcast on deleted lock\n", sizeof("Testing Broadcast on deleted lock\n"), ConsoleOutput);
+		Broadcast(cv_4, lock_1);
+	} 
+
+	void broadcast_Wrong_Process(){} /* TODO */
+
+/*-------------------------- Fork */
   void forkThread1(){
     Write("Forked test thread1\n", 20, ConsoleOutput);
+		Exit(0);
   }
   
   void forkThread2() {
@@ -268,6 +346,7 @@ int cv_10;
 		Write("Fork Test 1 Acquiring lock_3\n", sizeof("Fork Test 1 Acquiring lock_3\n"), ConsoleOutput);
 		Wait(cv_3, lock_3);
 		Write("Hi, #1 got out of wait succsssfully!\n", sizeof("Hi, #1 got out of wait succsssfully!\n"), ConsoleOutput);
+		Exit(0);
 	}
 
 	void forkTest2() {
@@ -276,6 +355,7 @@ int cv_10;
 		Write("Fork Test 2 Acquiring lock_3\n", sizeof("Fork Test 1 Acquiring lock_3\n"), ConsoleOutput);
 		Signal(cv_3, lock_3);
 		Write("Fork Test 1 Signaled lock_3\n", sizeof("Fork Test 1 Signaled lock_3\n"), ConsoleOutput);
+		Exit(0);
 	}
 	
 	fork_2_Threads() {
@@ -285,14 +365,14 @@ int cv_10;
 	}
 
   fork_Test() {
-    Write("\n\nTesting Fork syscall. Calling Fork()\n", sizeof("\n\nTesting Fork syscall. Calling Fork()\n"), ConsoleOutput);
+    Write("\nTesting Fork syscall. Calling Fork()\n", sizeof("\n\nTesting Fork syscall. Calling Fork()\n"), ConsoleOutput);
 
     Fork((void *)forkThread1);
     Fork((void *)forkThread2);
     Fork((void *)forkThread3);
   }
   
-/* Exec */
+/*-------------------------- Exec */
   exec_Test() {
     Write("\n\nTesting Exec syscall. Calling Exec()\n", sizeof("\n\nTesting Exec syscall. Calling Exec()\n"), ConsoleOutput);
     Exec("../test/exectest",sizeof("../test/exectest"));
@@ -323,9 +403,9 @@ int main() {
 
 	destroy_Lock_Already_Deleted();
 
-	/*destroy_Lock_To_Be_Deleted();
-
-	destroy_Lock_Thread_Using_Lock();*/
+	destroy_Lock_Using_Lock_Setup();
+	
+	destroy_Lock_Thread_Using_Lock();
 
 	/* CV Tests */
 	Write("\n*** CV TEST ***\n", sizeof("\n*** CV TEST ***\n"), ConsoleOutput);
@@ -341,10 +421,9 @@ int main() {
 
 	destroy_CV_Already_Deleted();
 
-	/*destroy_CV_To_Be_Deleted();
+	Fork((void*)destroy_CV_Setup);
 
-	destroy_CV_Thread_Using_CV();*/ 
-
+	destroy_CV_Thread_Using_CV();
 	
 	/* Acquire/Release Tests */
 	Write("\n*** ACQUIRE TEST ***\n", sizeof("\n*** ACQUIRE TEST ***\n"), ConsoleOutput);
@@ -355,7 +434,6 @@ int main() {
 	
 	acquire_Lock_Already_Deleted();
 	
-	/* acquire_Lock_To_Be_Deleted(); */
 	Write("\n*** RELEASE TEST ***\n", sizeof("\n*** RELEASE TEST ***\n"), ConsoleOutput);
 	release_Lock_Test();
 	
@@ -366,58 +444,55 @@ int main() {
 	release_Lock_Already_Deleted();
 	
 
-	
-
 	/* CV Operation Tests */
+		/* Wait */
 	Write("\n*** WAIT TEST ***\n", sizeof("\n*** WAIT TEST ***\n"), ConsoleOutput);
 	wait_Bad_Index();	
 
 	wait_Already_Deleted();
 
-	/* wait_Wrong_Process() */
+	Write("Forking thread to test wait\n", sizeof("Forking thread to test wait\n"), ConsoleOutput);
+	Fork((void*)wait_Test);
 	
-	Fork((void *)wait_Test);
+	wait_Wrong_Process(); 	/* TODO : Stub created above */
 
+		/* Signal */
 	Write("\n*** SIGNAL TEST ***\n", sizeof("\n*** SIGNAL TEST ***\n"), ConsoleOutput);
 	
 	signal_Test(); /* Signal thread waiting from wait_Test */
 	
 	signal_Bad_Index();
 
+	signal_Already_Deleted();  
 
-	/*signal_Already_Deleted();  TODO 
-
-	signal_Wrong_Process();
-	*/
+	signal_Wrong_Process(); /* TODO : Stub created above */
+	
+		/* Broadcast */
 	Write("\n*** BROADCAST TEST ***\n", sizeof("\n*** BROADCAST TEST ***\n"), ConsoleOutput);
-	/*
-	broadcast_Test();
+	
+	broadcast_Test();		
 
 	broadcast_Bad_Index();
 
 	broadcast_Already_Deleted();
 
-	broadcast_Wrong_Process();*/
+	broadcast_Wrong_Process(); /* TODO : Stub created above */
 	
+	Yield();
+	
+		/* Fork */
   /* Forking bitches */
+	Write("\n*** FORK TEST ***\n", sizeof("\n*** FORK TEST ***\n"), ConsoleOutput);
  	fork_Test();		
 
-  
 	fork_2_Threads();
+	
+		/* Exec */
   /* Executing all kinds of threads */
   exec_Test();
   
-  Create("testfile", 8);
-  fd = Open("testfile", 8);
-
-  Write("Testing a Write syscall.\n", 25, ConsoleOutput );
-  Close(fd);
-
-  fd = Open("testfile", 8);
-  Write("Testing a Read/Write syscall.\n", 30, fd);
-  bytesread = Read( buf, 100, fd );
-  Write( buf, bytesread, ConsoleOutput );
-  Close(fd);
+  
+	Write("\n\n\n*** END OF TESTING ***\n\n", sizeof("\n\n\n*** END OF TESTING ***\n"), ConsoleOutput);
     
     Exit(0);
 }
