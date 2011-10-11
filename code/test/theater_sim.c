@@ -148,11 +148,7 @@ void customerInit(int numGroups)
       groupSize[i] = groups[i];     /* Number of people in current group*/
       for(j=currIndex; j<(currIndex+groups[i]); j++) 
 	{
-	  Write("Customer ", sizeof("Customer "), ConsoleOutput);
-	  /* Write(j, sizeof(j), ConsoleOutput); */
-	  Write(" in Group ", sizeof(" in Group "), ConsoleOutput);
-	  /* Write(i, sizeof(i), ConsoleOutput); */
-	  Write(" has entered the movie theater\n", sizeof(" has entered the movie theater\n"), ConsoleOutput);
+	  Print("Customer %i in Group %i has entered the movie theater\n", j, i, -1);
   
 	  /* Initialize all values for current customer */
 	  if(j == currIndex) {
@@ -213,24 +209,16 @@ void doBuyTickets(int custIndex, int groupIndex)
 
     Acquire(ticketClerkLineLock);
     /* See if any TicketClerk not busy */
-    for(i=0; i<MAX_TC; i++) 
-      {
-	if(ticketClerkState[i] == 0) {
-	  /* Found a clerk who's not busy */
-	  myTicketClerk = i;             /* and now you belong to me */
-	  ticketClerkState[i] = 1;
-	  Write("Customer ", sizeof("Customer "), ConsoleOutput);
-	  /* Write(custIndex, sizeof(custIndex), ConsoleOutput); */
-	  Write(" in Group ", sizeof(" in Group "), ConsoleOutput);
-	  /* Write(groupIndex, sizeof(groupIndex), ConsoleOutput); */
-	  Write(" is walking up to TicketClerk ", sizeof(" is walking up to TicketClerk "), ConsoleOutput);
-	  /* Write(myTicketClerk, sizeof(myTicketClerk), ConsoleOutput); */
-	  Write(" to buy ", sizeof(" to buy "), ConsoleOutput);
-	  /* Write(groupSize[groupIndex], sizeof(groupSize[groupIndex]), ConsoleOutput);*/
-	  Write(" tickets.\n", sizeof(" tickets.\n"), ConsoleOutput); 
-	  break;
-	}
+    for(i=0; i<MAX_TC; i++) {
+      if(ticketClerkState[i] == 0) {
+        /* Found a clerk who's not busy */
+        myTicketClerk = i;             /* and now you belong to me */
+        ticketClerkState[i] = 1;
+        Print("Customer %i in Group %i is walking up to TicketClerk %i ", custIndex, groupIndex, myTicketClerk);
+        Print("to buy %i tickets.\n", groupSize[groupIndex], -1, -1);
+        break;
       }
+    }
   
     /* All ticketClerks were occupied, find the shortest line instead */
     if(myTicketClerk == -1) {
@@ -247,26 +235,15 @@ void doBuyTickets(int custIndex, int groupIndex)
     
       /* Found the TicketClerk with the shortest line */
       myTicketClerk = shortestTCLine;
-      Write("Customer ", sizeof("Customer "), ConsoleOutput);
-      /* Write(custIndex, sizeof(custIndex), ConsoleOutput); */
-      Write(" in Group ", sizeof(" in Group "), ConsoleOutput);
-      /* Write(groupIndex, sizeof(groupIndex), ConsoleOutput); */
-      Write(" is getting in TicketClerk line ", sizeof(" is getting in TicketClerk line "), ConsoleOutput);
-      /* Write(myTicketClerk, sizeof(myTicketClerk), consoleOutput); */
-      Write("\n", sizeof("\n"), ConsoleOutput);
+/*      Print("", -1, -1, -1);*/
+      Print("Customer %i in Group %i is getting in TicketClerk line %i.\n", custIndex, groupIndex, myTicketClerk);
       
       /* Get in the shortest line */
       ticketClerkLineCount[myTicketClerk]++;
       Wait(ticketClerkLineCV[myTicketClerk], ticketClerkLineLock);
       if((ticketClerkIsWorking[myTicketClerk] == 0) || (ticketClerkState[myTicketClerk] == 2)) {
         findNewLine = 1;
-	Write("Customer ", sizeof("Customer "), ConsoleOutput);
-	/* Write(custIndex, sizeof(custIndex), ConsoleInput); */
-	Write(" in Group ", sizeof(" in Group "), ConsoleOutput);
-	/* Write(groupIndex, sizeof(groupIndex), ConsoleInput); */
-	Write(" sees TicketClerk ", sizeof(" sees TicketClerk "), ConsoleOutput);
-	/* Write(myTicketClerk, sizeof(myTicketClerk), ConsoleOutput); */
-	Write(" is on break.\n", sizeof(" is on break.\n"), ConsoleOutput);
+        Print("Customer %i in Group %i sees TicketClerk %i is on break.\n", custIndex, groupIndex, myTicketClerk);
         Release(ticketClerkLineLock);
       }
     }
@@ -284,28 +261,15 @@ void doBuyTickets(int custIndex, int groupIndex)
   /* TicketClerk has returned a price for you */
   Wait(ticketClerkCV[myTicketClerk], ticketClerkLock[myTicketClerk]);
   customers[custIndex].money -= amountOwedTickets[myTicketClerk];               /* Pay the ticketClerk for the tickets */
-  Write("Customer ", sizeof("Customer "), ConsoleOutput);
-  /* Write(custIndex, sizeof(custIndex), ConsoleOutput); */
-  Write(" in Group ", sizeof(" in Group "), ConsoleOutput);
-  /* Write(groupIndex, sizeof(groupIndex), ConsoleOutput); */
-  Write(" in TicketClerk line ", sizeof(" in TicketClerk line "), ConsoleOutput);
-  /* Write(myTicketClerk, sizeof(myTicketClerk), ConsoleOutput);*/
-  Write(" is paying ", sizeof(" is paying "), ConsoleOutput);
-  /* Write(amountOwedTickets[myTicketClerk], sizeof(amountOwedTickets[myTicketClerk]), ConsoleOutput);*/
-  Write(" for tickets.\n", sizeof(" for tickets.\n"), ConsoleOutput);
+  Print("Customer %i in Group %i in TicketClerk line %i ", custIndex, groupIndex, myTicketClerk);
+  Print("is paying %i for tickets.\n", amountOwedTickets[myTicketClerk], -1, -1);
   Signal(ticketClerkCV[myTicketClerk], ticketClerkLock[myTicketClerk]);
   
   /* TicketClerk has given you n tickets. Goodies for you! */
   Wait(ticketClerkCV[myTicketClerk], ticketClerkLock[myTicketClerk]);
   customers[custIndex].numTickets += numberOfTicketsNeeded[myTicketClerk];      /* Receive tickets! */
   
-  Write("Customer ", sizeof("Customer "), ConsoleOutput);
-  /* Write(custIndex, sizeof(custIndex), ConsoleOutput);*/
-  Write(" in Group ", sizeof(" in Group "), ConsoleOutput);
-  /*Write(groupIndex, sizeof(groupIndex), ConsoleOutput);*/
-  Write(" is leaving TicketClerk ", sizeof(" is leaving TicketClerk "), ConsoleOutput);
-  /*Write(myTicketClerk, sizeof(myTicketClerk), ConsoleOutput);*/
-  Write(".\n", sizeof(".\n"), ConsoleOutput);
+  Print("Customer %i in Group %i is leaving TicketClerk %i.\n", custIndex, groupIndex, myTicketClerk);
 
   Signal(ticketClerkCV[myTicketClerk], ticketClerkLock[myTicketClerk]);         /* You're free to carry on noble ticketClerk */
   Release(ticketClerkLock[myTicketClerk]);                                      /* Fly free ticketClerk. You were a noble friend.*/
@@ -328,18 +292,11 @@ void doGiveTickets(int custIndex, int groupIndex)
     /* See if any ticketTaker not busy */
     for(i=0; i<MAX_TT; i++) {
       if(ticketTakerState[i] == 0) {
-	/* Found a clerk who's not busy */
-	myTicketTaker = i;             /* and now you belong to me */
-	ticketTakerState[i] = 1;
-	Write("Customer ", sizeof("Customer "), ConsoleOutput);
-	/* Write(custIndex, sizeof(custIndex), ConsoleOutput); */
-	Write(" in Group ", sizeof(" in Group "), ConsoleOutput);
-	/* Write(groupIndex, sizeof(groupIndex), ConsoleOutput);*/
-	Write(" is getting in TicketTaker line ", sizeof(" is getting in TicketTaker line "), ConsoleOutput);
-	/*Write(myTicketTaker, sizeof(myTicketTaker), ConsoleOutput);*/
-	Write(".\n", sizeof(".\n"), ConsoleOutput);
-	
-	break;
+        /* Found a clerk who's not busy */
+        myTicketTaker = i;             /* and now you belong to me */
+        ticketTakerState[i] = 1;
+        Print("Customer %i in Group %i is getting in TicketTaker Line %i.\n", custIndex, groupIndex, myTicketTaker);
+        break;
       }
     }
   
@@ -358,13 +315,7 @@ void doGiveTickets(int custIndex, int groupIndex)
 
       /* Found the TicketClerk with the shortest line */
       myTicketTaker = shortestTTLine;
-      Write("Customer ", sizeof("Customer "), ConsoleOutput);
-      /*Write(custIndex, sizeof(custIndex), ConsoleOutput);*/
-      Write(" in Group ", sizeof(" in Group "), ConsoleOutput);
-      /*Write(groupIndex, sizeof(groupIndex), ConsoleOutput);*/
-      Write(" is getting in TicketTaker line ", sizeof(" is getting in TicketTaker line "), ConsoleOutput);
-      /*Write(myTicketTaker, sizeof(myTicketTaker), ConsoleOutput);*/
-      Write(".\n", sizeof(".\n"), ConsoleOutput);
+      Print("Customer %i in Group %i is getting in TicketTaker line %i.\n", custIndex, groupIndex, myTicketTaker);
       
       /* Get in the shortest line */
       ticketTakerLineCount[myTicketTaker]++;
@@ -372,15 +323,8 @@ void doGiveTickets(int custIndex, int groupIndex)
       if(ticketTakerState[myTicketTaker] == 2) { /*ticketTakerIsWorking[myTicketTaker] == 0)) {*/
         findNewLine = 1;
         ticketTakerLineCount[myTicketTaker]--;
-        Write("Customer ", sizeof("Customer "), ConsoleOutput);
-	/*Write(custIndex, sizeof(custIndex), ConsoleOutput);*/
-	Write(" in Group ", sizeof(" in Group "), ConsoleOutput);
-	/*Write(groupIndex, sizeof(groupIndex), ConsoleOutput);*/
-	Write(" sees TicketTaker ", sizeof(" sees TicketTaker "), ConsoleOutput);
-	/*Write(myTicketTaker, sizeof(myTicketTaker), ConsoleOutput);*/
-	Write(" is on break (state=", sizeof(" is on break (state="), ConsoleOutput);
-	/*Write(ticketTakerState[myTicketTaker], sizeof(ticketTakerState[myTicketTaker]), ConsoleOutput);*/
-	Write(").\n", sizeof(").\n"), ConsoleOutput);
+        Print("Customer %i in Group %i sees TicketTaker %i ", custIndex, groupIndex, myTicketTaker);
+        Print("is on break (state=%i).\n", ticketTakerState[myTicketTaker], -1, -1);
         Release(ticketTakerLineLock);
       }
     }
@@ -393,15 +337,8 @@ void doGiveTickets(int custIndex, int groupIndex)
   Acquire(ticketTakerLock[myTicketTaker]);
   numTicketsReceived[myTicketTaker] = groupSize[groupIndex];
   
-  Write("Customer ", sizeof("Customer "), ConsoleOutput);
-  /*Write(custIndex, sizeof(custIndex), ConsoleOutput);*/
-  Write(" in Group ", sizeof(" in Group "), ConsoleOutput);
-  /*Write(groupIndex, sizeof(groupIndex), ConsoleOutput);*/
-  Write(" is walking up to TicketTaker ", sizeof(" is walking up to TicketTaker "), ConsoleOutput);
-  /*Write(myTicketTaker, sizeof(myTicketTaker), ConsoleOutput);*/
-  Write(" to give ", sizeof(" to give "), ConsoleOutput);
-  /*Write(numTicketsReceived[myTicketTaker], sizeof(numTicketsReceived[myTicketTaker]), ConsoleOutput);*/
-  Write(" tickets.\n", sizeof(" tickets.\n"), ConsoleOutput);
+  Print("Customer %i in Group %i is walking up to TicketTaker %i ", custIndex, groupIndex, myTicketTaker);
+  Print("to give %i tickets.\n", numTicketsReceived[myTicketTaker], -1, -1);
  
   Signal(ticketTakerCV[myTicketTaker], ticketTakerLock[myTicketTaker]);
   
