@@ -232,9 +232,6 @@ int cv_10;
 		Write("Testing Release on deleted lock, lock_1\n", sizeof("Testing Release on deleted lock, lock_1\n"), ConsoleOutput);
 		Release(lock_1);
 	}
-	
-
-
 
 	
 /*-------------------------- Wait */
@@ -505,8 +502,8 @@ int main() {
 
 	wait_Already_Deleted();
 
-	
-	
+	Write("Forking thread to test wait\n", sizeof("Forking thread to test wait\n"), ConsoleOutput);
+	Fork((void*)wait_Test);
 	
 	wait_Wrong_Process(); 	/* TODO : Stub created above */
 

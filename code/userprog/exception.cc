@@ -427,7 +427,6 @@ void Release_Syscall(int lockIndex) {
 // Fork Syscall. Fork new thread from pointer to void function
 void Fork_Syscall(int vAddress)
 {
-   
   if(currentThread->space->getNumThreadsRunning() >= 60) {
 		DEBUG('u', "Fork: ERROR: Maximum number of threads reached, bailing.\n");
 		return;
@@ -460,9 +459,8 @@ void Fork_Syscall(int vAddress)
  
   //t->space->incNumThreadsRunning();
   // Finally Fork a new kernel thread 
-  //t->Fork((VoidFunctionPtr)newKernelThread, vAddress);
   t->Fork((VoidFunctionPtr)newKernelThread, vAddress);
-  // currentThread->Yield(); // CHANGED 
+//  currentThread->Yield(); // CHANGED
 }
 
 
@@ -582,7 +580,7 @@ void Exit_Syscall() {
   processTableLock->Release();
   
   DEBUG('u', "Thread %s has been exited (%i).\n", currentThread->getName(), currentThread->space->isMain());
-  //if(!(currentThread->space->isMain()))
+//  if(!(currentThread->space->isMain()))
     currentThread->Finish();
 }
 
