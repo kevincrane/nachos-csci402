@@ -122,7 +122,7 @@ void Close(OpenFileId id);
 
 
 /* Able to print values from user program */
-void Print(char* string, int len, int param1, int param2);
+void Print(char* string, int p1, int p2, int p3);
 
 
 /* User-level thread operations: Fork and Yield.  To allow multiple

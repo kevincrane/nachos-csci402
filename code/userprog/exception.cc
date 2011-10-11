@@ -578,7 +578,7 @@ void Exit_Syscall() {
   } else {
     currentThread->space->threadTable->Remove(currentThread->getThreadNum());
   }
-  
+	
   processTableLock->Release();
   
   DEBUG('u', "Thread %s has been exited (%i).\n", currentThread->getName(), currentThread->space->isMain());
