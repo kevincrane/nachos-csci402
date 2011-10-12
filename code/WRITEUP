@@ -1,1361 +1,855 @@
-Title: Writeup for Assignment 1: Build a synchronized, multi-threaded system
-Date: 9/18/11
-Group Number: 8
+Title: Writeup for Project 2, Fall 2011
 
-Name			Email
-Michelle Forcier	mforcier@usc.edu
-Ryan Ball		rball@usc.edu
-Kevin Crane		kevincra@usc.edu
+Date: 10/9/2011
 
-PLEASE SEE ADDITIONAL NOTES AT THE BOTTOM OF THIS DOCUMENT
+Group Num 8: 	Name			Email			Student ID
+		Michelle Forcier	mforcier@usc.edu	7557790576
+		Ryan Ball		rball@usc.edu		3005164367
+		Kevin Crane		kevincra@usc.edu	3218277151
 
-I. Requirements:
+I. Requirements
 
-	Part 1 -Implement locks and condition variables. Follow the given
-		public interface, define the private data necessary, and
-		implement the methods.
+	Overall: Support multiprogramming in Nachos, so that it can run 
+		 more than one user-level C program at a time.
+
+	Part 1:  Implement system calls and exception handling. Support the
+		 Fork, Exec, Exit, and Yield system calls. Implement new 
+		 system calls for the Lock and Condition class methods we 
+		 created in Project 1 (Acquire(), Release(), Wait(), Signal(),
+		 and Broadcast()). Implement system calls for the constructors
+		 and destructors for the Lock and Condition classes - 
+		 CreateLock, DestroyLock, CreateCondition, DestroyCondition. 
+		 The system calls for constructors may take in a "name" argument,
+		 or no arguments at all, but must return an integer which 
+		 represents an index position for that Lock or Condition object
+		 in the kernel's array. Destructors will take one parameter, the
+		 integer identifier for the Lock or Condition to be deleted.
+
+		 Nachos must terminate (last process calls interrupt->Halt()
+		 instead of Thread::Finish).
+
+		 Implement Exec and Fork to work with multiprogramming by
+		 creating address spaces, initializing them with code, creating
+		 new threads, binding threads to address spaces, and creating
+		 a new stack.
+		 		 
+		 Maintain a process table to keep the mapping from SpaceIds to
+		 actual address space data structures. The address space and
+		 resources for a process should be deleted upon exit of the 
+		 last thread.
+
+		 Test suite of user programs to prove that our system calls work
+		 when used correctly and that they do not crash Nachos when
+		 used incorrectly. 
+
+		 Test cases should demonstrate the line buffering behavior of
+		 our synchronized console.
+
+	Part 2:  Implement multiprogramming. Allocate physical memory frames
+		 so that multiple programs can be loaded into memory at once.
+		 Copy data to/from the kernel from/to virtual address space.
+		 Implement Exec and Fork. Design a test suite to prove that
+		 Exec and Fork work correctly and will not break the OS. 
+
+	Part 3:  Turn Project 1 Part 2 into a set of multithreaded Nachos
+		 user programs, by using the new system calls created in
+		 part one. Multiple movie theaters should be able to run
+		 independently as different simultaneous processes. Provide
+		 a test suite. Explain what Locks and CVs you used and how
+		 they guarantee synchronization.
 	
-		A. Lock Constructor: Defined the private data.
 
-		B. Lock Destructor: Deleted anything with a "new" for memory
-		   management purposes.
+II. Assumptions: 
+            
+	We have enough physical memory to allow new requests to run user 
+	programs have the OS load the user program into unused physical 
+	memory.
 
-		C. Lock Acquire Method: For mutually exclusive transactions
-		   implemented the acquire method which allows the caller to
-		   keep others out of a critical sections while caller's thread
-		   is in it.
+III. Design: 
+- This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  This should include a description of classes, algorithms, etc. 
 
-		D. Lock Release Method: For mutually exclusive transactions,
-		   makes the lock free again to be acquired by another thread.
-
-		E. Condition Constructor: Defined the private data.
-
-		F. Condition Destructor: Deleted anything with a "new" for 
-		   memory management purposes.
-
-		G. Condition Wait Method: To allow sequencing, puts the calling
-		   thread to sleep until it is woken up at a later time.
-
-		H. Condition Signal Method: To allow sequencing, wakes up
-		   a thread that has been waiting (sleeping), so that it can
-		   continue doing work.
-
-		I. Condition Broadcast Method: Wakes up all threads that have
-		   been waiting, so they can all continue doing work.
-
-	Part 2 -Simulate the operation of a movie theater.
+	Part 1 - 
 	
-		A. Theater Room: Has 5 rows of 5 seats
+	Add prototypes and system call codes to syscall.h
+	Connect the public interface to an interrupt handler in start.s
+
+	Acquire Syscall:
+
+	void Acquire_Syscall(int lockIndex) {
+		
+		lockArray->Acquire();
+		
+		// Check that the lock index is valid, if not release lock and return
+		// Check that the lock belongs to the calling process, if not, release and return
+		// Check that the lock has not been deleted, if it has, release and return
+		// Check that the lock is not to be deleted, if it is, release and return
+		
+		// Increment number of active threads
+		locks[lockIndex].numActiveThreads++;
+
+		locks[lockIndex].lock->Acquire();
+		lockArray->Release();
+	}
+
+	Release Syscall:
+
+	void Release_Syscall(int lockIndex) {
+		
+		lockArray->Acquire();
+
+		// Check that the index is valid, if not release and return
+		// Check that the lock belongs to the calling process, if not, release and return
+		// Check that the lock has not been deleted, if it has, release and return
+		
+		locks[lockIndex].lock->Release();
+		locks[lockIndex].numActiveThreads--;
+
+		// Check if the lock was waiting to be deleted and there are no
+		// more active threads, if so, delete it
+
+		lockArray->Release();
+	}
+
+	Fork Syscall:
+
+	void Fork_Syscall(int vAddress, int index) {
+		
+		// Check that MAX threads has not been reached, if it has, return
+		// Check that the virtual address given is valid, if not, return
+
+		// Add new thread to thread table
+		int num = currentThread->space->threadTable->Put(t);
+
+		int processID = currentThread->space->threadTable->Put(t);
+		char* tName = currentThread->space->getProcessName();
+		name = new char[30];
+		strcpy(name, tName);
+		
+		// Set thread variables
+		t->setName(name);
+		t->setThreadNum(num);
+		t->setProcessID(processID);
+		t->space = currentThread->space;
+
+		// Fork new thread
+		t->Fork((VoidFunctionPtr)newKernelThread, vAddress);
+	}
+		
+	Exec Syscall:
+
+	int Exec_Syscall(int vAddress, int len) {
+
+		// Create a Kernel buffer to put the name in
+		// Open a new file
+
+		// Check that we can allocale the kernel bugger and that
+		// the pointer passed is not bad
+
+		// Check that we can open the file
+
+		// Create a new addr space and add the 1st thread the process
+		AddrSpace* processSpace = new AddrSpace(f);
+		
+		processTableLock->Acquire();
+		int pID = processTable->Put(processSpace);
+		// Copy process name
+		processTableLock->Release();
+
+		// Close the file
+
+		// Create the first thread
+		Thread *newThread = new Thread(buf);
+		newThread->space = processSpace;
+		int threadNum = processSpace->threadTable->Put(newThread);
+		newThread->setThreadNum(threadNum);
+		newThread->setProcessID(pID);
+		newThread->space->incNuMThreadsRunning();
+
+		// Fork new thread
+		// Return pID
+	}
 	
-		B. Customers: One member of each group of customers buys
-		   all tickets and food for the group. The same customer
-		   gives the Ticket Taker the tickets. Groups can have 1-5 
-		   people. Groups travel together (except after the movie, 
-		   when some members use the restroom). Groups try to sit
-		   together. Customers always get in the shortest line. 
-		   If the movie has started, customers wait in the lobby.
-		   Customers have a 75% chance of wanting popcorn and a 75%
-		   chance of wanting soda. There are at least 40 customers. 
+	Exit Syscall:
 
-		C. Ticket Clerk: They sell tickets to customers. Each ticket
-		   is $12.00. Ticket Clerk tells the Customer how much to pay 
-		   and gives the Customer their tickets after payment. Ticket
-		   clerks go on break if the manager tells them too, they each
-		   have a line. There are 1-5 Ticket Clerks.
+	void Exit_Syscall() {
 
-		D. Concession Clerk: Customer tells Concession Clerk how many
-		   orders of soda and popcorn they want. Each popcorn is $5 and
-		   each soda is $4. Concession Clerks pass food to Customer and
-		   go on break when the Manager says so. There are 1-5 
-		   Concession Clerks.
+		processTableLock->Acquire();
 
-		E. Ticket Takers: Handle one group at a time, each. Keep track
-		   of when Customers are allowed in the theater. There are 1-3
-		   Ticket Takers.
+		// Check that all processes haven't already exitted
+		// Check that the current thread did not have an error when
+		// making the process
 
-		F. Movie Technician: Starts the movie when told to do so by the
-		   Manager and everyone is seated. Tells the Customers that the
-		   movie is over. There is 1 Movie Technician.
-		
-		G. Manager: Tells employees when to go on break. If employee
-		   has no one in their line, Manager tells them to break 20% of
-		   the time. If employee has < 3 Customers in line, Manager 
-		   tells them to break 20% of the time. Manager brings employees
-		   off break when lines are long. Tells Movie Technician when
-		   to start the movie and keeps track of how much money the
-		   movie theater is making. There is 1 Manager.
-
-
-II. Assumptions:
-
-	Part 1 -
-		A. Error conditions like threads trying to release locks that
-		   they do not own can occur. (AKA not trusting the programmer)
-
-		B. The Condition variable is always used with the same lock.
-		
-		C. We are implementing Mesa monitor semantics.
-
-	Part 2 - 
-		A. There are never more than 5 Ticket Clerks or Concession Clerks
-		
-		B. There are never more than 3 Ticket Takers
-
-III. Design:
-
-	Part 1 -
-		A. Lock(char* debugName) {
-			// Initialize all private variables
-			name = debugName;
-			waitQueue = new List;
-			isFree = true;
-			lockOwner = Null;
-		   }
-
-		B. ~Lock() {
-			// Delete anything created with a "new"
-			delete waitQueue;
-		   }
-
-		C. void Acquire() {
-			// Disable Interrupts
-			
-			if(currenThread == lockOwner) {
-				// Enable Interrupts
-				return;
+		// If last executing thread in the process
+		if(processTable->Size() == 1) {
+			if(currentThread->space->threadTable->Size() == 1) {
+				// Release Lock
+				interrupt->Halt();
 			}
+		}
 
-			if(lockIsFree) {
-				// Make lock not free
-				// Make currentThread the lockOwner
-			} else {
-				// Add to lock wait queue
-				// Put to sleep
-			}
-			// Enable Interrupts
+		// If Last executing thread in a process - not last process
+		if(currentThread->space->threadTable->Size() == 1) {
+			currentThread->space->threadTable->Remove(currentThread->getThreadNum());
+			processTable->Remove(currentThread->getProcessID());
+
+			// Remove pages
+		} else {
+			// Remove thread from thread table
+		}
+		
+		processTableLock->Release();
+
+		if(!(currentThread->space->isMain())
+			currentThread->Finish();
+	}	
+
+	Yield Syscall:
+
+	void Yield_Syscall() {
+		currentThread->Yield();
+	}
+
+	Wait Syscall:
+ 
+	void Wait_Syscall(int cvIndex, int lockIndex) {
+		cvArray->Acquire();
+		lockArray->Acquire();
+
+		  // Check that the index is valid
+		  // Check that the condition belongs to the calling processes
+		  // Check that the lock index is valid
+		  // Check that the lock belongs to the calling process
+		  // Check that the condition has not been deleted
+		  // Check that the condition is not to be deleted
+		  // Check that the lock is not deleted
+ 		  // Check that the lock is not to be deleted
+		
+		conditions[cvIndex].numActiveThreads++
+		 cvArray->Release()
+		  lockArray->Release()
+		conditions[cvIndex].condition->Wait(locks[lockIndex].lock); 
+	}
+
+	Signal Syscall:
+
+	void Signal_Syscall(int cvIndex, int lockIndex) {
+		cvArray->Acquire();
+		lockArray->Acquire();
+
+		// Check that the index is valid
+		// Check that the condition belongs to the calling process
+		// Check that the lock index is valid
+		// Check that the lock belongs to the calling process
+ 		// Check that the condition has not been deleted
+		// Check that the lock has not been deleted
+
+		conditions[cvIndex].numActiveThreads--; 
+  		conditions[cvIndex].condition->Signal(locks[lockIndex].lock);
+
+  		// Check if the condition is to be deleted, if so, delete it
+
+		cvArray->Release();
+		lockArray->Release();
+	}
+
+	Broadcast Syscall:
+
+	void Broadcast_Syscall(int cvIndex, int lockIndex) {
+
+		cvArray->Acquire();
+ 		lockArray->Acquire();
+
+		// Check that the index is valid
+		// Check that the condition belongs to the calling process
+		// Check that the lock index is valid
+		// Check that the lock belongs to the calling process
+		// Check that the condition has not been deleted
+ 		// Check that the lock has not been deleted
+
+		conditions[cvIndex].condition->Broadcast(locks[lockIndex].lock);
+		conditions[cvIndex].numActiveThreads = 0;
+
+		// Check if the condition is to be deleted, if so, delete it
+
+		cvArray->Release();
+		lockArray->Release();
+	}
+
+	int CreateLock_Syscall() {
+		lockData myLock;
+		myLock.lock = new Lock("L");
+		myLock.space = currentThread->space;
+		myLock.isDeleted = false;
+		myLock.toBeDeleted = false;
+		myLock.numActiveThreads = 0;
+
+		lockArray->Acquire();
+
+		locks[nextLockPos] = myLock;
+		nextLockPos++;
+  
+		lockArray->Release();
+
+		return (nextLockPos-1);
+	}
+
+	Destroy Lock Syscall
+
+		void DestoryLock_Syscall(int lockIndex) {
+		lockArray->Acquire();
+
+    		// Check that the lock belongs to the calling process
+  		// Check that the lock hasn't been deleted
+    		// Check that the lock isn't already to be deleted
+  		// Check if there are still threads using the lock
+  
+		else if(locks[lockIndex].numActiveThreads > 0) {
+		    locks[lockIndex].toBeDeleted = true;
+		  } else {
+		    locks[lockIndex].isDeleted = true;
+		    printf("Deleted lock %i.\n", lockIndex);
 		  }
+		  lockArray->Release();
+		  return;
+		}
 
-		  Error Conditions: 
-			Makes sure that if the lock owner calls acquire, 
-			they are not added to the lock wait queue again.
-			Does this by immediately checking if the calling
-			thread is the lock owner and returning.
+	Create Condition Syscall
 
-		D. void Release() {
-			// Disable Interrupts
-			
-			if(currentThread != lockOwner) {
-				// Restore Interrupts
-				return;
-			}
-
-			if(Threads are waiting for the lock) {
-				// Remove a thread from lock's wait queue
-				if(thread != NULL) {
-					// Put in ready queue in ready state
-					// Make lock owner
-				}
-			} else {
-				// Make lock free
-				// Clear lock ownership
-			}
-			// Restor interrupts
-		  }
-
-		  Error Conditions:
-			Checks that the calling thread is indeed the lock owner,
-			if it is not, ignores the release request. Checks
-			that a thread being removed from the wait queue is not
-			NULL, if it is, does not make it the lock owner.
-
-		E. Condition(char* debugName) {
-			name = debugName;
-			waitQueue = new List;
-			waitingLock = NULL;
-		   }
-
-		F. ~Condition() {
-			delete waitQueue;
-		   }
-
-		G. void Wait(Lock* conditionLock) {
-			// Disable interrupts
-
-			if(conditionLock == NULL) {
-				// Print error
-				// Restore interrupts
-				return;
-			}
-			if(waitingLock == NULL) {
-				// Make conditionLock the waitingLock
-			}
-			if(waitingLock != conditionLock) {
-				// Print error
-				// Restore interrupts
-				return;
-			}
-			// Release Lock
-			// Add lock to wait queue
-			// Go to sleep
-			// Acquire lock
-			// Restore interrupts
-		  }
-		  Error Conditions: Checks that the lock that you're waiting
-		  on is not NULL, if it is, ignores the request. Checks that
-		  the lock you are waiting on is the waiting lock for the CV,
-		  if it is not, ignores the request. 
-
-		H. void Signal(Lock* conditionLock) {
-			// Disable Interrupts
-			// If no threads waiting, restore interrupts and return
-
-			if(waitingLock != conditionLock) {
-				// Print error
-				// Restore interrupts
-				return;
-			}
-			// Remove a thread from wait wqueue
-			if(thread != NULL) {
-				// Put in ready queue in ready state
-			}
-			if(no threads are waiting) {
-				// Make waiting lock NULL
-			}
-			// Restore interrupts
-		  }
-		  Error Conditions: Checks if no threads are waiting, if so, 
-		  ignores the request. Checks that the lock is the waiting lock,
-		  if not, ignores the request. Checks that the next thread to
-		  put in the ready state is not NULL.	
-
-	Part 2 - 
+	int CreateCondition_Syscall() {
 	
-		A. Global Definitions
-		
-			MAX_CUST  = 100 // Maximum Number of Customers
-			MAX_TC    = 5   // Maximum Number of Ticket Clerks
-			MAX_TT    = 3   // Maximum Number of Ticket Takers
-			MAX_CC    = 5   // Maximum Number of Concession Clerks
-			MAX_SEATS = 25  // Maximum Number of seats in theater
-			NUM_ROWS  = 5   // Number of rows in theater
-			NUM_COLS  = 5   // Number of seats/row
-			TICKET_PRICE = 12  // Price of a movie ticket
-			POPCORN_PRICE = 5  // Price of popcorn
-			SODA_PRICE = 4     // Price of soda
-
-		B. Customer
-
-			Data:
-				CustomerStruct Data - 
-					bool isLeader	 	
-					int index
-					int group
-					int money
-					int numTickets
-					int seatRow
-					int seatCol
-					bool hasSoda
-					bool hasPopcorn
-					bool wantsPopcorn
-					bool wantsSoda
-					bool needsRestroom
-					int totalPopcorns
-					int totalSodas
-				
-				CustomerStruct customers[MAX_CUST]
-				int totalCustomers
-				int toalCustomersServed
-				int totalGroups
-				int freeSeatsInRow[NUM_ROWS]
-				Lock* customerLobbyLock
-				Condition* customerLobbyCV
-				Lock* waitingOnGroupLock[MAX_CUST]
-				Condition* waitingOnGroupLock[MAX_CUST]
-
-				Group Global Variables - 
-					int groupHeads[MAX_CUST]
-					int groupSize[MAX_CUST]
-
-			Functions:
-
-				Head customer goes to ticket clerk to buy tickets
-				- void doBuyTickets(int custIndex, int groupIndex)
-				
-				Head customer gives tickets to the ticket taker and
-				either goes into the theater or the lobby
-				- void doGiveTickets(int custIndex, int groupIndex)
-
-				Customer has chosen to sit in position [row, col]
-				- void choseSeat(int custIndex, int row, int col)
-
-				Customer trys to find ideal seats in the theater
-				- void doChooseSeats(int custIndex, int groupIndex)
-
-				Head customer takes food orders from other customers
-				in the group
-				- void takeFoodOrders(int custIndex)
-
-				Head customers buys food from the Concession Clerk
-				- void doBuyFood(int custIndex, int groupIndex)
-
-				Customers return from the restroom
-				- void doReturnFromRestroom(int myIndex)
-
-				Customers leave the theater and some go to restroom
-				- void doLeaveTheaterAndUseRestroom(int custIndex, int groupIndex)
-
-				Defines behavior routine for all groups of customers
-				- void groupHead(int custIndex)
-				
-				
-
-		C. Ticket Clerk
-
-			Data:
-				int   ticketClerkState[MAX_TC]
-				Lock* ticketClerkLock[MAX_TC]
-				Condition*  ticketClerkCV[MAX_TC]        
-				int   ticketClerkLineCount[MAX_TC]       
-				int   numberOfTicketsNeeded[MAX_TC]      
-				int   amountOwedTickets[MAX_TC]
-				int   ticketClerkRegister[MAX_TC]
-				int   theaterOnTicket = 1
-				int   ticketClerkWorking
-
-				Lock* ticketClerkLineLock
-				Condition*  ticketClerkLineCV[MAX_TC]
-				Lock* ticketClerkBreakLock
-				Condition* ticketClerkBreakCV
-				bool ticketClerkIsWorking[MAX_TC]
-
-			Functions:
-				Main thread to interact with customers buying tickets
-				- void ticketClerk(int myIndex)
-
-		D. Ticket Taker
-
-			Data: 
-				int   ticketTakerState[MAX_TT]
-				Lock* ticketTakerLock[MAX_TT]
-				Condition*  ticketTakerCV[MAX_TT]
-				int   ticketTakerLineCount[MAX_TT]
-
-				bool allowedIn[MAX_TT]
-				int   numTicketsReceived[MAX_TT]
-				int   totalTicketsTaken=0
-				bool  movieStarted
-				int ticketTakerWorking
-				Lock* ticketTakerLineLock
-				Condition*  ticketTakerLineCV[MAX_TT]
-				Lock* ticketTakerMovieLock
-				Condition* ticketTakerMovieCV
-				Lock* ticketTakerBreakLock
-				Condition* ticketTakerBreakCV
-				bool ticketTakerIsWorking[MAX_TT]
-				Lock* ticketTakerCounterLock = new Lock("counter");
-
-			Functions:
-				Main thread to interact with Customers and Manager
-				- void ticketTaker(int myIndex)
-
-		E. Concession Clerk
-	
-			Data: 
-				Lock* concessionClerkLineLock
-				Lock* concessionClerkLock[MAX_CC]
-				Lock* concessionClerkBreakLock
-
-				Condition* concessionClerkLineCV[MAX_CC]
-				Condition* concessionClerkCV[MAX_CC]
-				Condition* concessionClerkBreakCV
-
-				int concessionClerkLineCount[MAX_CC]
-				int concessionClerkState[MAX_CC]
-				int concessionClerkRegister[MAX_CC]
-				int concessionClerkWorking
-				int amountOwed[MAX_CC]
-				int numPopcornsOrdered[MAX_CC]
-				int numSodasOrdered[MAX_CC]
-				bool concessionClerkIsWorking[MAX_CC]
-
-			Functions:
-				
-				Main thread for Concession Clerk to interact with Customer
-				- void concessionClerk(int myIndex)
-
-		F. Movie Technician
-
-			Data:
-				int numSeatsOccupied
-				Lock* movieStatusLock
-				Lock* movieFinishedLock
-				Condition* movieFinishedLockCV
-				Condition* movieStatusLockCV
-
-				int movieStatus
-				int movieLength
-				bool theaterDone = false								
-				bool theaterStarted = false
-
-			Functions:
-				Main thread to start and stop movie
-				- void movieTech(int myIndex)
-
-		G. Manager
-
-			Data:
-				int totalRevenue
-			
-			Functions:
-				Main thread, never sleeps, for manager to put
-				employees on break, start movies, and check revenue
-				- void manager(int myIndex)						
-
-IV. Implementation:
-	
-	Files Modified: 
-
-		Part 1 - synch.cc
-			 synch.h
-		
-		Part 2 - Makefile.common
-			 main.cc
-
-	Files Added:
-	
-		Part 1 - None
-		
-		Part 2 - theater_sim.cc
-			 theater_sim.h
-
-V. Testing:
-
-	Instructions For Testing Part 1: Go to main.cc, uncomment TestSuite() 
-					 and comment out Theater_Sim_Test() - 
-					 our theater tests are currently set
-					 to run with nachos -T
-
-	Expected Output:
-
-		Starting Test 1
-		t1_t1: Acquired Lock t1_l1, waiting for t3
-		t1_t2: trying to acquire lock t1_l1
-		t1_t3: Trying to release Lock t1_l1
-		Error: Thread (t1_t3) is not the lock owner (t1_t1)!
-		t1_t3: Trying to release Lock t1_l1
-		Error: Thread (t1_t3) is not the lock owner (t1_t1)!
-		t1_t3: Trying to release Lock t1_l1
-		Error: Thread (t1_t3) is not the lock owner (t1_t1)!
-		t1_t1: working in CS
-		t1_t1: Releasing lock t1_l1
-		t1_t2: Acquired Lock t1_l1, working in CS
-		t1_t2: Releasing Lock t1_l1
-
-		Starting Test 2. Note that it is an error if t2_t2 completes
-		t2_t1: Lock t2_l1 acquired, signalling t2_c1
-		Error: this is not the waiting lock!
-		t2_t1: Releasing Lock t2_l1
-		t2_t2: Lock t2_l1 acquired, waiting on t2_c1
-
-		Starting Test 3
-		t3_waiter0: Lock t3_l1 acquired, waiting on t3_c1
-		t3_waiter1: Lock t3_l1 acquired, waiting on t3_c1
-		t3_waiter2: Lock t3_l1 acquired, waiting on t3_c1
-		t3_waiter3: Lock t3_l1 acquired, waiting on t3_c1
-		t3_waiter4: Lock t3_l1 acquired, waiting on t3_c1
-		t3_signaller: Lock t3_l1 acquired, signalling t3_c1
-		t3_signaller: Releasing t3_l1
-		t3_waiter0: freed from t3_c1
-
-		Starting Test 4
-		t4_waiter0: Lock t4_l1 acquired, waiting on t4_c1
-		t4_waiter1: Lock t4_l1 acquired, waiting on t4_c1
-		t4_waiter2: Lock t4_l1 acquired, waiting on t4_c1
-		t4_waiter3: Lock t4_l1 acquired, waiting on t4_c1
-		t4_waiter4: Lock t4_l1 acquired, waiting on t4_c1
-		t4_signaller: Lock t4_l1 acquired, broadcasting t4_c1
-		t4_signaller: Releasing t4_l1
-		t4_waiter0: freed from t4_c1
-		t4_waiter1: freed from t4_c1
-		t4_waiter2: freed from t4_c1
-		t4_waiter3: freed from t4_c1
-		t4_waiter4: freed from t4_c1
-
-		Starting Test 5.  Note that it is an error if thread t5_t1
-		completes
-		t5_t1: Lock t5_l1 acquired, waiting on t5_c1
-		t5_t2: Lock t5_l2 acquired, signalling t5_c1
-		Error: Signal, waitingLock does not equal conditionLock
-		t5_t2: Releasing Lock t5_l2
-		t5_t2: Releasing Lock t5_l1		
-
-	Instructions For Testing Part 2: to run all tests use nachos -T
-
-	Test A: Managers only read from one Clerk's total money received at a time
-	
-	Test B: Managers get Clerks off their break when lines get too long
-
-	Test C: Clerks wait for customer to signal them to move on
-
-	Test D: Customer always chooses the shortest line
-
-	Expected Successful Output = anything without an "ERROR"
-
-	Sample Output:
-
-	Starting tests.
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	---------------------------------------------------------------------------
-	Test A is Complete 
-	---------------------------------------------------------------------------
-	Test B Clerk got off break successfully
-	---------------------------------------------------------------------------
-	Test B is Complete 
-	---------------------------------------------------------------------------
-	Customer 2 began
-	Customer 2 acquired clerk line lock
-	Clerk has been released!
-	TicketClerk 0 has a line length 1 and is signaling a customer.
-	Clerk is done
-	Clerk has grabbed me
-	---------------------------------------------------------------------------
-	Test C is Complete 
-	---------------------------------------------------------------------------
-	Line 0: 2 | Line 1: 1
-	Customer 1 is getting in line 1| Length : 2
-	Customer 2 is getting in line 0| Length : 3
-	
-	Line 0: 2 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 3
-	Customer 1 is getting in line 0| Length : 4
-
-	Line 0: 0 | Line 1: 1
-	Customer 2 is getting in line 0| Length : 1
-	Customer 1 is getting in line 0| Length : 2
-
-	Line 0: 2 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 3
-	Customer 1 is getting in line 0| Length : 4
-
-	Line 0: 4 | Line 1: 1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 1| Length : 3
-
-	Line 0: 1 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 2
-	Customer 1 is getting in line 0| Length : 3
-
-	Line 0: 4 | Line 1: 1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 1| Length : 3
-
-	Line 0: 4 | Line 1: 3
-	Customer 2 is getting in line 1| Length : 4
-	Customer 1 is getting in line 0| Length : 5
-
-
-	Line 0: 2 | Line 1: 1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 0| Length : 3
-
-	Line 0: 1 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 2
-	Customer 1 is getting in line 0| Length : 3
-
-	Line 0: 3 | Line 1: 1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 1| Length : 3
-
-	Line 0: 2 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 3
-	Customer 1 is getting in line 0| Length : 4
-
-	Line 0: 0 | Line 1: 1
-	Customer 2 is getting in line 0| Length : 1
-	Customer 1 is getting in line 0| Length : 2
-
-	Line 0: 4 | Line 1: 3
-	Customer 2 is getting in line 1| Length : 4
-	Customer 1 is getting in line 0| Length : 5
-
-	Line 0: 1 | Line 1: 1
-	Customer 2 is getting in line 0| Length : 2
-	Customer 1 is getting in line 1| Length : 2
-
-	Line 0: 2 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 3
-	Customer 1 is getting in line 0| Length : 4
-
-	Line 0: 1 | Line 1: 1
-	Customer 2 is getting in line 0| Length : 2
-	Customer 1 is getting in line 1| Length : 2
-
-	Line 0: 4 | Line 1: 3
-	Customer 2 is getting in line 1| Length : 4
-	Customer 1 is getting in line 0| Length : 5
-
-	Line 0: 1 | Line 1: 1
-	Customer 2 is getting in line 0| Length : 2
-	Customer 1 is getting in line 1| Length : 2
-
-	Line 0: 3 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 4
-	Customer 1 is getting in line 1| Length : 4
-
-	Line 0: 4 | Line 1:1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 1| Length : 3
-
-	Line 0: 0 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 1
-	Customer 1 is getting in line 0| Length : 2
-
-	Line 0: 3 | Line 1: 1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 1| Length : 3
-
-	Line 0: 3 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 4
-	Customer 1 is getting in line 1| Length : 4
-
-	Line 0: 1 | Line 1: 1
-	Customer 2 is getting in line 0| Length : 2
-	Customer 1 is getting in line 1| Length : 2
-
-	Line 0: 2 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 3
-	Customer 1 is getting in line 0| Length : 4
-
-	Line 0: 2 | Line 1: 1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 0| Length : 3
-	
-	Line 0: 2 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 3
-	Customer 1 is getting in line 0| Length : 4
-
-	---------------------------------------------------------------------------
-	Test D is Complete 
-	---------------------------------------------------------------------------
-		
-VI. Additional Notes:
-	 We didn't implement the functionality where
-	 the user puts in how many customers there should be. If you
-	 would like to run the program with a different number of 
-	 customers you can change the constant MAX_CUST to the desired
-	 number of customers. 
-
-	 Some random seeds don't work :(	
-
-	
-
-		 Title: Writeup for Assignment 1: Build a synchronized, multi-threaded system
-Date: 9/18/11
-Group Number: 8
-
-Name			Email
-Michelle Forcier	mforcier@usc.edu
-Ryan Ball		rball@usc.edu
-Kevin Crane		kevincra@usc.edu
-
-PLEASE SEE ADDITIONAL NOTES AT THE BOTTOM OF THIS DOCUMENT
-
-I. Requirements:
-
-	Part 1 -Implement locks and condition variables. Follow the given
-		public interface, define the private data necessary, and
-		implement the methods.
-	
-		A. Lock Constructor: Defined the private data.
-
-		B. Lock Destructor: Deleted anything with a "new" for memory
-		   management purposes.
-
-		C. Lock Acquire Method: For mutually exclusive transactions
-		   implemented the acquire method which allows the caller to
-		   keep others out of a critical sections while caller's thread
-		   is in it.
-
-		D. Lock Release Method: For mutually exclusive transactions,
-		   makes the lock free again to be acquired by another thread.
-
-		E. Condition Constructor: Defined the private data.
-
-		F. Condition Destructor: Deleted anything with a "new" for 
-		   memory management purposes.
-
-		G. Condition Wait Method: To allow sequencing, puts the calling
-		   thread to sleep until it is woken up at a later time.
-
-		H. Condition Signal Method: To allow sequencing, wakes up
-		   a thread that has been waiting (sleeping), so that it can
-		   continue doing work.
-
-		I. Condition Broadcast Method: Wakes up all threads that have
-		   been waiting, so they can all continue doing work.
-
-	Part 2 -Simulate the operation of a movie theater.
-	
-		A. Theater Room: Has 5 rows of 5 seats
-	
-		B. Customers: One member of each group of customers buys
-		   all tickets and food for the group. The same customer
-		   gives the Ticket Taker the tickets. Groups can have 1-5 
-		   people. Groups travel together (except after the movie, 
-		   when some members use the restroom). Groups try to sit
-		   together. Customers always get in the shortest line. 
-		   If the movie has started, customers wait in the lobby.
-		   Customers have a 75% chance of wanting popcorn and a 75%
-		   chance of wanting soda. There are at least 40 customers. 
-
-		C. Ticket Clerk: They sell tickets to customers. Each ticket
-		   is $12.00. Ticket Clerk tells the Customer how much to pay 
-		   and gives the Customer their tickets after payment. Ticket
-		   clerks go on break if the manager tells them too, they each
-		   have a line. There are 1-5 Ticket Clerks.
-
-		D. Concession Clerk: Customer tells Concession Clerk how many
-		   orders of soda and popcorn they want. Each popcorn is $5 and
-		   each soda is $4. Concession Clerks pass food to Customer and
-		   go on break when the Manager says so. There are 1-5 
-		   Concession Clerks.
-
-		E. Ticket Takers: Handle one group at a time, each. Keep track
-		   of when Customers are allowed in the theater. There are 1-3
-		   Ticket Takers.
-
-		F. Movie Technician: Starts the movie when told to do so by the
-		   Manager and everyone is seated. Tells the Customers that the
-		   movie is over. There is 1 Movie Technician.
-		
-		G. Manager: Tells employees when to go on break. If employee
-		   has no one in their line, Manager tells them to break 20% of
-		   the time. If employee has < 3 Customers in line, Manager 
-		   tells them to break 20% of the time. Manager brings employees
-		   off break when lines are long. Tells Movie Technician when
-		   to start the movie and keeps track of how much money the
-		   movie theater is making. There is 1 Manager.
-
-
-II. Assumptions:
-
-	Part 1 -
-		A. Error conditions like threads trying to release locks that
-		   they do not own can occur. (AKA not trusting the programmer)
-
-		B. The Condition variable is always used with the same lock.
-		
-		C. We are implementing Mesa monitor semantics.
-
-	Part 2 - 
-		A. There are never more than 5 Ticket Clerks or Concession Clerks
-		
-		B. There are never more than 3 Ticket Takers
-
-III. Design:
-
-	Part 1 -
-		A. Lock(char* debugName) {
-			// Initialize all private variables
-			name = debugName;
-			waitQueue = new List;
-			isFree = true;
-			lockOwner = Null;
-		   }
-
-		B. ~Lock() {
-			// Delete anything created with a "new"
-			delete waitQueue;
-		   }
-
-		C. void Acquire() {
-			// Disable Interrupts
-			
-			if(currenThread == lockOwner) {
-				// Enable Interrupts
-				return;
-			}
-
-			if(lockIsFree) {
-				// Make lock not free
-				// Make currentThread the lockOwner
-			} else {
-				// Add to lock wait queue
-				// Put to sleep
-			}
-			// Enable Interrupts
-		  }
-
-		  Error Conditions: 
-			Makes sure that if the lock owner calls acquire, 
-			they are not added to the lock wait queue again.
-			Does this by immediately checking if the calling
-			thread is the lock owner and returning.
-
-		D. void Release() {
-			// Disable Interrupts
-			
-			if(currentThread != lockOwner) {
-				// Restore Interrupts
-				return;
-			}
-
-			if(Threads are waiting for the lock) {
-				// Remove a thread from lock's wait queue
-				if(thread != NULL) {
-					// Put in ready queue in ready state
-					// Make lock owner
-				}
-			} else {
-				// Make lock free
-				// Clear lock ownership
-			}
-			// Restor interrupts
-		  }
-
-		  Error Conditions:
-			Checks that the calling thread is indeed the lock owner,
-			if it is not, ignores the release request. Checks
-			that a thread being removed from the wait queue is not
-			NULL, if it is, does not make it the lock owner.
-
-		E. Condition(char* debugName) {
-			name = debugName;
-			waitQueue = new List;
-			waitingLock = NULL;
-		   }
-
-		F. ~Condition() {
-			delete waitQueue;
-		   }
-
-		G. void Wait(Lock* conditionLock) {
-			// Disable interrupts
-
-			if(conditionLock == NULL) {
-				// Print error
-				// Restore interrupts
-				return;
-			}
-			if(waitingLock == NULL) {
-				// Make conditionLock the waitingLock
-			}
-			if(waitingLock != conditionLock) {
-				// Print error
-				// Restore interrupts
-				return;
-			}
-			// Release Lock
-			// Add lock to wait queue
-			// Go to sleep
-			// Acquire lock
-			// Restore interrupts
-		  }
-		  Error Conditions: Checks that the lock that you're waiting
-		  on is not NULL, if it is, ignores the request. Checks that
-		  the lock you are waiting on is the waiting lock for the CV,
-		  if it is not, ignores the request. 
-
-		H. void Signal(Lock* conditionLock) {
-			// Disable Interrupts
-			// If no threads waiting, restore interrupts and return
-
-			if(waitingLock != conditionLock) {
-				// Print error
-				// Restore interrupts
-				return;
-			}
-			// Remove a thread from wait wqueue
-			if(thread != NULL) {
-				// Put in ready queue in ready state
-			}
-			if(no threads are waiting) {
-				// Make waiting lock NULL
-			}
-			// Restore interrupts
-		  }
-		  Error Conditions: Checks if no threads are waiting, if so, 
-		  ignores the request. Checks that the lock is the waiting lock,
-		  if not, ignores the request. Checks that the next thread to
-		  put in the ready state is not NULL.	
+  		cvData myCV;
+  		myCV.condition = new Condition("C");
+  		myCV.space = currentThread->space;
+  		myCV.isDeleted = false;
+  		myCV.toBeDeleted = false;
+  		myCV.numActiveThreads = 0;
+
+  		cvArray->Acquire();
+
+  		conditions[nextCVPos] = myCV;
+  		nextCVPos++;
+  	
+  		cvArray->Release();
+
+  		return (nextCVPos-1);
+  		return 0;
+	}
+
+	void DestroyCondition_Syscall(int cvIndex) {
+  		cvArray->Acquire();
+
+  		// Check that the index is valid
+  		// Check that the condition belongs to the calling thread
+		// Check that the condition hasn't already been deleted
+  		// Check that the condition isn't already set to tobeDeleted
+  		// Check that there are no more active threads
+  		else if(conditions[cvIndex].numActiveThreads > 0) {
+  		  conditions[cvIndex].toBeDeleted = true;
+  		} else {
+  		  conditions[cvIndex].isDeleted = true;
+  		  printf("Deleted condition %i.\n", cvIndex);
+  		}
+  		cvArray->Release();
+  		return;
+	}
 
 	Part 2 - 
 	
-		A. Global Definitions
-		
-			MAX_CUST  = 100 // Maximum Number of Customers
-			MAX_TC    = 5   // Maximum Number of Ticket Clerks
-			MAX_TT    = 3   // Maximum Number of Ticket Takers
-			MAX_CC    = 5   // Maximum Number of Concession Clerks
-			MAX_SEATS = 25  // Maximum Number of seats in theater
-			NUM_ROWS  = 5   // Number of rows in theater
-			NUM_COLS  = 5   // Number of seats/row
-			TICKET_PRICE = 12  // Price of a movie ticket
-			POPCORN_PRICE = 5  // Price of popcorn
-			SODA_PRICE = 4     // Price of soda
+	Nachos Virtual Address Space		Nachos Executable File - 3 values per segment (byte offset in executable, size of segment, start of VA of segment)
+	 ----------------------			 ----------------------------
+ 	| Code                 |		| Header - map of all        |
+	 ----------------------			| virtual addresses except   |
+	| Initialized Data     |		| stack & where in executable|
+         ----------------------			 ----------------------------
+	| Uninitialized Data   |		| Code                       |
+  	 ----------------------			 ----------------------------
+	| Stack                |		| Initialized Data           |
+         ---------------------- 		 ----------------------------
 
-		B. Customer
-
-			Data:
-				CustomerStruct Data - 
-					bool isLeader	 	
-					int index
-					int group
-					int money
-					int numTickets
-					int seatRow
-					int seatCol
-					bool hasSoda
-					bool hasPopcorn
-					bool wantsPopcorn
-					bool wantsSoda
-					bool needsRestroom
-					int totalPopcorns
-					int totalSodas
-				
-				CustomerStruct customers[MAX_CUST]
-				int totalCustomers
-				int toalCustomersServed
-				int totalGroups
-				int freeSeatsInRow[NUM_ROWS]
-				Lock* customerLobbyLock
-				Condition* customerLobbyCV
-				Lock* waitingOnGroupLock[MAX_CUST]
-				Condition* waitingOnGroupLock[MAX_CUST]
-
-				Group Global Variables - 
-					int groupHeads[MAX_CUST]
-					int groupSize[MAX_CUST]
-
-			Functions:
-
-				Head customer goes to ticket clerk to buy tickets
-				- void doBuyTickets(int custIndex, int groupIndex)
-				
-				Head customer gives tickets to the ticket taker and
-				either goes into the theater or the lobby
-				- void doGiveTickets(int custIndex, int groupIndex)
-
-				Customer has chosen to sit in position [row, col]
-				- void choseSeat(int custIndex, int row, int col)
-
-				Customer trys to find ideal seats in the theater
-				- void doChooseSeats(int custIndex, int groupIndex)
-
-				Head customer takes food orders from other customers
-				in the group
-				- void takeFoodOrders(int custIndex)
-
-				Head customers buys food from the Concession Clerk
-				- void doBuyFood(int custIndex, int groupIndex)
-
-				Customers return from the restroom
-				- void doReturnFromRestroom(int myIndex)
-
-				Customers leave the theater and some go to restroom
-				- void doLeaveTheaterAndUseRestroom(int custIndex, int groupIndex)
-
-				Defines behavior routine for all groups of customers
-				- void groupHead(int custIndex)
-				
-				
-
-		C. Ticket Clerk
-
-			Data:
-				int   ticketClerkState[MAX_TC]
-				Lock* ticketClerkLock[MAX_TC]
-				Condition*  ticketClerkCV[MAX_TC]        
-				int   ticketClerkLineCount[MAX_TC]       
-				int   numberOfTicketsNeeded[MAX_TC]      
-				int   amountOwedTickets[MAX_TC]
-				int   ticketClerkRegister[MAX_TC]
-				int   theaterOnTicket = 1
-				int   ticketClerkWorking
-
-				Lock* ticketClerkLineLock
-				Condition*  ticketClerkLineCV[MAX_TC]
-				Lock* ticketClerkBreakLock
-				Condition* ticketClerkBreakCV
-				bool ticketClerkIsWorking[MAX_TC]
-
-			Functions:
-				Main thread to interact with customers buying tickets
-				- void ticketClerk(int myIndex)
-
-		D. Ticket Taker
-
-			Data: 
-				int   ticketTakerState[MAX_TT]
-				Lock* ticketTakerLock[MAX_TT]
-				Condition*  ticketTakerCV[MAX_TT]
-				int   ticketTakerLineCount[MAX_TT]
-
-				bool allowedIn[MAX_TT]
-				int   numTicketsReceived[MAX_TT]
-				int   totalTicketsTaken=0
-				bool  movieStarted
-				int ticketTakerWorking
-				Lock* ticketTakerLineLock
-				Condition*  ticketTakerLineCV[MAX_TT]
-				Lock* ticketTakerMovieLock
-				Condition* ticketTakerMovieCV
-				Lock* ticketTakerBreakLock
-				Condition* ticketTakerBreakCV
-				bool ticketTakerIsWorking[MAX_TT]
-				Lock* ticketTakerCounterLock = new Lock("counter");
-
-			Functions:
-				Main thread to interact with Customers and Manager
-				- void ticketTaker(int myIndex)
-
-		E. Concession Clerk
+	Memory is divided into equal size pieces - pages, memory is allocated one page at a time
+	OS must track which pages are used/unused and which "process" owns each page
+	Mapping virtual pages to physical pages - page table (an array)
+	Nachos page table is in AddrSpace class in userprog
+	Address Space loading must be completed BEFORE the user program can start executing (in AddrSpace constructor), populate page table, copy to memory
 	
-			Data: 
-				Lock* concessionClerkLineLock
-				Lock* concessionClerkLock[MAX_CC]
-				Lock* concessionClerkBreakLock
+	Finding an unused page of memory: use BitMap class
+		Find() - returns an int representing an unused page of physical memory it also marks the entry as "in use"
+		Clear(int)
+	
+	Create one BitMap object for all of Nachos - system.h/.cc
+	Physical memory must have the same number of pages as entries in your BitMap object in machine.h
+	3define NumPhysPages 512 (bigger maybe)
 
-				Condition* concessionClerkLineCV[MAX_CC]
-				Condition* concessionClerkCV[MAX_CC]
-				Condition* concessionClerkBreakCV
+	Need a lock when called BitMap Find()
+	Must change AddrSpace Constructor to copy 1 page at a time
+	executable->ReadAt( ,Page size, );
+	Nachos only allows 1 thread per process, which only creates 1 state
+	To support multiple threads, each thread must have its own stack, stacks are NOT shared between threads
+	
+	We chose to do Option 1 for Fork, adding enough memory for all possible
+	stacks at the beginning.	
 
-				int concessionClerkLineCount[MAX_CC]
-				int concessionClerkState[MAX_CC]
-				int concessionClerkRegister[MAX_CC]
-				int concessionClerkWorking
-				int amountOwed[MAX_CC]
-				int numPopcornsOrdered[MAX_CC]
-				int numSodasOrdered[MAX_CC]
-				bool concessionClerkIsWorking[MAX_CC]
+	We created a function called newKernelThread in exception.cc to run off of Fork.
 
-			Functions:
-				
-				Main thread for Concession Clerk to interact with Customer
-				- void concessionClerk(int myIndex)
+		void newKernelThread(int vAddress) {
+			currentThread->space->kernThreadLock->Acquire();
 
-		F. Movie Technician
+			// Set PCReg and NextPCReg to the kernel thread's virtual address
+			// Set the StackReg to the new starting position of the stack for this thread
+			// Prevent info loss during context switching using restore state
+			// Increment number of threads running
 
-			Data:
-				int numSeatsOccupied
-				Lock* movieStatusLock
-				Lock* movieFinishedLock
-				Condition* movieFinishedLockCV
-				Condition* movieStatusLockCV
+			currentThread->space->kernThreadLock->Release();
 
-				int movieStatus
-				int movieLength
-				bool theaterDone = false								
-				bool theaterStarted = false
-
-			Functions:
-				Main thread to start and stop movie
-				- void movieTech(int myIndex)
-
-		G. Manager
-
-			Data:
-				int totalRevenue
+			// Run the new kernel thread
+		}
 			
-			Functions:
-				Main thread, never sleeps, for manager to put
-				employees on break, start movies, and check revenue
-				- void manager(int myIndex)						
-
-IV. Implementation:
-	
-	Files Modified: 
-
-		Part 1 - synch.cc
-			 synch.h
+	We created a function to start new processes, it is called from the Exec syscall
 		
-		Part 2 - Makefile.common
-			 main.cc
+		void exec_thread(int vAddr) {
+			// Initialize Registers using InitRegisters()
+			// Restore state using RestoreState()
+			machine->Run();
+		}
 
-	Files Added:
+
+IV. Implementation: 
+            + Files Modified 
+
+		WRITEUP
 	
-		Part 1 - None
+		Userprog Folder: addrspace.h
+				 addrspace.cc
+				 exception.cc
+				 progtest.cc
+				 start.s
+				 syscall.h
+				 table.h
+
+		Machine Folder:  machine.h
+
+		Threads Folder:  synch.cc
+				 thread.cc
+				 system.h
+				 system.cc
+				 thread.h
+		Test Folder:
+				 Makefile
+				 testfiles.c	
+
+            + Files added 
+
+		Test Folder: theater_sim.c
+			     theater_sim_test.c
+			     exectest.c
+
+            + Data Structures added, and the file they were added to. 
+
+		struct lockData                      -- file exception.cc
+		{
+			Lock* lock;
+			AddrSpace *space;
+			bool isDeleted;
+			bool toBeDeleted;
+			int numActiveThreads;
+		};
+
+		lockData locks[MAX_LOCKS];           -- file exception.cc
+		Lock* lockArray;		     -- file exception.cc
+		int nextLockPos;		     -- file exception.cc
+
+		struct cvData 			     -- file exception.cc
+		{
+			Condition* condition;
+			AddrSpace *space;
+			bool isDeleted;
+			bool toBeDeleted;
+			int numActiveThreads;
+		};
+
+		cvData conditions[MAX_CVS];	     -- file exception.cc
+		Lock* cvArray;			     -- file exception.cc
+		int nextCVPos;			     -- file exception.cc
+	
+		Lock* procLock;			     -- file exception.cc
+		Lock* printLock;		     -- file exception.cc
+
+		Table threadTable;		     -- file addrspace.h		
+		Lock *threadLock;		     -- file addrspace.h
+		Lock *kernThreadLock; 		     -- file addrspace.h
+		char* processName		     -- file addrspace.h
+		int processID			     -- file addrspace.h
+		int endStackReg			     -- file addrspace.h
+		int numThreadsRunning		     -- file addrspace.h
+			
+
+            + Data Structures modified, and the file they were added to. 
 		
-		Part 2 - theater_sim.cc
-			 theater_sim.h
+		int numPagesReserved		     -- file addrspace.h
 
-V. Testing:
+            + Functions added and in which file. 
 
-	Instructions For Testing Part 1: Go to main.cc, uncomment TestSuite() 
-					 and comment out Theater_Sim_Test() - 
-					 our theater tests are currently set
-					 to run with nachos -T
+		void newKernelThread(int vAddress);  -- file exception.cc
+		void exec_thread(int vAddr);         -- file exception.cc
+		void Print_Syscall(unsigned int stPtr, int p1, int p2, int p3) -- file exception.cc
+		void Acquire_Syscall(int lockIndex); -- file exception.cc
+		void Release_Syscall(int lockIndex); -- file exception.cc
+		void Fork_Syscall(int vAddress, int index); -- file exception.cc
+		void Exec_Syscall(int vAddress, int len);   -- file exception.cc
+		void Exit_Syscall();                 -- file exception.cc
+		void Yield_Syscall();		     -- file exception.cc
+		void Wait_Syscall(int cvIndex, int lockIndex) -- file exception.cc
+		void Signal_Syscall(int cvIndex, int lockIndex) -- file exception.cc
+		void Broadcast_Syscall(int cvIndex int lockIndex) -- file exception.cc 
+		int  CreateLock_Syscall() 			  -- file exception.cc
+		void DestroyLock_Syscall(int lockIndex) 	  -- file exception.cc
+		int CreateCondition_Syscall() 			  -- file exception.cc
+		void DestroyCondition_Syscall(int cvIndex) 	  -- file exception.cc	
+		char* getProcessName();			-- file addrspace.h
+		int getProcessID()			-- file addrspace.h
+		int getNumThreadsRunning()		-- file addrspace.h
+		int Random_Syscall()			-- file exception.cc
 
-	Expected Output:
+            + Functions modified and in which file. 
 
-		Starting Test 1
-		t1_t1: Acquired Lock t1_l1, waiting for t3
-		t1_t2: trying to acquire lock t1_l1
-		t1_t3: Trying to release Lock t1_l1
-		Error: Thread (t1_t3) is not the lock owner (t1_t1)!
-		t1_t3: Trying to release Lock t1_l1
-		Error: Thread (t1_t3) is not the lock owner (t1_t1)!
-		t1_t3: Trying to release Lock t1_l1
-		Error: Thread (t1_t3) is not the lock owner (t1_t1)!
-		t1_t1: working in CS
-		t1_t1: Releasing lock t1_l1
-		t1_t2: Acquired Lock t1_l1, working in CS
-		t1_t2: Releasing Lock t1_l1
+		int getEndStackReg() 	-- file addrspace.h
+		void incNumThreadsRunning()	-- file addrspace.h
+		void decNumThreadsRunning()	-- file addrspace.h
 
-		Starting Test 2. Note that it is an error if t2_t2 completes
-		t2_t1: Lock t2_l1 acquired, signalling t2_c1
-		Error: this is not the waiting lock!
-		t2_t1: Releasing Lock t2_l1
-		t2_t2: Lock t2_l1 acquired, waiting on t2_c1
+V. Testing:  (For each test case, you must show) 
+            + How to test 
 
-		Starting Test 3
-		t3_waiter0: Lock t3_l1 acquired, waiting on t3_c1
-		t3_waiter1: Lock t3_l1 acquired, waiting on t3_c1
-		t3_waiter2: Lock t3_l1 acquired, waiting on t3_c1
-		t3_waiter3: Lock t3_l1 acquired, waiting on t3_c1
-		t3_waiter4: Lock t3_l1 acquired, waiting on t3_c1
-		t3_signaller: Lock t3_l1 acquired, signalling t3_c1
-		t3_signaller: Releasing t3_l1
-		t3_waiter0: freed from t3_c1
-
-		Starting Test 4
-		t4_waiter0: Lock t4_l1 acquired, waiting on t4_c1
-		t4_waiter1: Lock t4_l1 acquired, waiting on t4_c1
-		t4_waiter2: Lock t4_l1 acquired, waiting on t4_c1
-		t4_waiter3: Lock t4_l1 acquired, waiting on t4_c1
-		t4_waiter4: Lock t4_l1 acquired, waiting on t4_c1
-		t4_signaller: Lock t4_l1 acquired, broadcasting t4_c1
-		t4_signaller: Releasing t4_l1
-		t4_waiter0: freed from t4_c1
-		t4_waiter1: freed from t4_c1
-		t4_waiter2: freed from t4_c1
-		t4_waiter3: freed from t4_c1
-		t4_waiter4: freed from t4_c1
-
-		Starting Test 5.  Note that it is an error if thread t5_t1
-		completes
-		t5_t1: Lock t5_l1 acquired, waiting on t5_c1
-		t5_t2: Lock t5_l2 acquired, signalling t5_c1
-		Error: Signal, waitingLock does not equal conditionLock
-		t5_t2: Releasing Lock t5_l2
-		t5_t2: Releasing Lock t5_l1		
-
-	Instructions For Testing Part 2: to run all tests use nachos -T
-
-	Test A: Managers only read from one Clerk's total money received at a time
+		Compile the test and userprog folders.
 	
-	Test B: Managers get Clerks off their break when lines get too long
-
-	Test C: Clerks wait for customer to signal them to move on
-
-	Test D: Customer always chooses the shortest line
-
-	Expected Successful Output = anything without an "ERROR"
-
-	Sample Output:
-
-	Starting tests.
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	Manager collected [100] from TicketClerk[0].
-	Manager collected [150] from TicketClerk[1].
-	---------------------------------------------------------------------------
-	Test A is Complete 
-	---------------------------------------------------------------------------
-	Test B Clerk got off break successfully
-	---------------------------------------------------------------------------
-	Test B is Complete 
-	---------------------------------------------------------------------------
-	Customer 2 began
-	Customer 2 acquired clerk line lock
-	Clerk has been released!
-	TicketClerk 0 has a line length 1 and is signaling a customer.
-	Clerk is done
-	Clerk has grabbed me
-	---------------------------------------------------------------------------
-	Test C is Complete 
-	---------------------------------------------------------------------------
-	Line 0: 2 | Line 1: 1
-	Customer 1 is getting in line 1| Length : 2
-	Customer 2 is getting in line 0| Length : 3
+		To run all syscall test cases, run nachos -x ../test/testfiles
+		from the userprog folder.
 	
-	Line 0: 2 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 3
-	Customer 1 is getting in line 0| Length : 4
+		To run tests for the theater simulation, run nachos -x 
+		../test/theater_sim_test.
 
-	Line 0: 0 | Line 1: 1
-	Customer 2 is getting in line 0| Length : 1
-	Customer 1 is getting in line 0| Length : 2
+		Note: In the Theater Sim tests, the Customers making it all the
+		way through the theater is tested by the main theater simulation...
+		our theater does not fork threads for individual customers (unless
+		they use the restroom), only for groups.
 
-	Line 0: 2 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 3
-	Customer 1 is getting in line 0| Length : 4
+		Yield Test: Calls Yield, allowing another thread in the queue to 
+		run.
 
-	Line 0: 4 | Line 1: 1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 1| Length : 3
-
-	Line 0: 1 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 2
-	Customer 1 is getting in line 0| Length : 3
-
-	Line 0: 4 | Line 1: 1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 1| Length : 3
-
-	Line 0: 4 | Line 1: 3
-	Customer 2 is getting in line 1| Length : 4
-	Customer 1 is getting in line 0| Length : 5
-
-
-	Line 0: 2 | Line 1: 1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 0| Length : 3
-
-	Line 0: 1 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 2
-	Customer 1 is getting in line 0| Length : 3
-
-	Line 0: 3 | Line 1: 1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 1| Length : 3
-
-	Line 0: 2 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 3
-	Customer 1 is getting in line 0| Length : 4
-
-	Line 0: 0 | Line 1: 1
-	Customer 2 is getting in line 0| Length : 1
-	Customer 1 is getting in line 0| Length : 2
-
-	Line 0: 4 | Line 1: 3
-	Customer 2 is getting in line 1| Length : 4
-	Customer 1 is getting in line 0| Length : 5
-
-	Line 0: 1 | Line 1: 1
-	Customer 2 is getting in line 0| Length : 2
-	Customer 1 is getting in line 1| Length : 2
-
-	Line 0: 2 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 3
-	Customer 1 is getting in line 0| Length : 4
-
-	Line 0: 1 | Line 1: 1
-	Customer 2 is getting in line 0| Length : 2
-	Customer 1 is getting in line 1| Length : 2
-
-	Line 0: 4 | Line 1: 3
-	Customer 2 is getting in line 1| Length : 4
-	Customer 1 is getting in line 0| Length : 5
-
-	Line 0: 1 | Line 1: 1
-	Customer 2 is getting in line 0| Length : 2
-	Customer 1 is getting in line 1| Length : 2
-
-	Line 0: 3 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 4
-	Customer 1 is getting in line 1| Length : 4
-
-	Line 0: 4 | Line 1:1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 1| Length : 3
-
-	Line 0: 0 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 1
-	Customer 1 is getting in line 0| Length : 2
-
-	Line 0: 3 | Line 1: 1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 1| Length : 3
-
-	Line 0: 3 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 4
-	Customer 1 is getting in line 1| Length : 4
-
-	Line 0: 1 | Line 1: 1
-	Customer 2 is getting in line 0| Length : 2
-	Customer 1 is getting in line 1| Length : 2
-
-	Line 0: 2 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 3
-	Customer 1 is getting in line 0| Length : 4
-
-	Line 0: 2 | Line 1: 1
-	Customer 2 is getting in line 1| Length : 2
-	Customer 1 is getting in line 0| Length : 3
-	
-	Line 0: 2 | Line 1: 3
-	Customer 2 is getting in line 0| Length : 3
-	Customer 1 is getting in line 0| Length : 4
-
-	---------------------------------------------------------------------------
-	Test D is Complete 
-	---------------------------------------------------------------------------
+		Lock Tests:
+		1. Default test to create a lock that will later be deleted.
+		2. Create lots of locks test which will be used for various
+		   other tests.
+		3. Default test destroys the create lock in the default create 
+		   test.
+		4. Checks to make sure that a bad index will be blocked from
+		   reaching the system call.
+		5. Checks to make sure an already deleted lock deletion will be
+		   blocked from reaching the system call.
+		6. Checks to make sure an in use lock can't be deleted yet.
+		7. Default acquire test.
+		8. Test to make sure that a bad index will be blocked before
+		   the syscall.
+		9. Test to make sure that an already deleted lock cannot be
+		   acquired.
+		10. Default test releasing the lock in a previous test.
+		11. Release a lock that does not have the lock.
+		12. Test to check that a bad index will be blocked before 
+		    the syscall.
+		13. Test to check that release won't be called on an already
+		    deleted lock.
 		
-VI. Additional Notes:
-	 We didn't implement the functionality where
-	 the user puts in how many customers there should be. If you
-	 would like to run the program with a different number of 
-	 customers you can change the constant MAX_CUST to the desired
-	 number of customers. 
+		CV Tests:
+		1. Default test to create a cv to later be destroyed.
+		2. Create a lot of CV's to be used in later tests.
+		3. Destroy the CV created in the default test.
+		4. Test to make sure a bad index will be blocked from reaching
+		   the system call.
+		5. Test to make sure an already deleted CV will be blocked 
+		   from reaching the system call.
+		6. Test to make sure that an active CV will not be deleted, but 
+		   marked for deletion.
+		7. Default test to make sure wait syscall works and will be 
+		   used for a later test.
+		8. Test to make sure a bad index will be blocked before it
+		   reaches the syscall.
+		9. Test to make sure an already deleted lock or CV will be 
+		   blocked before it reaches the syscall.
+		10.Default test to check if the signal syscall works.
+		11.Test to check if a bad index will be blocked before it 
+		   reaches syscall.
+		12.Test to check that an already deleted CV signal call will be
+		   blocked before it reaches syscall.
+		13.Setup to test default broadcast case.
+		14.Default test to make sure broadcast works.
+		15.Test to make sure a bad index will be blocked before it 
+		   enters syscall.
+		16.Test to make sure an already deleted CV or lock will be 
+		   blocked before it enters syscall.
 
-	 Some random seeds don't work :(	
+		Fork:
+		1. Fork test to make sure that forked threads can signal 
+		   waiting threads back to life.
+		2. Test to make sure that functions being forked get called.
+		
+		Exec:
+		1. Default exec test to make sure that exec works correctly.
+		2. Test to make sure a bad file will be blocked before
+		   reaching syscall.
 
+		Theater Simulation:
 	
 
-		 
+            + Test Output 
+
+		SYSCALL TESTS EXPECTED OUTPUT
+
+		*** YIELD TEST ***
+
+
+		Testing Yield syscall. Calling Yield()
+		Yield syscall successful. End of Yield test
+
+
+		*** LOCK TEST ***
+	
+
+		Testing CreateLock syscall. Calling CreateLock()
+		Lock syscall successful.
+		Testing Many Lock syscalls. Calling CreateLock() 9 times
+		Many locks created finished!
+		Testing Destroy Lock syscall. Calling DestroyLock()
+		Deleted lock 0.
+		Testing Destroy Lock syscall with a negative index.
+		ERROR: The given lock index is not valid.
+		Testing Destroy Lock sys call with a lock index of 12 (Larger than next index)
+		ERROR: The given lock index is not valid.
+		Testing Destroy Lock on already destroyed lock
+		ERROR: This lock has already been deleted.
+		Acquiring unused lock_10 to check destroy_Lock
+		Destroying Lock 10!!!
+
+		*** CV TEST ***
+		Testing Create CV. Calling CreateCV()
+		Testing Create CV 9 more times
+		Testing Destroy CV. Destroying cv_1
+		Deleted condition 0.
+		Testing Destroy CV on a negative index
+		ERROR: The given condition index is not valid.
+		Testing Destroy CV on index of 12 (Larger than next index)
+		ERROR: The given condition index is not valid.
+		Testing Destroy CV on index 11
+		ERROR: The given condition index is not valid.
+		Testing Destroy CV on already deleted CV, cv_1
+		ERROR: This lock has already been deleted.
+		Testing Destroy CV on waiting cv_9
+		Deleted condition 8.
+
+		*** ACQUIRE TEST ***
+		Testing Acquire on lock_2
+		Testing Acquire on negative index
+		ERROR: The given lock index is not valid.
+		Testing Acquire on out of bounds index
+		ERROR: The given lock index is not valid.
+		Testing Acquire on on deleted lock, lock_1
+		ERROR: This lock has been deleted.
+	
+		*** RELEASE TEST ***
+		Testing Release on lock_2
+		Testing Release on lock_2 again
+		Error: There is no lock owner; thread (main) cannot release the lock!
+		Testing Release on negative index
+		ERROR: The given lock index is not valid.
+		Testing Release on out of bounds index
+		ERROR: The given lock index is not valid.
+		Testing Release on deleted lock, lock_1
+		ERROR: This lock has been deleted.
+		
+		*** WAIT TEST ***
+		Forking thread to test wait
+		Acquiring lock_9 and waiting on cv_9
+		ERROR: This condition has been deleted.
+		Testing Wait, Nachos should not end
+		Testing Wait on a negative cv index
+		ERROR: The given cv index is not valid.
+		Testing Wait on a out of bounds cv index
+		ERROR: The given cv index is not valid.
+		Testing Wait on a negative lock index
+		ERROR: The given lock index is not valid.
+		Testing Wait on a out of bounds lock index
+		ERROR: The given lock index is not valid.
+		Testing Wait on a deleted cv
+		ERROR: This condition has been deleted.
+		Testing Wait on a deleted lock
+		ERROR: This lock has been deleted.
+		Forking thread to test wait
+	
+		*** SIGNAL TEST ***
+		Testing Signal on cv_2
+		Testing Signal on negative cv index
+		ERROR: The given cv index is not valid.
+		Testing Signal on a out of bounds cv index
+		ERROR: The given cv index is not valid.
+		Testing Signal on a out of bounds lock index
+		ERROR: The given lock index is not valid.
+		Testing Signal on a negative lock index
+		ERROR: The given lock index is not valid.
+		Testing Signal on deleted cv
+		ERROR: This condition has been deleted.
+		Testing Signal on deleted lock
+		ERROR: This lock has been deleted.
+		
+		*** BROADCAST TEST ***
+		Testing Broadcast on cv_4
+		Testing Wait, Nachos should not end
+		#0-wait_Test has woke up
+		Successfully forked Broadcast Setup, Acquiring lock_4
+		Successfully forked Broadcast Setup 2, Acquiring lock_4
+		Broadcasted on cv_4
+		Testing Broadcast on negative cv index
+		ERROR: The given cv index is not valid.
+		Testing Broadcast on out of bounds cv index
+		ERROR: The given cv index is not valid.
+		Testing Broadcast on negative lock index
+		ERROR: The given lock index is not valid.
+		Testing Broadcast on out of bounds lock index
+		ERROR: The given lock index is not valid.
+		Testing Broadcast on deleted cv
+		ERROR: This condition has been deleted.
+		Testing Broadcast on deleted lock
+		ERROR: This lock has been deleted.
+		Exited wait thru Broadcast
+		Exited wait thru Broadcast 2
+	
+		*** FORK TEST ***
+		
+		Testing Fork syscall. Calling Fork()
+		Forking 2 threads for testing purposes
+		Forked test thread1
+		Forked test thread2
+		Forked test thread3
+		Fork Test 1 ready
+		Fork Test 1 Acquiring lock_3
+		Fork Test 2 ready
+		Fork Test 2 Acquiring lock_3
+		Fork Test 1 Signaled lock_3
+		
+
+		Testing Exec syscall. Calling Exec()
+		
+		DONESTICKS, Exec called successfully
+		Hi, #1 got out of wait succsssfully!
+		Running test of Exec syscall.
+		Exec finished forking threads, now trying to create a lock
+		lock_1 position created at 10
+		Exec created a lock!
+		Trying to destroy lock 5 from wrong process
+		ERROR: This process does not own the lock!
+		Trying to destroy cv 5 from wrong process
+		ERROR: This process does not own the cv!
+		Trying to acquire lock 6 from wrong process
+		ERROR: This process does not own the lock!
+		Trying to release lock 6 from wrong process
+		ERROR: This process does not own the lock!
+		Trying to wait on cv 6 from wrong process
+		ERROR: This process does not own the condition!
+		Trying to signal on cv 6 from wrong process
+		ERROR: This process does not own the condition!
+		Trying to broadcast on cv 6 from wrong process
+		ERROR: This process does not own the condition!
+		Testing Exec on a bad file
+		Error opening file at ../test/OMGBADFILEZ
+		Forked test thread1 in exec
+		Forked test thread2 in exec
+	
+
+
+		*** END OF TESTING BEFORE EXEC ***
+
+		*****************************************************************
+		MOVIE THEATER TEST EXPECTED OUTPUT:
+
+		Starting tests.
+
+
+
+		Manager collected [100] from TicketClerk[0].
+		---------------------------------------------------------------------------
+		Test A is Complete 
+		---------------------------------------------------------------------------
+		Manager signaled Test B clerk to get off break
+		Test B Clerk got off break successfully
+		---------------------------------------------------------------------------
+		Test B is Complete 
+		---------------------------------------------------------------------------
+		Customer 1 began
+		Customer 2 began
+		Customer 2 acquired clerk line lock
+		Clerk has been released!
+		TicketClerk 0 has a line length 1 and is signaling a customer.
+		Clerk is done
+		Clerk has grabbed me
+		---------------------------------------------------------------------------
+		Test C is Complete 
+		---------------------------------------------------------------------------
+		Line 0: 0 | Line 1: 0
+		Customer 2 is getting in line 0| Length : 1
+		Customer 1 is getting in line 1| Length : 1
+		---------------------------------------------------------------------------
+		Test D is Complete 
+		---------------------------------------------------------------------------
+		Manager collected 1 from ConcessionClerk0.
+		Manager collected 14 from ConcessionClerk1.
+		Manager collected 19 from ConcessionClerk2.	
+		Manager collected 12 from ConcessionClerk3.
+		Manager collected 5 from ConcessionClerk4.
+		Manager collected 11 from TicketClerk0.
+		Manager collected 7 from TicketClerk1.
+		Manager collected 8 from TicketClerk2.
+		Manager collected 11 from TicketClerk3.
+		Manager collected 1 from TicketClerk4.
+		Total money made by office = 89
+		Actual Revenue: 89
+		---------------------------------------------------------------------------
+		Test E is Complete 
+		---------------------------------------------------------------------------
+
+VI. Discussion: 
+            + Experiment expectation.  (What you hope will happen.) 
+
+		We hope that by the end of the project we will have an operating
+		system that can run multiple programs at once. We hope to have
+		an efficient system of storing and mapping pages from virtual
+		memory to physical memory as well as new system calls that will
+		allow user programs to fork new threads, exec new processes, 
+		exit threads, and use locks and conditions. We also expect
+		our movie theater to run as a nachos program and to be able to
+		run multiple movie theaters at once.
+
+            + Experiment result.  (What actually happens.) 
+
+		To run the program run nachos -x ../test/theater_sim. The syscalls work. 
+		The ConcessionClerk does not work and the movie theater
+		never ends, but Nachos does end. To run the program with 2 theaters, run
+		nachos -x ../test/two_theaters. This successfully runs two theaters, they 
+		each make it as far as they would if they were running by themselves. We
+		ran out of time to remove some of our extra print statements, which we 
+		used for debugging, so unfortunately the theater won't follow the expected
+		output exactly		
+
+            + Explanation 
+
+		We didn't expect the theater to be as difficult to convert to a Nachos user
+		program as it ended up being. It took us 3 days of working almost non-stop
+		to get it where it is. We thought it would be as simple as converting it to
+		C, but some of the logic had to change and debugging took an unexpected 
+		amount of time. We were hoping to complete this project, we have learned 
+		that if we were to do this again we would want to create the move theater
+		part of the project earlier.
+
+VII. Miscellaneous: 
+
+		
+
+
+
+I love you.
