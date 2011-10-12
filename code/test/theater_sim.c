@@ -37,8 +37,6 @@ typedef struct {
   int   totalPopcorns;      /* Num popcorns the group wants       */
   int   totalSodas;         /* Num sodas the group wants          */
 } CustomerStruct;
-int nextGroup=0;
-int nextCust=0;
 
 CustomerStruct customers[MAX_CUST];       /* List of all customers in theater                                */
 int totalCustomers;                       /* total number of customers there actually are                    */
@@ -124,6 +122,10 @@ int movieLength;                          /* "Length" of the movie - a number of
 int theaterDone = 0;	  	          /* Flag for when the theater is finished */
 int theaterStarted = 0;		          /* Flag for once manager has checked everything first */
 
+int nextGroup = 0;
+int nextTC = 0;
+int nextCust = 0;
+
 /* Manager Globals */
 int totalRevenue;
 
@@ -200,17 +202,26 @@ void customerInit(int numGroups)
 
 void doBuyTickets(int custIndex, int groupIndex) 
 {
-  int myTicketClerk;
-  int findNewLine;
   int i;
   int j;
   int k;
+  int shortestTCLine;
+  int shortestTCLineLength;
+  int myTicketClerk = 200;
+  int findNewLine = 0;
+
+  Print("Customer %i entered doBuyTickets.\n", custIndex, -1, -1);
+
+  /* Buy tickets from ticketClerk if you're a groupHead */
   
-  do {
-    myTicketClerk = -1;
+  /* Buy tickets from */
+  do { 
+    myTicketClerk = 200;
     findNewLine = 0;
 
+    Print("Customer %i is aquiring lock %i.\n", custIndex, ticketClerkLineLock, -1);
     Acquire(ticketClerkLineLock);
+    Print("My TicketClerk is %i.\n", myTicketClerk, -1, -1);
     /* See if any TicketClerk not busy */
     for(i=0; i<MAX_TC; i++) {
       if(ticketClerkState[i] == 0) {
@@ -224,10 +235,11 @@ void doBuyTickets(int custIndex, int groupIndex)
     }
   
     /* All ticketClerks were occupied, find the shortest line instead */
-    if(myTicketClerk == -1) {
-
-      int shortestTCLine = 0;     /* default the first line to current shortest */
-      int shortestTCLineLength = 100000;
+    Print("My TicketClerk is %i.\n", myTicketClerk, -1, -1);
+    if(myTicketClerk == 200) {
+      Print("Customer %i did not find a free ticket clerk.\n", custIndex, -1, -1);
+      shortestTCLine = 0;     /* default the first line to current shortest */
+      shortestTCLineLength = 100000;
       for(j=0; j<MAX_TC; j++) {
         if((ticketClerkState[j] == 1) && (shortestTCLineLength > ticketClerkLineCount[j])) {
           /* current line is shorter */
@@ -238,11 +250,12 @@ void doBuyTickets(int custIndex, int groupIndex)
     
       /* Found the TicketClerk with the shortest line */
       myTicketClerk = shortestTCLine;
-/*      Print("", -1, -1, -1);*/
+      /*      Print("", -1, -1, -1);*/
       Print("Customer %i in Group %i is getting in TicketClerk line %i.\n", custIndex, groupIndex, myTicketClerk);
       
       /* Get in the shortest line */
       ticketClerkLineCount[myTicketClerk]++;
+      Print("Customer %i is using CV %i to wait on lock %i.\n", custIndex, ticketClerkLineCV[myTicketClerk], ticketClerkLineLock);
       Wait(ticketClerkLineCV[myTicketClerk], ticketClerkLineLock);
       if((ticketClerkIsWorking[myTicketClerk] == 0) || (ticketClerkState[myTicketClerk] == 2)) {
         findNewLine = 1;
@@ -250,19 +263,26 @@ void doBuyTickets(int custIndex, int groupIndex)
         Release(ticketClerkLineLock);
       }
     }
-  } while(findNewLine);
+  } while(findNewLine == 1); 
 
+  Print("Customer %i is releasing lock %i.\n", custIndex, ticketClerkLineLock, -1);
   Release(ticketClerkLineLock);
   /* Done with either going moving to TicketClerk or getting in line. Now sleep. */
-  
+
   /* TicketClerk has acknowledged you. Time to wake up and talk to him.*/
+  Print("Customer %i is acquiring lock %i.\n", custIndex, ticketClerkLock[myTicketClerk], -1);
   Acquire(ticketClerkLock[myTicketClerk]);
+
   numberOfTicketsNeeded[myTicketClerk] = groupSize[groupIndex];
+
+  Print("Customer %i is using CV %i to signal lock %i.\n", custIndex, ticketClerkCV[myTicketClerk], ticketClerkLock[myTicketClerk]);
   Signal(ticketClerkCV[myTicketClerk], ticketClerkLock[myTicketClerk]);
   /* Done asking for 'myGroupSize' tickets from TicketClerk. Now sleep.*/
-  
+
   /* TicketClerk has returned a price for you */
+  Print("Customer %i is using CV %i to wait on lock %i.\n", custIndex, ticketClerkCV[myTicketClerk], ticketClerkLock[myTicketClerk]);
   Wait(ticketClerkCV[myTicketClerk], ticketClerkLock[myTicketClerk]);
+
   customers[custIndex].money -= amountOwedTickets[myTicketClerk];               /* Pay the ticketClerk for the tickets */
   Print("Customer %i in Group %i in TicketClerk line %i ", custIndex, groupIndex, myTicketClerk);
   Print("is paying %i for tickets.\n", amountOwedTickets[myTicketClerk], -1, -1);
@@ -276,7 +296,10 @@ void doBuyTickets(int custIndex, int groupIndex)
 
   Signal(ticketClerkCV[myTicketClerk], ticketClerkLock[myTicketClerk]);         /* You're free to carry on noble ticketClerk */
   Release(ticketClerkLock[myTicketClerk]);                                      /* Fly free ticketClerk. You were a noble friend.*/
-  
+
+  /*doBuyTickets(custIndex, groupIndex);*/
+  Print("Customer %i just bought tickets.\n", custIndex, -1, -1);
+
 }
 
 /* Give tickets to the ticketTaker,and either go into theater or lobby/repeat */
@@ -351,7 +374,7 @@ void doGiveTickets(int custIndex, int groupIndex)
     /* Theater was either full or the movie had started */
     for(k=custIndex; k<custIndex+groupSize[groupIndex]; k++) {
       Print("Customer %i in Group %i is in the lobby.\n", k, groupIndex, -1);
-    }
+	}
     Signal(ticketTakerCV[myTicketTaker], ticketTakerLock[myTicketTaker]);       /* You're free to carry on noble ticketTaker */
     Release(ticketTakerLock[myTicketTaker]);                                    /* Fly free ticketClerk. You were a noble friend. */
 
@@ -374,10 +397,10 @@ void doGiveTickets(int custIndex, int groupIndex)
 void choseSeat(int custIndex, int row, int col) {
   customers[custIndex].seatRow = row+1; /* defaults rows from 1-5 as opposed to 0-4 */
   customers[custIndex].seatCol = col;
-  
+ 
   Print("Customer %i in Group %i has found the following seat: ", custIndex, customers[custIndex].group, -1);
   Print("row %i and seat %i.\n", customers[custIndex].seatRow, customers[custIndex].seatCol, -1);
-  
+ 
   numSeatsOccupied++;
 }
 
@@ -464,7 +487,7 @@ void takeFoodOrders(int custIndex)
       }
     }
     if((popcorn==1) || (soda==1)) {
-      Print("Customer %i in Group %i has %i popcorn ", custIndex, customers[custIndex].group, popcorn);
+      Print("Customer %i in Group %i has %i popcorn", custIndex, customers[custIndex].group, popcorn);
       Print("and %i soda requests from a group member.\n", soda, -1, -1);
     }
     popcorn = 0;
@@ -558,14 +581,16 @@ void doBuyFood(int custIndex, int groupIndex)
   /* Hand concession clerk money */
   customers[custIndex].money -= amountOwed[myConcessionClerk];
   Signal(concessionClerkCV[myConcessionClerk], concessionClerkLock[myConcessionClerk]);
-  Print("Customer %i in Group %i in ConcessionClerk line %i ", custIndex, customers[custIndex].group, myConcessionClerk);
-  Print("is paying %i for food.\n", amountOwed[myConcessionClerk], -1, -1);
-  
+
+  Print("Customer %i in Group %i in ConcessionClerk line %i", custIndex, customers[custIndex].group, myConcessionClerk);
+  Print(" is paying %i for food.\n", amountOwed[myConcessionClerk], -1, -1);
+
   /* Wait for concessionClerk to take money */
   Wait(concessionClerkCV[myConcessionClerk], concessionClerkLock[myConcessionClerk]);
 
   /* Leave the counter */
   Print("Customer %i in Group %i is leaving ConcessionClerk %i.\n", custIndex, customers[custIndex].group, myConcessionClerk);
+
   Signal(concessionClerkCV[myConcessionClerk], concessionClerkLock[myConcessionClerk]);
   Release(concessionClerkLock[myConcessionClerk]);
 }
@@ -580,6 +605,7 @@ void doReturnFromRestroom(int myIndex) {
   customers[myIndex].needsRestroom = 0;
   Signal(waitingOnGroupCV[groupIndex], waitingOnGroupLock[groupIndex]);
   Release(waitingOnGroupLock[groupIndex]);
+  Exit(0);
 } 
 
 /* Leaving theater, going to bathroom */
@@ -610,7 +636,7 @@ void doLeaveTheaterAndUseRestroom(int custIndex, int groupIndex) {
   
   for(i=custIndex; i<custIndex+groupSize[groupIndex]; i++) {
     if(customers[i].needsRestroom == 1) {
-      Fork((void*)doReturnFromRestroom);
+      Fork((void*)doReturnFromRestroom, 0);
     }
   }
   
@@ -626,18 +652,18 @@ void doLeaveTheaterAndUseRestroom(int custIndex, int groupIndex) {
 }
 
 /* Defines behavior routine for all groups of customers */
-void groupHead() {
-  int custIndex = groupHeads[nextGroup];
-  int groupIndex = nextGroup++;
-/*  nextGroup = nextGroup + 1;*/
-  
+void groupHead(int custIndex) 
+{
   int i;
-  /* Buy tickets from ticketClerk if you're a groupHead */
+  int groupIndex = nextGroup++;
+  custIndex = groupHeads[nextGroup];
+
+  /*int groupIndex = customers[custIndex].group;*/
   
-  /* Buy tickets from ticketClerk */
   doBuyTickets(custIndex, groupIndex);
 
   takeFoodOrders(custIndex);
+  Print("Customer %i just took food orders.\n", custIndex, -1, -1);
   if((customers[custIndex].totalSodas > 0)||(customers[custIndex].totalPopcorns > 0)) {
     doBuyFood(custIndex, groupIndex);
   }
@@ -665,6 +691,7 @@ void groupHead() {
     {
       Print("Customer %i in Group %i has left the movie theater.\n", i, customers[i].group, -1);
     }
+  Exit(0);
 }
 
 
@@ -673,40 +700,46 @@ void groupHead() {
 void ticketClerk(int myIndex) 
 {    
   int numberOfTicketsHeld;
+  myIndex = nextTC++;
+
   while(1) 
     {
       /* TicketClerk is on break, go away. */
       if(ticketClerkState[myIndex] == 2) {
-        Print("TicketClerk %i is going on break.\n", myIndex, -1, -1);
-      
-        Acquire(ticketClerkLineLock);
-        Broadcast(ticketClerkLineCV[myIndex], ticketClerkLineLock);
-        Release(ticketClerkLineLock);
-            
-        Acquire(ticketClerkBreakLock[myIndex]);
-        Wait(ticketClerkBreakCV[myIndex], ticketClerkBreakLock[myIndex]);
-        Release(ticketClerkBreakLock[myIndex]);
 
-        Print("TicketClerk %i is coming off break.\n", myIndex, -1, -1);
-        Acquire(ticketClerkLineLock);
-        ticketClerkIsWorking[myIndex] = 1;
-        ticketClerkState[myIndex] = 0;
-        Release(ticketClerkLineLock);
+	Print("TicketClerk %i is going on break.\n", myIndex, -1, -1);
+      
+	Acquire(ticketClerkLineLock);
+	Broadcast(ticketClerkLineCV[myIndex], ticketClerkLineLock);
+	Release(ticketClerkLineLock);
+      
+	Acquire(ticketClerkBreakLock[myIndex]);
+	Wait(ticketClerkBreakCV[myIndex], ticketClerkBreakLock[myIndex]);
+	Release(ticketClerkBreakLock[myIndex]);
+
+	Print("TicketClerk %i is coming off break.\n", myIndex, -1, -1);
+
+	Acquire(ticketClerkLineLock);
+	ticketClerkIsWorking[myIndex] = 1;
+	ticketClerkState[myIndex] = 0;
+	Release(ticketClerkLineLock);
       }
 
       /* Is there a customer in my line? */
       Acquire(ticketClerkLineLock);
       if(ticketClerkLineCount[myIndex] > 0) {	/* There's a customer in my line */
-        ticketClerkState[myIndex] = 1;        /* I must be busy, decrement line count */
-        ticketClerkLineCount[myIndex]--;
-        Print("TicketClerk %i has a line length %i and is signaling a customer.\n", myIndex, ticketClerkLineCount[myIndex]+1, -1);
 
-        Signal(ticketClerkLineCV[myIndex], ticketClerkLineLock); /* Wake up 1 customer */
+	ticketClerkState[myIndex] = 1;        /* I must be busy, decrement line count */
+	ticketClerkLineCount[myIndex]--;
+
+	Print("TicketClerk %i has a line length %i and is signaling a customer.\n", myIndex, ticketClerkLineCount[myIndex]+1, -1);
+
+	Signal(ticketClerkLineCV[myIndex], ticketClerkLineLock); /* Wake up 1 customer */
       } else {
-        /* No one in my line */
-        Print("TicketClerk %i has no one in line. I am available for a customer.\n", myIndex, -1, -1);
-
-        ticketClerkState[myIndex] = 0;
+	/* No one in my line */
+	Print("TicketClerk %i has no one in line. I am available for a customer.\n", myIndex, -1, -1);
+	
+	ticketClerkState[myIndex] = 0;
       }
       
       Release(ticketClerkLineLock);
@@ -721,6 +754,7 @@ void ticketClerk(int myIndex)
       Wait(ticketClerkCV[myIndex], ticketClerkLock[myIndex]);
     
       amountOwedTickets[myIndex] = numberOfTicketsNeeded[myIndex] * TICKET_PRICE;   /* Tell customer how much money he owes */
+
       Print("TicketClerk %i has an order for %i and the cost is %i.\n", myIndex, numberOfTicketsNeeded[myIndex], amountOwedTickets[myIndex]);
       
       Signal(ticketClerkCV[myIndex], ticketClerkLock[myIndex]);
@@ -735,6 +769,7 @@ void ticketClerk(int myIndex)
       Wait(ticketClerkCV[myIndex], ticketClerkLock[myIndex]);         /* Wait until customer is out of the way before beginning next one */
       Release(ticketClerkLock[myIndex]); /* Temp? */
     }
+  Exit(0);
 }
 
 /* CONCESSION CLERK */
@@ -818,6 +853,7 @@ void concessionClerk(int myIndex) {
     Wait(concessionClerkCV[myIndex], concessionClerkLock[myIndex]);
     Release(concessionClerkLock[myIndex]);
   }
+  Exit(0);
 }
 
 /* TICKET TAKER */
@@ -911,6 +947,7 @@ void ticketTaker(int myIndex)
       Release(ticketTakerLock[myIndex]);
       /* TicketTaker is done with customer, allows them to move into the theater */
     }
+  Exit(0);
 }
 
 
@@ -1017,7 +1054,7 @@ void manager(int myIndex)
       }
       /* Potentially put CC on break if line is small and someone else is working */
       if((concessionClerkLineCount[i] < 3) && (concessionClerkState[i] != 2) && (MAX_CC-numCConBreak > 1)) {
-        if(0 == 0) {
+        if(1 == 0) {
 	  /* if(rand()%5 == 0) { ******************** */
           Acquire(concessionClerkLock[i]);
           concessionClerkState[i] = 2;          /* ConcessionClerk is on Brea */
@@ -1146,6 +1183,7 @@ void manager(int myIndex)
       Yield();
     }
   }
+  Exit(0);
 }
 
 
@@ -1203,6 +1241,7 @@ void movieTech(int myIndex) {
       Release(movieStatusLock);
     }
   }
+  Exit(0);
 }
 
 /* Initialize variables in theater */
@@ -1315,7 +1354,7 @@ void init() {
   for(i=0; i<MAX_TC; i++) 
   { 
     /* Fork off a new thread for a ticketClerk */
-    Fork((void*)ticketClerk);
+    Fork((void*)ticketClerk, 0);
   }
 	
   /* Initialize customers */
@@ -1323,22 +1362,24 @@ void init() {
   for(i=0; i<aNumGroups; i++) 
   {
     /* Fork off a new thread for a customer */
-    Fork((void*)groupHead);
+    Fork((void*)groupHead, 0);
   }
 
   for(i=0; i<MAX_TT; i++)
   {
     /* Fork off a new thread for a ticketTaker */
-    Fork((void*)ticketTaker);
+    Fork((void*)ticketTaker, 0);
   }
 	
   for(i=0; i<MAX_CC; i++) {
     /* Fork off a new thread for a concessionClerk */
-    Fork((void*)concessionClerk); 
+    Fork((void*)concessionClerk, 0); 
   }
   
-  Fork((void*)movieTech);
-  Fork((void*)manager);
+  Fork((void*)movieTech, 1);
+  Fork((void*)manager, 0);
+
+  Exit(0);
 }
 
 /* Temporary to check if makefile works */
