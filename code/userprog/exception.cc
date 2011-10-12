@@ -218,6 +218,13 @@ int Open_Syscall(unsigned int vaddr, int len) {
     return -1;
 }
 
+int Random_Syscall(int m){
+	int retVal;
+	retVal = (int)(rand() % m);
+	return retVal;
+}
+
+
 void Print_Syscall(unsigned int stPtr, int p1, int p2, int p3) {
   char *string = new char[100];
   printLock->Acquire();
@@ -931,7 +938,10 @@ void ExceptionHandler(ExceptionType which) {
         DEBUG('a', "Create syscall.\n");
         Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
       break;
-
+			case SC_Random:
+				DEBUG('a', "Random syscall.\n");
+				rv = Random_Syscall(machine -> ReadRegister(4));
+			break;
       case SC_Print:
         DEBUG('a', "Print syscall.\n");
         Print_Syscall(machine->ReadRegister(4), 

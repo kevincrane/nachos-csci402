@@ -123,6 +123,15 @@ Close:
 	j	$31
 	.end Print
 
+.globl Random
+	.ent	Random
+		
+	Random:
+	addiu $2,$0,SC_Random
+	syscall
+	j	$31
+	.end Random
+
 	.globl Fork
 	.ent	Fork
 Fork:
