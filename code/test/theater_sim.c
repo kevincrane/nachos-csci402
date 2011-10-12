@@ -6,7 +6,7 @@
 #include "syscall.h"
 
 /* CONSTANTS */
-#define MAX_CUST 100        /* constant: maximum number of customers                */
+#define MAX_CUST 35        /* constant: maximum number of customers                */
 #define MAX_TC 5            /* constant: defines maximum number of ticketClerks     */
 #define MAX_TT 3            /* constant: defines maximum number of ticketTakers     */
 #define MAX_CC 5            /* constant: defines maximum number of concessionClerks */
@@ -125,6 +125,8 @@ int theaterStarted = 0;		          /* Flag for once manager has checked everythi
 int nextGroup = 0;
 int nextTC = 0;
 int nextCust = 0;
+int nextCC = 0;
+int nextTT = 0;
 
 /* Manager Globals */
 int totalRevenue;
@@ -172,14 +174,14 @@ void customerInit(int numGroups)
 	  customers[j].needsRestroom = 0;
 	  customers[j].totalPopcorns = 0;
 	  customers[j].totalSodas = 0;
-	  randNum = 50; /* ***************rand()%100;************* */
+	  randNum = 100; /* ***************rand()%100;************* */
 	  
 	  if(randNum < 75) {
 	    customers[j].wantsPopcorn = 1;
 	  } else {
 	    customers[j].wantsPopcorn = 0;
 	  }
-	  randNum = 40; /* **************rand()%100;********* */
+	  randNum = 100; /* **************rand()%100;********* */
 	  if(randNum < 75) {
 	    customers[j].wantsSoda = 1;
 	  } else {
@@ -215,7 +217,7 @@ void doBuyTickets(int custIndex, int groupIndex)
   /* Buy tickets from ticketClerk if you're a groupHead */
   
   /* Buy tickets from */
-  do { 
+/*  do { */
     myTicketClerk = 200;
     findNewLine = 0;
 
@@ -263,7 +265,8 @@ void doBuyTickets(int custIndex, int groupIndex)
         Release(ticketClerkLineLock);
       }
     }
-  } while(findNewLine == 1); 
+    Print("abcdefghi=%i\n", findNewLine, -1, -1);
+/*  } while(findNewLine == 1); */
 
   Print("Customer %i is releasing lock %i.\n", custIndex, ticketClerkLineLock, -1);
   Release(ticketClerkLineLock);
@@ -478,12 +481,12 @@ void takeFoodOrders(int custIndex)
   for(i=0; i<totalCustomers; i++) {
     if(customers[custIndex].group == customers[i].group) {
       if(customers[i].wantsPopcorn == 1) {
-	customers[custIndex].totalPopcorns++;
-	popcorn++;
+        customers[custIndex].totalPopcorns++;
+        popcorn++;
       }
       if(customers[i].wantsSoda == 1) {
-	customers[custIndex].totalSodas++;
-	soda++;
+        customers[custIndex].totalSodas++;
+        soda++;
       }
     }
     if((popcorn==1) || (soda==1)) {
@@ -617,7 +620,7 @@ void doLeaveTheaterAndUseRestroom(int custIndex, int groupIndex) {
   int i;
   
   for(i=custIndex; i<custIndex+groupSize[groupIndex]; i++) {
-    randNum = 15; /* ************rand()%100;********** */ 
+    randNum = 30; /* ************rand()%100;********** */ 
     if(randNum < 25) {
       customers[i].needsRestroom = 1;
     }
@@ -636,7 +639,7 @@ void doLeaveTheaterAndUseRestroom(int custIndex, int groupIndex) {
   
   for(i=custIndex; i<custIndex+groupSize[groupIndex]; i++) {
     if(customers[i].needsRestroom == 1) {
-      Fork((void*)doReturnFromRestroom, 0);
+      Fork((void*)doReturnFromRestroom);
     }
   }
   
@@ -661,8 +664,10 @@ void groupHead(int custIndex)
   /*int groupIndex = customers[custIndex].group;*/
   
   doBuyTickets(custIndex, groupIndex);
-
+  
+  Print("Customer %i entering takeFoodOrders.\n", custIndex, -1, -1);
   takeFoodOrders(custIndex);
+  
   Print("Customer %i just took food orders.\n", custIndex, -1, -1);
   if((customers[custIndex].totalSodas > 0)||(customers[custIndex].totalPopcorns > 0)) {
     doBuyFood(custIndex, groupIndex);
@@ -773,7 +778,9 @@ void ticketClerk(int myIndex)
 }
 
 /* CONCESSION CLERK */
-void concessionClerk(int myIndex) {
+void concessionClerk() {
+  int myIndex = nextCC++;
+  Print("STARTED CONCESSIONSLUT %i.\n", myIndex, -1, -1);
   while(1) {
 
     if(concessionClerkState[myIndex] == 2) {
@@ -807,6 +814,7 @@ void concessionClerk(int myIndex) {
       Signal(concessionClerkLineCV[myIndex], concessionClerkLineLock); /* Wake up 1 customer */
     } else {
       /* No one in my line */
+      Print("ConcessionClerk %i has no one in line. I am available for a customer.\n", myIndex, -1, -1);
       concessionClerkState[myIndex] = 0;
     }
     
@@ -857,8 +865,9 @@ void concessionClerk(int myIndex) {
 }
 
 /* TICKET TAKER */
-void ticketTaker(int myIndex)
+void ticketTaker()
 {
+  int myIndex = nextTT++;
   while(1)
     {
       /* TicketTaker is on break, go away. */
@@ -1354,7 +1363,7 @@ void init() {
   for(i=0; i<MAX_TC; i++) 
   { 
     /* Fork off a new thread for a ticketClerk */
-    Fork((void*)ticketClerk, 0);
+    Fork((void*)ticketClerk);
   }
 	
   /* Initialize customers */
@@ -1362,22 +1371,22 @@ void init() {
   for(i=0; i<aNumGroups; i++) 
   {
     /* Fork off a new thread for a customer */
-    Fork((void*)groupHead, 0);
+    Fork((void*)groupHead);
   }
 
   for(i=0; i<MAX_TT; i++)
   {
     /* Fork off a new thread for a ticketTaker */
-    Fork((void*)ticketTaker, 0);
+    Fork((void*)ticketTaker);
   }
 	
-  for(i=0; i<MAX_CC; i++) {
+/*  for(i=0; i<MAX_CC; i++) {
     /* Fork off a new thread for a concessionClerk */
-    Fork((void*)concessionClerk, 0); 
-  }
+/*    Fork((void*)concessionClerk); 
+  }*/
   
-  Fork((void*)movieTech, 1);
-  Fork((void*)manager, 0);
+  Fork((void*)movieTech);
+/*  Fork((void*)manager);*/
 
   Exit(0);
 }

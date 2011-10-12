@@ -151,9 +151,6 @@ void Lock::Release() {
   } else {
     isFree = true;                      // make lock free
     lockOwner = NULL;                   // clear lock ownership
-				
-		
-		
   }
   (void) interrupt->SetLevel(oldLevel); // restore interrupts
 }
@@ -180,7 +177,7 @@ void Condition::Wait(Lock* conditionLock) {
      waitingLock = conditionLock;
   }
   if(waitingLock != conditionLock) {
-     printf ("Error: this isn't the correct waiting lock!\n");
+     printf ("Error: this isn't the correct waiting lock (%s, %s)!\n", waitingLock->getName(), conditionLock->getName());
      (void) interrupt->SetLevel(oldLevel);
      return;
   }
