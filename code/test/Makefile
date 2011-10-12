@@ -31,7 +31,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
-all: halt matmult sort testfiles exectest theater_sim theater_sim_test
+all: halt matmult sort testfiles exectest theater_sim theater_sim_test two_theaters
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -79,6 +79,12 @@ theater_sim_test.o: theater_sim_test.c
 theater_sim_test: theater_sim_test.o start.o
 	$(LD) $(LDFLAGS) start.o theater_sim_test.o -o theater_sim_test.coff
 	../bin/coff2noff theater_sim_test.coff theater_sim_test
+
+two_theaters.o: two_theaters.c
+	$(CC) $(CFLAGS) -c two_theaters.c
+two_theaters: two_theaters.o start.o
+	$(LD) $(LDFLAGS) start.o two_theaters.o -o two_theaters.coff
+	../bin/coff2noff two_theaters.coff two_theaters
 
 clean:
 	rm -f *.o *.coff
