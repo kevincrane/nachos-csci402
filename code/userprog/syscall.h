@@ -39,6 +39,7 @@
 #define SC_CreateCondition  18
 #define SC_DestroyCondition 19	
 #define SC_Print            20
+#define SC_Random						21
 
 #define MAXFILENAME 256
 
@@ -165,6 +166,9 @@ int CreateCV();
 
 /* Destroy the CV with the given index */
 void DestroyCV(int cvIndex);
+
+/* Create random int with modulus paramater */
+int Random(int m);
 
 #endif /* IN_ASM */
 
