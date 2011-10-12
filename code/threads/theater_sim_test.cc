@@ -242,6 +242,62 @@ void TestD_2()
 	D_Done.V();
 }
 
+// Test E
+Semaphore teste("te", 0);
+Semaphore E_Done("ed", 0);
+void TestE_1()
+{
+	totalRevenue = 0;
+	teste.P();
+	//Check clerk money levels
+	for(int i = 0; i<MAX_CC; i++)
+	{
+		concessionClerkLock[i]->Acquire();
+		totalRevenue += concessionClerkRegister[i];
+
+		printf("Manager collected %i from ConcessionClerk%i.\n", concessionClerkRegister[i], i);
+		concessionClerkRegister[i] = 0;
+		concessionClerkLock[i]->Release();
+	}
+	for(int i = 0; i<MAX_TC; i++)
+	{
+		ticketClerkLock[i]->Acquire();
+		totalRevenue += ticketClerkRegister[i];
+		printf("Manager collected %i from TicketClerk%i.\n", ticketClerkRegister[i], i); 
+		ticketClerkRegister[i] = 0;
+
+		ticketClerkLock[i]->Release();
+	}
+	printf("Total money made by office = %i\n", totalRevenue);
+	E_Done.V();
+}
+
+int actualRevenue;
+void TestE_2()
+{
+	// Reset all register values
+	for(int i = 0; i<MAX_CC; i++)
+		concessionClerkRegister[i] = 0;
+	for(int i = 0; i<MAX_TC; i++)
+		ticketClerkRegister[i] = 0;
+	actualRevenue = 0;
+	teste.V();
+	for(int i = 0; i<MAX_CC; i++){
+		concessionClerkLock[i]->Acquire();
+		concessionClerkRegister[i] = rand() % 3;
+		concessionClerkLock[i]->Release();
+	}
+	for(int i = 0; i<MAX_TC; i++){
+		ticketClerkLock[i]->Acquire();
+		ticketClerkRegister[i] = rand() % 3;
+		ticketClerkLock[i]->Release();
+	}
+	for(int i = 0; i<MAX_CC; i++)
+		actualRevenue+=concessionClerkRegister[i];
+	for(int i = 0; i<MAX_TC; i++)
+		actualRevenue+=ticketClerkRegister[i];
+	E_Done.V();
+}
 void Theater_Sim_Test()
 {
 	Thread *t;
@@ -306,5 +362,18 @@ void Theater_Sim_Test()
 	printf("Test D is Complete \n");
 	printf("---------------------------------------------------------------------------\n");
 	
-
+	// Test E
+	// Manager collecting cash nevers suffers a race condition
+	for(int i = 0; i < 5; i++){
+		t = new Thread("Test E 1");
+		t->Fork((VoidFunctionPtr)TestE_1, 0);
+		t = new Thread("Test E 2");
+		t->Fork((VoidFunctionPtr)TestE_2,0);
+		E_Done.P();
+		E_Done.P();
+		printf("Actual Revenue: %i\n", actualRevenue);
+	}
+	printf("---------------------------------------------------------------------------\n");
+	printf("Test E is Complete \n");
+	printf("---------------------------------------------------------------------------\n");
 }

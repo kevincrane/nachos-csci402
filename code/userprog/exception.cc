@@ -425,9 +425,8 @@ void Release_Syscall(int lockIndex) {
 
 
 // Fork Syscall. Fork new thread from pointer to void function
-void Fork_Syscall(int vAddress, int index)
+void Fork_Syscall(int vAddress)
 {
-   
   if(currentThread->space->getNumThreadsRunning() >= 60) {
 		DEBUG('u', "Fork: ERROR: Maximum number of threads reached, bailing.\n");
 		return;
@@ -446,7 +445,7 @@ void Fork_Syscall(int vAddress, int index)
   char* tName = currentThread->space->getProcessName();
   name = new char[30];
   strcpy(name, tName);
-  sprintf(name, "%s%d", tName, num);
+  sprintf(name, "%s-%d", tName, num);
   DEBUG('u', "pID=%d\n", processID);
   DEBUG('u', "pName=%s\n", currentThread->space->getProcessName());
   DEBUG('u', "pNum=%d\n", num);
@@ -460,9 +459,8 @@ void Fork_Syscall(int vAddress, int index)
  
   //t->space->incNumThreadsRunning();
   // Finally Fork a new kernel thread 
-  //t->Fork((VoidFunctionPtr)newKernelThread, vAddress);
   t->Fork((VoidFunctionPtr)newKernelThread, vAddress);
-  // currentThread->Yield(); // CHANGED 
+//  currentThread->Yield(); // CHANGED
 }
 
 
@@ -578,11 +576,11 @@ void Exit_Syscall() {
   } else {
     currentThread->space->threadTable->Remove(currentThread->getThreadNum());
   }
-  
+	
   processTableLock->Release();
   
   DEBUG('u', "Thread %s has been exited (%i).\n", currentThread->getName(), currentThread->space->isMain());
-  if(!(currentThread->space->isMain()))
+//  if(!(currentThread->space->isMain()))
     currentThread->Finish();
 }
 
@@ -802,14 +800,12 @@ int CreateLock_Syscall() {
   myLock.isDeleted = false;
   myLock.toBeDeleted = false;
   myLock.numActiveThreads = 0;
-
   lockArray->Acquire();
-
+	DEBUG('v', "Lock created at position: %i\n",nextLockPos);
   locks[nextLockPos] = myLock;
   nextLockPos++;
   
   lockArray->Release();
-
   return (nextLockPos-1);
 }
 
@@ -974,8 +970,7 @@ void ExceptionHandler(ExceptionType which) {
 
       case SC_Fork:
         DEBUG('a', "Fork syscall.\n");
-        Fork_Syscall(machine->ReadRegister(4),
-		     machine->ReadRegister(5));
+        Fork_Syscall(machine->ReadRegister(4));
       break;
       case SC_Exec:
         DEBUG('a', "Exec syscall.\n");

@@ -122,7 +122,7 @@ void Close(OpenFileId id);
 
 
 /* Able to print values from user program */
-void Print(char* string, int len, int param1, int param2);
+void Print(char* string, int p1, int p2, int p3);
 
 
 /* User-level thread operations: Fork and Yield.  To allow multiple
@@ -132,7 +132,7 @@ void Print(char* string, int len, int param1, int param2);
 /* Fork a thread to run a procedure ("func") in the *same* address space 
  * as the current thread.
  */
-void Fork(void (*func)(), int index);
+void Fork(void (*func)());
 
 /* Yield the CPU to another runnable thread, whether in this address space 
  * or not. 

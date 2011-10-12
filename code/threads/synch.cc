@@ -115,17 +115,15 @@ Lock::~Lock() {
 
 void Lock::Acquire() {
   IntStatus oldLevel = interrupt->SetLevel(IntOff); // disable interrupts
-
   if(currentThread == lockOwner) {
     (void) interrupt->SetLevel(oldLevel); // enable interrupts
     return;
   }
-
   if(isFree) {
     isFree = false;                           	// lock is no longer free
-    lockOwner = currentThread;               	// now owned by currentThread
+		lockOwner = currentThread;               	// now owned by currentThread
   } else {
-    waitQueue->Append((void *)currentThread);	// add to lock wait queue
+		waitQueue->Append((void *)currentThread);	// add to lock wait queue
     currentThread->Sleep();                 	// put to sleep
   }
   (void) interrupt->SetLevel(oldLevel); 		// enable interrupts
