@@ -479,7 +479,7 @@ void takeFoodOrders(int custIndex)
   int i;
 
   for(i=0; i<totalCustomers; i++) {
-    if(customers[custIndex].group == customers[i].group) {
+/*    if(customers[custIndex].group == customers[i].group) {
       if(customers[i].wantsPopcorn == 1) {
         customers[custIndex].totalPopcorns++;
         popcorn++;
@@ -492,7 +492,7 @@ void takeFoodOrders(int custIndex)
     if((popcorn==1) || (soda==1)) {
       Print("Customer %i in Group %i has %i popcorn", custIndex, customers[custIndex].group, popcorn);
       Print("and %i soda requests from a group member.\n", soda, -1, -1);
-    }
+    }*/
     popcorn = 0;
     soda = 0;
   }
@@ -1210,7 +1210,7 @@ void movieTech(int myIndex) {
       movieLength = 50;
       while(movieLength > 0) {
         Yield();
-	movieLength--;
+        movieLength--;
       }
 
       Acquire(movieStatusLock);
