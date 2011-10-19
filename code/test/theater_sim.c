@@ -9,7 +9,7 @@
 #define MAX_CUST 35        /* constant: maximum number of customers                */
 #define MAX_TC 5            /* constant: defines maximum number of ticketClerks     */
 #define MAX_TT 3            /* constant: defines maximum number of ticketTakers     */
-#define MAX_CC 5            /* constant: defines maximum number of concessionClerks */
+#define MAX_CC 2            /* constant: defines maximum number of concessionClerks */
 #define MAX_SEATS 25        /* constant: max number of seats in the theater         */
 #define NUM_ROWS 5          /* constant: number of rows in the theater              */
 #define NUM_COLS 5          /* constant: number of seats/row                        */
@@ -223,7 +223,7 @@ void doBuyTickets(int custIndex, int groupIndex)
 
     Print("Customer %i is aquiring lock %i.\n", custIndex, ticketClerkLineLock, -1);
     Acquire(ticketClerkLineLock);
-    Print("My TicketClerk is %i.\n", myTicketClerk, -1, -1);
+/*    Print("My TicketClerk is %i.\n", myTicketClerk, -1, -1);*/
     /* See if any TicketClerk not busy */
     for(i=0; i<MAX_TC; i++) {
       if(ticketClerkState[i] == 0) {
@@ -237,7 +237,7 @@ void doBuyTickets(int custIndex, int groupIndex)
     }
   
     /* All ticketClerks were occupied, find the shortest line instead */
-    Print("My TicketClerk is %i.\n", myTicketClerk, -1, -1);
+/*    Print("My TicketClerk is %i.\n", myTicketClerk, -1, -1);*/
     if(myTicketClerk == 200) {
       Print("Customer %i did not find a free ticket clerk.\n", custIndex, -1, -1);
       shortestTCLine = 0;     /* default the first line to current shortest */
@@ -265,7 +265,7 @@ void doBuyTickets(int custIndex, int groupIndex)
         Release(ticketClerkLineLock);
       }
     }
-    Print("abcdefghi=%i\n", findNewLine, -1, -1);
+/*    Print("abcdefghi=%i\n", findNewLine, -1, -1);*/
 /*  } while(findNewLine == 1); */
 
   Print("Customer %i is releasing lock %i.\n", custIndex, ticketClerkLineLock, -1);
@@ -1359,7 +1359,7 @@ void init() {
   Print("Number of TicketClerks =     %i.\n", MAX_TC, -1, -1);
   Print("Number of ConcessionClerks = %i.\n", MAX_CC, -1, -1);
   Print("Number of TicketTakers =     %i.\n", MAX_TT, -1, -1);
-  
+
   for(i=0; i<MAX_TC; i++) 
   { 
     /* Fork off a new thread for a ticketClerk */
@@ -1380,10 +1380,10 @@ void init() {
     Fork((void*)ticketTaker);
   }
 	
-/*  for(i=0; i<MAX_CC; i++) {
+  for(i=0; i<MAX_CC; i++) {
     /* Fork off a new thread for a concessionClerk */
-/*    Fork((void*)concessionClerk); 
-  }*/
+    Fork((void*)concessionClerk); 
+  }
   
   Fork((void*)movieTech);
 /*  Fork((void*)manager);*/

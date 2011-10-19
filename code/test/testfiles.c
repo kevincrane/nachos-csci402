@@ -483,9 +483,6 @@ int main() {
 
 	wait_Already_Deleted();
 
-	Write("Forking thread to test wait\n", sizeof("Forking thread to test wait\n"), ConsoleOutput);
-	Fork((void*)wait_Test);
-
 		/* Signal */
 	Write("\n*** SIGNAL TEST ***\n", sizeof("\n*** SIGNAL TEST ***\n"), ConsoleOutput);	
 
@@ -523,7 +520,7 @@ int main() {
   
 	Yield();
   
-	Write("\n\n\n*** END OF TESTING BEFORE EXEC ***\n\n", sizeof("\n\n\n*** END OF TESTING BEFORE EXEC ***\n"), ConsoleOutput);
+	Write("\n\n\n*** END OF TESTING BEFORE EXIT ***\n\n", sizeof("\n\n\n*** END OF TESTING BEFORE EXIT ***\n"), ConsoleOutput);
     
 	Exit(0);
 }

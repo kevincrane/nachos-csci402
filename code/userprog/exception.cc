@@ -43,6 +43,14 @@ struct lockData{
   int numActiveThreads;    // Number of threads waiting on or using the lock
 };
 
+// Debug values for keeping track of threads Forked and Exited
+int fork_count = 0;
+int exit_count = 0;
+
+// Keep track of which TLB index to use
+int currentTLB = 0;
+
+
 lockData locks[MAX_LOCKS];                // Array of all locks used by user programs
 Lock* lockArray = new Lock("lockArray");  // To lock the array of locks
 int nextLockPos = 0;                      // Next position available in the array of locks
@@ -106,12 +114,10 @@ int copyout(unsigned int vaddr, int len, char *buf) {
     while ( n >= 0 && n < len) {
       // Note that we check every byte's address
       result = machine->WriteMem( vaddr, 1, (int)(buf[n++]) );
-
       if ( !result ) {
-	//translation failed
-	return -1;
+        //translation failed
+        return -1;
       }
-
       vaddr++;
     }
 
@@ -126,11 +132,11 @@ int copyout(unsigned int vaddr, int len, char *buf) {
 //   - as a result, need to call currentThread manually for function/values
 void newKernelThread(int vAddress)
 {
-
   //TODO: Checks for valid thread, debug statements
   DEBUG('u', "newKernelThread=%s,%d\n", currentThread->getName(), currentThread->getThreadNum());
   
   currentThread->space->kernThreadLock->Acquire();
+  
   DEBUG('u', "newKernelThread: Starting a new kernel thread in process %s at address %d\n", 
       currentThread->space->getProcessName(), vAddress);
   
@@ -172,9 +178,9 @@ void Create_Syscall(unsigned int vaddr, int len) {
     if (!buf) return;
 
     if( copyin(vaddr,len,buf) == -1 ) {
-	printf("%s","Bad pointer passed to Create\n");
-	delete buf;
-	return;
+      printf("%s","Bad pointer passed to Create\n");
+      delete buf;
+      return;
     }
 
     buf[len]='\0';
@@ -323,7 +329,7 @@ int Read_Syscall(unsigned int vaddr, int len, int id) {
       scanf("%s", buf);
 
       if ( copyout(vaddr, len, buf) == -1 ) {
-	printf("%s","Bad pointer passed to Read: data not copied\n");
+        printf("%s","Bad pointer passed to Read: data not copied\n");
       }
     } else {
 	if ( (f = (OpenFile *) currentThread->space->fileTable.Get(id)) ) {
@@ -435,36 +441,43 @@ void Release_Syscall(int lockIndex) {
 void Fork_Syscall(int vAddress)
 {
   if(currentThread->space->getNumThreadsRunning() >= 60) {
-		DEBUG('u', "Fork: ERROR: Maximum number of threads reached, bailing.\n");
-		return;
-	}
-	if(vAddress > (currentThread->space->getNumPages()*PageSize)) {
-	  DEBUG('u', "Fork: ERROR: Invalid address, would extend beyond usable range.\n");
+	  DEBUG('u', "Fork: ERROR: Maximum number of threads reached, bailing.\n");
 	  return;
-	}
+  }
+  if(vAddress > (currentThread->space->getNumPages()*PageSize)) {
+    DEBUG('u', "Fork: ERROR: Invalid address, would extend beyond usable range.\n");
+    return;
+  }
   
+  processTableLock->Acquire();
+  
+  DEBUG('u', "Shit: FORK CALLED %d times!\n", ++fork_count);
   // TODO: check for max threads, whether vAddress is outside size of page table
   char* name = "tempName";
   Thread *t = new Thread(name);
   
+  // Initialize new thread data
   int num = currentThread->space->threadTable->Put(t);             // add new thread to thread table
   int processID = currentThread->space->getProcessID();
   char* tName = currentThread->space->getProcessName();
   name = new char[30];
   strcpy(name, tName);
   sprintf(name, "%s-%d", tName, num);
+  
   DEBUG('u', "pID=%d\n", processID);
   DEBUG('u', "pName=%s\n", currentThread->space->getProcessName());
   DEBUG('u', "pNum=%d\n", num);
 //  sprintf(name, "%s%d", currentThread->space->getProcessName(), num);
   
+  // Set properties of individual thread
   t->setName(name);
   t->setThreadNum(num);
   t->setProcessID(processID);
   t->space = currentThread->space;      // Set new thread to currentThread's address space
   DEBUG('u', "New thread named '%s'; thread# %d with processID %d (%s)\n", name, num, processID, t->space->getProcessName());
+  
+  processTableLock->Release();
  
-  //t->space->incNumThreadsRunning();
   // Finally Fork a new kernel thread 
   t->Fork((VoidFunctionPtr)newKernelThread, vAddress);
 //  currentThread->Yield(); // CHANGED
@@ -495,6 +508,7 @@ int Exec_Syscall(int vAddress, int len) {
   f = fileSystem->Open(buf);
   if(!f) {
     printf("Error opening file at %s\n", buf);
+    delete f;
     return -1;
   }
   
@@ -509,6 +523,7 @@ int Exec_Syscall(int vAddress, int len) {
   strcpy(name, pName);
   sprintf(name, "%s%d", pName, pID);
   processSpace->setProcessName(name);
+  DEBUG('u', "EXEC: Created new process '%s'. Now %d processes in processTable.\n", processSpace->getProcessName(), processTable->Size());
 //  printf("MYNAMEBITCH2=%s\n", pName);
   processTableLock->Release();
   
@@ -538,26 +553,28 @@ void Exit_Syscall() {
 
   // If all processes have already exitted
   if(processTable->Size() == 0) {
-    printf("ERROR: All processes have exited already, Nachos should have halted.\n");
+    printf("Exit: ERROR: All processes have exited already, Nachos should have halted.\n");
     processTableLock->Release();
     interrupt->Halt();
   }
 
   // If current thread had an error when making the process
   if(currentThread->getProcessID() == -1) {
-    printf("ERROR: Can't exit this thread, it is not a valid process.\n");
+    printf("Exit: ERROR: Can't exit this thread, it is not a valid process.\n");
     processTableLock->Release();
     interrupt->Halt();
   }
+  
+  DEBUG('u', "Shit: EXIT CALLED %d times!\n", ++exit_count);
 
-  DEBUG('u', "EXIT: Number threads left in process = %i \n", currentThread->space->threadTable->Size());
-  DEBUG('u', "EXIT: Number of processes left = %i \n", processTable->Size());
+  DEBUG('u', "Exit: Number threads left in process = %i \n", currentThread->space->threadTable->Size());
+  DEBUG('u', "Exit: Number of processes left = %i \n", processTable->Size());
   
   // Last executing thread in the last process
   if(processTable->Size() == 1) {
     if(currentThread->space->threadTable->Size() == 1) {
       processTableLock->Release();
-      DEBUG('u', "Exit: Nachos successfully shutting down.\n");
+      printf("\nExit: Nachos successfully shutting down.\n");
       interrupt->Halt();
     }
   }
@@ -629,7 +646,7 @@ void Wait_Syscall(int cvIndex, int lockIndex) {
     cvArray->Release();
     lockArray->Release();
     return;
-  } 
+  }
 
   // Check that the condition has not been deleted
   else if (conditions[cvIndex].isDeleted) {
@@ -662,11 +679,11 @@ void Wait_Syscall(int cvIndex, int lockIndex) {
     lockArray->Release();
     return;
   }
+  
   conditions[cvIndex].numActiveThreads++;   // Add a thread using the condition
 	cvArray->Release();
   lockArray->Release();
   conditions[cvIndex].condition->Wait(locks[lockIndex].lock);
-  
 }
 
 void Signal_Syscall(int cvIndex, int lockIndex) {
@@ -808,7 +825,7 @@ int CreateLock_Syscall() {
   myLock.toBeDeleted = false;
   myLock.numActiveThreads = 0;
   lockArray->Acquire();
-	DEBUG('v', "Lock created at position: %i\n",nextLockPos);
+	DEBUG('w', "Lock created at position: %i\n",nextLockPos);
   locks[nextLockPos] = myLock;
   nextLockPos++;
   
@@ -921,6 +938,35 @@ void DestroyCondition_Syscall(int cvIndex) {
 }
 
 
+// Handle any PageFaultExceptions found
+void handlePageFault(int vAddress) {
+
+  DEBUG('v', "PF Exception: PageFaultException found in %s at vAddress=%i\n", currentThread->getName(), vAddress);
+  
+  // Disable interrupts
+  IntStatus oldLevel = interrupt->SetLevel(IntOff);
+  
+  // Define the Virtual Page Number
+  int vpn = vAddress / PageSize;
+  
+  // Copy fields from page table to TLB
+  machine->tlb[currentTLB].virtualPage = currentThread->space->pageTable[vpn].virtualPage;
+  machine->tlb[currentTLB].physicalPage = currentThread->space->pageTable[vpn].physicalPage;
+  machine->tlb[currentTLB].valid = currentThread->space->pageTable[vpn].valid;
+  machine->tlb[currentTLB].use = currentThread->space->pageTable[vpn].use;
+  machine->tlb[currentTLB].dirty = currentThread->space->pageTable[vpn].dirty;
+  machine->tlb[currentTLB].readOnly = currentThread->space->pageTable[vpn].readOnly;
+  
+  currentTLB = (currentTLB+1)%TLBSize;
+  
+  // Restore interrupts
+  (void) interrupt->SetLevel(oldLevel);
+}
+
+
+// #############################################################################
+
+
 // Fatty exception handler
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
@@ -938,10 +984,10 @@ void ExceptionHandler(ExceptionType which) {
         DEBUG('a', "Create syscall.\n");
         Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
       break;
-			case SC_Random:
-				DEBUG('a', "Random syscall.\n");
-				rv = Random_Syscall(machine -> ReadRegister(4));
-			break;
+      case SC_Random:
+	      DEBUG('a', "Random syscall.\n");
+	      rv = Random_Syscall(machine -> ReadRegister(4));
+      break;
       case SC_Print:
         DEBUG('a', "Print syscall.\n");
         Print_Syscall(machine->ReadRegister(4), 
@@ -1027,15 +1073,20 @@ void ExceptionHandler(ExceptionType which) {
         DEBUG('a', "DestroyCondition syscall.\n");
         DestroyCondition_Syscall(machine->ReadRegister(4));
       break;
-		
-	}
+      }
 
-		// Put in the return value and increment the PC
-		machine->WriteRegister(2,rv);
-		machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
-		machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
-		machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
-		return;
+      // Put in the return value and increment the PC
+      machine->WriteRegister(2,rv);
+      machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
+      machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
+      machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
+      return;
+      
+    } else if(which==PageFaultException) {
+      // Handle TLB miss
+      int faultVAddress = machine->ReadRegister(39);
+      handlePageFault(faultVAddress);
+      
     } else {
       cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
       interrupt->Halt();

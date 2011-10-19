@@ -56,11 +56,13 @@ int Table::Put(void *f) {
 
     lock->Acquire();
     i = map.Find();
-    lock->Release();
-    if ( i != -1) {
+    if ( i >= 0 && i < maxSize) {
       table[i] = f;
       size++;
+    } else {
+      i = -1;
     }
+    lock->Release();
     return i;
 }
 
@@ -70,15 +72,15 @@ void *Table::Remove(int i) {
 
     void *f =0;
 
-    if ( i >= 0 && i < size ) {
-	lock->Acquire();
-	if ( map.Test(i) ) {
-	    map.Clear(i);
-	    f = table[i];
-	    table[i] = 0;
-	    size--;
-	}
-	lock->Release();
+    if ( i >= 0 && i < maxSize) {
+      lock->Acquire();
+      if ( map.Test(i) ) {
+          map.Clear(i);
+          f = table[i];
+          table[i] = 0;
+          size--;
+      }
+      lock->Release();
     }
     return f;
 }
@@ -188,7 +190,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	
     DEBUG('u', "numPagesReserved: %i, numPages: %i, NumPhysPages: %i\n", numPagesReserved, numPages, NumPhysPages);
     // Verify there are enough free pages left
-    ASSERT((numPagesReserved + numPages) <= NumPhysPages);		// check we're not trying
+    ASSERT((numPagesReserved + numPages) <= NumPhysPages);		// check we're not trying to extend past the range of pages
 						
     // zero out the entire address space, to zero the unitialized data segment 
 //    bzero(machine->mainMemory, size);
@@ -301,8 +303,16 @@ void AddrSpace::SaveState()
 
 void AddrSpace::RestoreState() 
 {
-    machine->pageTable = pageTable;
-    machine->pageTableSize = numPages;
+//  machine->pageTable = pageTable;
+  machine->pageTableSize = numPages;
+    
+  // Disable interrupts
+  IntStatus oldLevel = interrupt->SetLevel(IntOff);
+  for(int i=0;i<TLBSize;i++) {
+    machine->tlb[i].valid=FALSE;
+  }
+  // Restore interrupts
+  (void) interrupt->SetLevel(oldLevel);
 }
 
 

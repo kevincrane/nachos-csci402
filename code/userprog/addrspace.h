@@ -60,10 +60,10 @@ class AddrSpace {
     bool isMain() { return isMai; }
     void setMain() { isMai = true; }
 
-
-  private:
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!
+  private:
+    
     unsigned int numPages;		// Number of pages in the virtual 
 					// address space
 
