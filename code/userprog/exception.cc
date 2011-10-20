@@ -517,7 +517,8 @@ int Exec_Syscall(int vAddress, int len) {
   AddrSpace* processSpace = new AddrSpace(f);
   
   processTableLock->Acquire();
-  int pID = processTable->Put(processSpace);
+//  int pID = processTable->Put(processSpace);
+  int pID = processSpace->getProcessID();
   char* pName = processSpace->getProcessName();
   char* name = new char[20];
   strcpy(name, pName);
@@ -948,14 +949,62 @@ void handlePageFault(int vAddress) {
   
   // Define the Virtual Page Number
   int vpn = vAddress / PageSize;
+  int ppn = -1;                        // Defines physical page number to look for
+  
+  // Find the physical page number that matches the VPN passed in
+  iptLock->Acquire();
+  for(int i=0;i<NumPhysPages;i++) {
+    if(ipt[i].valid && (vpn == ipt[i].virtualPage) && (currentThread->getProcessID() == ipt[i].processID)) {
+      ipt[i].use = true;
+      ppn=i;
+      DEBUG('v', "Found physical page number '%i' in thread '%s'\n", ppn, currentThread->getName());
+      break;
+    }
+  }
+  
+  if(ppn == -1) {
+    DEBUG('v', "IPT miss in thread '%s'\n", currentThread->getName());
+    
+    // Search for correct physical page number to add to IPT
+//TODO:    ppn = currentThread->space->doIPTMiss(virtualAddress);
+
+    ipt[ppn].virtualPage = vpn;
+    ipt[ppn].physicalPage = ppn;
+    ipt[ppn].valid = currentThread->space->pageTable[vpn].valid;
+    ipt[ppn].readOnly = currentThread->space->pageTable[vpn].readOnly;
+    ipt[ppn].use = currentThread->space->pageTable[vpn].use;
+//    ipt[ppn].use = true;
+    ipt[ppn].dirty = currentThread->space->pageTable[vpn].dirty;
+    ipt[ppn].processID = currentThread->space->pageTable[vpn].processID;
+  }
+  
+  iptLock->Release();
+  
+  // Check to see if current page in TLB is dirty; update IPT, pageTable if it is
+  if(machine->tlb[currentTLB].dirty && machine->tlb[currentTLB].valid) {
+    ipt[machine->tlb[currentTLB].physicalPage].dirty = true;
+    currentThread->space->pageTable[machine->tlb[currentTLB].virtualPage].dirty = true;
+  }
   
   // Copy fields from page table to TLB
-  machine->tlb[currentTLB].virtualPage = currentThread->space->pageTable[vpn].virtualPage;
+/*  machine->tlb[currentTLB].virtualPage = currentThread->space->pageTable[vpn].virtualPage;
   machine->tlb[currentTLB].physicalPage = currentThread->space->pageTable[vpn].physicalPage;
   machine->tlb[currentTLB].valid = currentThread->space->pageTable[vpn].valid;
   machine->tlb[currentTLB].use = currentThread->space->pageTable[vpn].use;
   machine->tlb[currentTLB].dirty = currentThread->space->pageTable[vpn].dirty;
   machine->tlb[currentTLB].readOnly = currentThread->space->pageTable[vpn].readOnly;
+  */
+  
+  if(ppn >= 0 && ppn < NumPhysPages) {
+    machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage;
+    machine->tlb[currentTLB].physicalPage = ipt[ppn].physicalPage;
+    machine->tlb[currentTLB].valid = ipt[ppn].valid;
+    machine->tlb[currentTLB].use = ipt[ppn].use;
+    machine->tlb[currentTLB].dirty = ipt[ppn].dirty;
+    machine->tlb[currentTLB].readOnly = ipt[ppn].readOnly;
+  } else {
+    printf("ERROR (handlePageFault): invalid physical page number in IPT.\n");
+  }
   
   currentTLB = (currentTLB+1)%TLBSize;
   

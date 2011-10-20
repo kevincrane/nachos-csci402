@@ -37,6 +37,11 @@ int totalPagesReserved;   // Number of pages reserved for address spaces
 // Data for accessing process table
 Lock* processTableLock;
 Table* processTable;
+
+// IPT Data
+IPTEntry ipt[NumPhysPages];
+Lock *iptLock;
+
 #endif
 
 #ifdef NETWORK
@@ -165,6 +170,9 @@ Initialize(int argc, char **argv)
     // Data for accessing process table
     processTableLock = new Lock("Process Table Lock");
     processTable = new Table(1000);
+    
+    // IPT Data
+    iptLock = new Lock("IPT Lock");
 #endif
 
 #ifdef FILESYS

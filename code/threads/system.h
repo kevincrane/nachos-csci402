@@ -16,6 +16,8 @@
 #include "stats.h"
 #include "timer.h"
 
+#include "../userprog/iptEntry.h"
+
 //#include "table.h"
 
 // Initialization and cleanup routines
@@ -41,6 +43,9 @@ extern Lock *pageLock;
 
 extern Lock* processTableLock;
 extern Table* processTable;
+
+extern IPTEntry ipt[NumPhysPages];
+extern Lock* iptLock;
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 

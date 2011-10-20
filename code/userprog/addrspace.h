@@ -16,6 +16,7 @@
 #include "copyright.h"
 #include "filesys.h"
 #include "table.h"
+#include "iptEntry.h"
 
 #define UserStackSize   1024   // increase this as necessary!
 #define MaxNumProgs     10     // max number of programs/stacks
@@ -60,7 +61,7 @@ class AddrSpace {
     bool isMain() { return isMai; }
     void setMain() { isMai = true; }
 
-    TranslationEntry *pageTable;	// Assume linear page table translation
+    IPTEntry *pageTable;	// Assume linear page table translation
 					// for now!
   private:
     

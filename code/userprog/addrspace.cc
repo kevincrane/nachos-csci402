@@ -176,6 +176,9 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     
     kernThreadLock = new Lock("KernelThread Lock");
     isMai = 0;
+    
+    // Add self to process Table and define this space's processID
+    processID = processTable->Put(this);
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
@@ -197,12 +200,14 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 
     DEBUG('u', "Initializing address space, num pages %d, size %d\n", numPages, size);
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
+
     // Set up translation of virtual address to physical address
-    pageTable = new TranslationEntry[numPages];
+    pageTable = new IPTEntry[numPages];
+    
+    pageLock->Acquire();
+    iptLock->Acquire();
     for (i = 0; i < numPages; i++) {
       DEBUG('a', "Acquiring page lock, times looped: %i\n", i);
-      pageLock->Acquire();
-      DEBUG('r', "Acquired page lock\n");
       pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
       pageTable[i].physicalPage = pageMap->Find();    // Find a free slot in physical memory
       pageTable[i].valid = TRUE;
@@ -211,7 +216,15 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
       pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
                                       // a separate page, we could set its 
                                       // pages to be read-only
-      pageLock->Release();
+      pageTable[i].processID = processID;
+      
+      ipt[i].virtualPage = i;
+      ipt[i].physicalPage = pageTable[i].physicalPage;
+      ipt[i].valid = TRUE;
+      ipt[i].readOnly = FALSE;
+      ipt[i].use = FALSE;
+      ipt[i].dirty = FALSE;
+      ipt[i].processID = processID;
       
       // Copy one page of code/data segment into memory if they exist
       executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage*PageSize]), PageSize, (noffH.code.inFileAddr + i*PageSize));
@@ -220,6 +233,8 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	  DEBUG('a', "Page copied to pageTable at phys add: %d. Code/data of size %d copied from %d.\n", 
           pageTable[i].physicalPage*PageSize, PageSize, (noffH.code.inFileAddr + i*PageSize));
     }
+    pageLock->Release();
+    iptLock->Release();
 
 // then, copy in the code and data segments into memory
 /*    if (noffH.code.size > 0) {
