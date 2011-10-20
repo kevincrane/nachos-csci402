@@ -959,6 +959,8 @@ void handlePageFault(int vAddress) {
       ppn=i;
       DEBUG('v', "Found physical page number '%i' in thread '%s'\n", ppn, currentThread->getName());
       break;
+//    } else {
+//      printf("FUCKER: IPT valid=%i;  vpn=%i, ipt.vpn=%i;  pID=%i, ipt.pID=%i;\n", ipt[i].valid, vpn, ipt[i].virtualPage, currentThread->getProcessID(), ipt[i].processID);
     }
   }
   
@@ -1003,7 +1005,7 @@ void handlePageFault(int vAddress) {
     machine->tlb[currentTLB].dirty = ipt[ppn].dirty;
     machine->tlb[currentTLB].readOnly = ipt[ppn].readOnly;
   } else {
-    printf("ERROR (handlePageFault): invalid physical page number in IPT.\n");
+    printf("ERROR (handlePageFault): invalid physical page number in IPT (ppn=%i. Max is %i).\n", ppn, NumPhysPages);
   }
   
   currentTLB = (currentTLB+1)%TLBSize;

@@ -204,8 +204,22 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     // Set up translation of virtual address to physical address
     pageTable = new IPTEntry[numPages];
     
+    
     pageLock->Acquire();
     iptLock->Acquire();
+    
+    int iptOffset;
+    //TODO: Temporary fix for iptOffset, delete this later if it's found to not work on larger scale
+    for(i=0; i<NumPhysPages-1; i++) {
+      if(ipt[i].physicalPage == 0 && ipt[i+1].physicalPage == 0) {
+        iptOffset = i;
+        printf("CLIT: iptOffset=%i; numPages=%i\n\n", iptOffset, numPages);
+        break;
+      }
+    }
+    if(numPages + iptOffset >= NumPhysPages)
+      printf("ERROR: trying to add more physical pages than I can currently handle. Go fix this in AddrSpace constructor.\n");
+      
     for (i = 0; i < numPages; i++) {
       DEBUG('a', "Acquiring page lock, times looped: %i\n", i);
       pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
@@ -218,13 +232,13 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
                                       // pages to be read-only
       pageTable[i].processID = processID;
       
-      ipt[i].virtualPage = i;
-      ipt[i].physicalPage = pageTable[i].physicalPage;
-      ipt[i].valid = TRUE;
-      ipt[i].readOnly = FALSE;
-      ipt[i].use = FALSE;
-      ipt[i].dirty = FALSE;
-      ipt[i].processID = processID;
+      ipt[i + iptOffset].virtualPage = i;
+      ipt[i + iptOffset].physicalPage = pageTable[i].physicalPage;
+      ipt[i + iptOffset].valid = TRUE;
+      ipt[i + iptOffset].readOnly = FALSE;
+      ipt[i + iptOffset].use = FALSE;
+      ipt[i + iptOffset].dirty = FALSE;
+      ipt[i + iptOffset].processID = processID;
       
       // Copy one page of code/data segment into memory if they exist
       executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage*PageSize]), PageSize, (noffH.code.inFileAddr + i*PageSize));
@@ -233,6 +247,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	  DEBUG('a', "Page copied to pageTable at phys add: %d. Code/data of size %d copied from %d.\n", 
           pageTable[i].physicalPage*PageSize, PageSize, (noffH.code.inFileAddr + i*PageSize));
     }
+    iptOffset += numPages;
     pageLock->Release();
     iptLock->Release();
 
