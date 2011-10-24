@@ -24,6 +24,10 @@
 
 #define MAXTHREADS 500
 
+#define PageInMem 0
+#define PageInSwap 1
+#define PageInExec 2
+
 extern "C" { int bzero(char *, int); };
 
 Table::Table(int s) : map(s), table(0), lock(0), maxSize(s), size(0) {
@@ -171,6 +175,8 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     fileTable.Put(0);
     fileTable.Put(0);
     
+    pExec = executable;
+    
     // Initialize table of threads
     threadTable = new Table(MaxNumThreads);		// Arbitrary number of maximum threads
     
@@ -188,6 +194,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 
     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size ;
     numPages = divRoundUp(size, PageSize) + divRoundUp(UserStackSize*MaxNumProgs,PageSize);
+    pagesInExec = divRoundUp(noffH.code.size + noffH.initData.size, PageSize);
                                                 
     size = numPages * PageSize;
 	
@@ -213,7 +220,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     for(i=0; i<NumPhysPages-1; i++) {
       if(ipt[i].physicalPage == 0 && ipt[i+1].physicalPage == 0) {
         iptOffset = i;
-        printf("CLIT: iptOffset=%i; numPages=%i\n\n", iptOffset, numPages);
+        DEBUG('v', "AddrSpace cons: iptOffset=%i; numPages=%i\n\n", iptOffset, numPages);
         break;
       }
     }
@@ -222,7 +229,8 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
       
     for (i = 0; i < numPages; i++) {
       DEBUG('a', "Acquiring page lock, times looped: %i\n", i);
-      pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+
+/*      pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
       pageTable[i].physicalPage = pageMap->Find();    // Find a free slot in physical memory
       pageTable[i].valid = TRUE;
       pageTable[i].use = FALSE;
@@ -231,20 +239,37 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
                                       // a separate page, we could set its 
                                       // pages to be read-only
       pageTable[i].processID = processID;
+*/
       
-      ipt[i + iptOffset].virtualPage = i;
+      // New system to avoid pre-loading data into the IPT
+//      pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+      
+      pageTable[i].physicalPage = -1;
+      pageTable[i].valid = FALSE;
+      pageTable[i].location = noffH.code.inFileAddr + (i * PageSize);
+      if(i < pagesInExec) {
+        pageTable[i].pageLoc = PageInExec;
+      } else 
+        pageTable[i].pageLoc = PageInMem;
+      
+/*      pageTable[i].use = FALSE;
+      pageTable[i].dirty = FALSE;
+      pageTable[i].readOnly = FALSE;
+      pageTable[i].processID = processID;*/
+
+/*      ipt[i + iptOffset].virtualPage = i;
       ipt[i + iptOffset].physicalPage = pageTable[i].physicalPage;
       ipt[i + iptOffset].valid = TRUE;
       ipt[i + iptOffset].readOnly = FALSE;
       ipt[i + iptOffset].use = FALSE;
       ipt[i + iptOffset].dirty = FALSE;
-      ipt[i + iptOffset].processID = processID;
+      ipt[i + iptOffset].processID = processID;*/
       
       // Copy one page of code/data segment into memory if they exist
-      executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage*PageSize]), PageSize, (noffH.code.inFileAddr + i*PageSize));
+//      executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage*PageSize]), PageSize, (noffH.code.inFileAddr + i*PageSize));
       numPagesReserved++;
 
-	  DEBUG('a', "Page copied to pageTable at phys add: %d. Code/data of size %d copied from %d.\n", 
+	    DEBUG('a', "Page copied to pageTable at phys add: %d. Code/data of size %d copied from %d.\n", 
           pageTable[i].physicalPage*PageSize, PageSize, (noffH.code.inFileAddr + i*PageSize));
     }
     iptOffset += numPages;
@@ -277,6 +302,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 AddrSpace::~AddrSpace()
 {
     delete pageTable;
+    delete threadTable;
 }
 
 //----------------------------------------------------------------------

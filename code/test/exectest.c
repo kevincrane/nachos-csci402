@@ -52,6 +52,7 @@ int main() {
 	/* Broadcast */
 	Print("Trying to broadcast on cv 6 from wrong process\n", -1, -1, -1);
 	Broadcast(6, 6);
+	
 	/* Leave new process after tests */
 	Exit(0);
 }

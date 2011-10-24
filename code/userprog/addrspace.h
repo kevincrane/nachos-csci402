@@ -51,10 +51,6 @@ class AddrSpace {
     int getProcessID() { return processID; }
     int getEndStackReg() { return endStackReg; }
     
-    int getNumThreadsRunning() { return numThreadsRunning; }
-    void incNumThreadsRunning() { numThreadsRunning++; }
-    void decNumThreadsRunning() { numThreadsRunning--; }
-
     void removePage(int i);
     int getNumPages() {return numPages;}
     
@@ -63,6 +59,10 @@ class AddrSpace {
 
     IPTEntry *pageTable;	// Assume linear page table translation
 					// for now!
+					
+		OpenFile* pExec;
+		unsigned int pagesInExec;
+		
   private:
     
     unsigned int numPages;		// Number of pages in the virtual 
@@ -71,7 +71,6 @@ class AddrSpace {
 		char* processName;      // Name of process in current address space
 		int processID;          // ID of process in current address space
 		int endStackReg;        // Defines value for end of stack based on size of pageTable
-		int numThreadsRunning;  // Number of threads running in this address space
 		int numPagesReserved;   // Number of pages used so far
 		bool isMai;            // Is this the main thread?
 };

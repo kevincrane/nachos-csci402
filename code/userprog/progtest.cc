@@ -39,7 +39,7 @@ StartProcess(char *filename)
 //    int pID = processTable->Put(space);   -- Not needed, already called in AddrSpace constructor
     space->threadTable->Put(currentThread);
 
-    delete executable;			// close file
+//    delete executable;			// close file -- Note needed? supposed to keep handle on executable
 
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register

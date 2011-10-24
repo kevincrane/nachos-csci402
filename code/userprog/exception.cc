@@ -34,6 +34,10 @@ using namespace std;
 #define MAX_CVS 1000
 #define MAX_PROCESSES 1000
 
+#define PageInMem 0
+#define PageInSwap 1
+#define PageInExec 2
+
 // To hold all of the data about a created lock
 struct lockData{
   Lock* lock;                
@@ -153,7 +157,6 @@ void newKernelThread(int vAddress)
   currentThread->space->RestoreState();
   
   // Increment number of threads running and release lock
-  currentThread->space->incNumThreadsRunning();
   currentThread->space->kernThreadLock->Release();
   
   // Run the new kernel thread
@@ -440,10 +443,6 @@ void Release_Syscall(int lockIndex) {
 // Fork Syscall. Fork new thread from pointer to void function
 void Fork_Syscall(int vAddress)
 {
-  if(currentThread->space->getNumThreadsRunning() >= 60) {
-	  DEBUG('u', "Fork: ERROR: Maximum number of threads reached, bailing.\n");
-	  return;
-  }
   if(vAddress > (currentThread->space->getNumPages()*PageSize)) {
     DEBUG('u', "Fork: ERROR: Invalid address, would extend beyond usable range.\n");
     return;
@@ -528,7 +527,7 @@ int Exec_Syscall(int vAddress, int len) {
 //  printf("MYNAMEBITCH2=%s\n", pName);
   processTableLock->Release();
   
-  delete f;                           // Close the file
+//  delete f;                           // Close the file
 //  processSpace->InitRegisters();      // set the initial register values
 //  processSpace->RestoreState();       // load page table register
   
@@ -538,7 +537,6 @@ int Exec_Syscall(int vAddress, int len) {
   int threadNum = processSpace->threadTable->Put(newThread);       // add first new thread to thread table
   newThread->setThreadNum(threadNum);
   newThread->setProcessID(pID);
-  newThread->space->incNumThreadsRunning();
 
   // Fork this new thread
   newThread->Fork((VoidFunctionPtr)exec_thread, vAddress);
@@ -580,24 +578,25 @@ void Exit_Syscall() {
     }
   }
 
-  // Thread in a process, not the last executing thread in the process, nor is
-  // it the last process
-/*  if(currentThread->space->getNumThreadsRunning() > 1) {
-    currentThread->space->threadTable->Remove(currentThread->getThreadNum());
-    currentThread->space->decNumThreadsRunning();
-    // TODO: Remove stack pages for this thread
-  }*/
-
   // Last executing thread in a process - not the last process
   if(currentThread->space->threadTable->Size() == 1) {
     DEBUG('u', "Exit: Removing process '%s' from Nachos (no threads left).\n", currentThread->space->getProcessName());
     currentThread->space->threadTable->Remove(currentThread->getThreadNum());
     processTable->Remove(currentThread->getProcessID());
-//    currentThread->space->decNumThreadsRunning();
+    
+    delete currentThread->space;
+    
+    //TODO: need to change IPT pages to FALSE?
 
-    for(int i = 0; i < currentThread->space->getNumPages(); i++) {
-      currentThread->space->removePage(i);
-    }
+
+
+/*    for(int i = 0; i < currentThread->space->getNumPages(); i++) {
+      iptLock->Acquire();
+//			ipt[pageTable[i].physicalPage].valid=FALSE;
+			iptLock->Release();
+			
+//      currentThread->space->removePage(i);
+    }*/
   } else {
     currentThread->space->threadTable->Remove(currentThread->getThreadNum());
   }
@@ -939,10 +938,48 @@ void DestroyCondition_Syscall(int cvIndex) {
 }
 
 
+// Assign new physical page number after finding an IPT access miss
+int handleIPTMiss(int vpn) {
+  int ppn = pageMap->Find();
+  
+  if(ppn == -1) {
+    // Could not find a free space in the pageMap, must evict one to make space
+    DEBUG('v', "\nhandleIPTMiss: could not find a free space in pageMap, looking to evict a bitch.\n");
+//    ppn = evictSomeone();
+    return -1;
+  }
+  
+  DEBUG('v', "handleIPTMiss: in thread '%s': VPN=%i; found PPN= %i.\n", currentThread->getName(), vpn, ppn);
+  
+  // Have a valid physical page number to use
+  pageLock->Acquire();
+  if((currentThread->space->pageTable[vpn].pageLoc) == PageInSwap) {
+    // Find page in Swap File
+    DEBUG('v', "handleIPTMiss: trying to access Swap File.\n");
+  } else if(currentThread->space->pageTable[vpn].pageLoc == PageInExec) {
+    // Copying page from Executable
+    currentThread->space->pExec->ReadAt(machine->mainMemory + (ppn*PageSize), PageSize, currentThread->space->pageTable[vpn].location);
+    currentThread->space->pageTable[vpn].dirty = false;
+    
+    DEBUG('v', "handleIPTMiss: Copied page from Executable page %i to pageTable loc=%i.\n",
+        machine->mainMemory + (ppn*PageSize), currentThread->space->pageTable[vpn].location);
+  }
+  
+  // Set pageTable for this virtual page to Valid
+  currentThread->space->pageTable[vpn].physicalPage = ppn;
+  currentThread->space->pageTable[vpn].valid = TRUE;
+  
+  pageLock->Release();
+  
+  return ppn;
+  
+}
+
+
 // Handle any PageFaultExceptions found
 void handlePageFault(int vAddress) {
 
-  DEBUG('v', "PF Exception: PageFaultException found in %s at vAddress=%i\n", currentThread->getName(), vAddress);
+//  DEBUG('v', "PF Exception: PageFaultException found in %s at vAddress=%i\n", currentThread->getName(), vAddress);
   
   // Disable interrupts
   IntStatus oldLevel = interrupt->SetLevel(IntOff);
@@ -953,11 +990,19 @@ void handlePageFault(int vAddress) {
   
   // Find the physical page number that matches the VPN passed in
   iptLock->Acquire();
-  for(int i=0;i<NumPhysPages;i++) {
+  
+  // Increase timestamp on all IPT values. Higher value = older.
+  for(int i=0; i<TLBSize; i++) {
+    if(machine->tlb[i].valid == TRUE)
+      ipt[machine->tlb[i].physicalPage].timeStamp++;
+  }
+  
+  // Find the correct IPT page matching the page that threw the PageFaultException
+  for(int i=0; i<NumPhysPages; i++) {
     if(ipt[i].valid && (vpn == ipt[i].virtualPage) && (currentThread->getProcessID() == ipt[i].processID)) {
       ipt[i].use = true;
       ppn=i;
-      DEBUG('v', "Found physical page number '%i' in thread '%s'\n", ppn, currentThread->getName());
+//      DEBUG('v', "Found physical page number '%i' in thread '%s'\n", ppn, currentThread->getName());
       break;
 //    } else {
 //      printf("FUCKER: IPT valid=%i;  vpn=%i, ipt.vpn=%i;  pID=%i, ipt.pID=%i;\n", ipt[i].valid, vpn, ipt[i].virtualPage, currentThread->getProcessID(), ipt[i].processID);
@@ -968,8 +1013,11 @@ void handlePageFault(int vAddress) {
     DEBUG('v', "IPT miss in thread '%s'\n", currentThread->getName());
     
     // Search for correct physical page number to add to IPT
-//TODO:    ppn = currentThread->space->doIPTMiss(virtualAddress);
+    ppn = handleIPTMiss(vpn);
 
+
+    // TODO: should this section below be here?
+    pageLock->Acquire();
     ipt[ppn].virtualPage = vpn;
     ipt[ppn].physicalPage = ppn;
     ipt[ppn].valid = currentThread->space->pageTable[vpn].valid;
@@ -978,6 +1026,7 @@ void handlePageFault(int vAddress) {
 //    ipt[ppn].use = true;
     ipt[ppn].dirty = currentThread->space->pageTable[vpn].dirty;
     ipt[ppn].processID = currentThread->space->pageTable[vpn].processID;
+    pageLock->Release();
   }
   
   iptLock->Release();
@@ -988,19 +1037,11 @@ void handlePageFault(int vAddress) {
     currentThread->space->pageTable[machine->tlb[currentTLB].virtualPage].dirty = true;
   }
   
-  // Copy fields from page table to TLB
-/*  machine->tlb[currentTLB].virtualPage = currentThread->space->pageTable[vpn].virtualPage;
-  machine->tlb[currentTLB].physicalPage = currentThread->space->pageTable[vpn].physicalPage;
-  machine->tlb[currentTLB].valid = currentThread->space->pageTable[vpn].valid;
-  machine->tlb[currentTLB].use = currentThread->space->pageTable[vpn].use;
-  machine->tlb[currentTLB].dirty = currentThread->space->pageTable[vpn].dirty;
-  machine->tlb[currentTLB].readOnly = currentThread->space->pageTable[vpn].readOnly;
-  */
-  
+  // Copy fields from IPT to TLB  
   if(ppn >= 0 && ppn < NumPhysPages) {
     machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage;
     machine->tlb[currentTLB].physicalPage = ipt[ppn].physicalPage;
-    machine->tlb[currentTLB].valid = ipt[ppn].valid;
+    machine->tlb[currentTLB].valid = true;
     machine->tlb[currentTLB].use = ipt[ppn].use;
     machine->tlb[currentTLB].dirty = ipt[ppn].dirty;
     machine->tlb[currentTLB].readOnly = ipt[ppn].readOnly;
