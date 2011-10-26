@@ -584,19 +584,15 @@ void Exit_Syscall() {
     currentThread->space->threadTable->Remove(currentThread->getThreadNum());
     processTable->Remove(currentThread->getProcessID());
     
-    delete currentThread->space;
-    
-    //TODO: need to change IPT pages to FALSE?
-
-
-
-/*    for(int i = 0; i < currentThread->space->getNumPages(); i++) {
-      iptLock->Acquire();
-//			ipt[pageTable[i].physicalPage].valid=FALSE;
-			iptLock->Release();
-			
-//      currentThread->space->removePage(i);
-    }*/
+    for(int i = 0; i < currentThread->space->getNumPages(); i++) {
+      if(currentThread->space->pageTable[i].valid == true && currentThread->space->pageTable[i].physicalPage != -1) {
+        iptLock->Acquire();
+			  ipt[currentThread->space->pageTable[i].physicalPage].valid = true;
+			  iptLock->Release();
+        currentThread->space->removePage(i);
+      }
+    }
+//    delete currentThread->space;
   } else {
     currentThread->space->threadTable->Remove(currentThread->getThreadNum());
   }
@@ -938,15 +934,87 @@ void DestroyCondition_Syscall(int cvIndex) {
 }
 
 
+// Evict a page from the pageMap and return the PPN of the page that was cleared up
+int evictAPage() {
+  int evictPPN = 0;
+  
+  // First in-first out eviction
+  if(evictType == 0) {
+    iptLock->Acquire();
+    // Find page in IPT with oldest (largest) time-stamp
+    for(int i=1; i<NumPhysPages; i++) {
+      if(ipt[evictPPN].timeStamp > ipt[i].timeStamp) {
+        evictPPN = i;
+      }
+    }
+    iptLock->Release();
+    DEBUG('v', "evictAPage: evicting PPN %i through FIFO method (timeStamp=%i).\n", evictPPN, ipt[evictPPN].timeStamp);
+    
+  } else {
+    // Random eviction
+    do {
+      evictPPN = rand()%NumPhysPages;
+      iptLock->Acquire();
+      if(!ipt[evictPPN].inUse) {
+        ipt[evictPPN].inUse = true;
+        iptLock->Release();
+        break;
+      }
+      iptLock->Release();
+    } while(true);
+    DEBUG('v', "evictAPage: evicting PPN %i through Random method.\n", evictPPN);
+  }
+  
+  // Propagate dirty bit from TLB to IPT and disable current page in TLB
+  IntStatus oldLevel = interrupt->SetLevel(IntOff);
+  for(int i = 0; i < TLBSize; i++) {
+    // Check to see whether the selected page is in the TLB
+    if(evictPPN == machine->tlb[i].physicalPage) {
+      // If so, set it invalid and propagate the dirty bit back to the IPT
+      ipt[evictPPN].dirty = machine->tlb[i].dirty;
+      machine->tlb[i].valid = false;
+    }
+  }
+  (void) interrupt->SetLevel(oldLevel);
+  
+  // Copy page from memory to swap page
+  if(ipt[evictPPN].dirty == true) {
+    swapFileLock->Acquire();
+    int swapLoc = swapFileMap->Find();      // Find the next page location in the swapfile
+    if(swapLoc >= 0) {
+      // Found space in SwapFile, writing data from memory to swap file
+      char* valToWrite = (char*)(machine->mainMemory + (evictPPN*PageSize));
+      swapFile->WriteAt(valToWrite, PageSize, swapLoc*PageSize);
+      DEBUG('v', "evictAPage: Wrote from memLoc=%i to swapFile loc=%i\n", 
+          valToWrite, swapLoc*PageSize);
+    } else {
+      DEBUG('v', "evictAPage: ERROR: Could not find any free space in the SwapFile\n");
+    }
+    
+    // Updating PageTable to reflect page moving from mem to swap
+    currentThread->space->pageTable[ipt[evictPPN].virtualPage].pageLoc = PageInSwap;
+    currentThread->space->pageTable[ipt[evictPPN].virtualPage].swapByteOffset = swapLoc;
+    currentThread->space->pageTable[ipt[evictPPN].virtualPage].physicalPage = -1;
+//    currentThread->space->pageTable[ipt[evictPPN].virtualPage].valid = false;
+    swapFileLock->Release();   
+  }
+  
+  iptLock->Acquire();
+  ipt[evictPPN].use = false;
+  ipt[evictPPN].inUse = false;
+  iptLock->Release();
+  
+  return evictPPN;
+}
+
 // Assign new physical page number after finding an IPT access miss
-int handleIPTMiss(int vpn) {
+int handleIPTMiss(unsigned int vpn) {
   int ppn = pageMap->Find();
   
   if(ppn == -1) {
     // Could not find a free space in the pageMap, must evict one to make space
     DEBUG('v', "\nhandleIPTMiss: could not find a free space in pageMap, looking to evict a bitch.\n");
-//    ppn = evictSomeone();
-    return -1;
+    ppn = evictAPage();
   }
   
   DEBUG('v', "handleIPTMiss: in thread '%s': VPN=%i; found PPN= %i.\n", currentThread->getName(), vpn, ppn);
@@ -955,7 +1023,18 @@ int handleIPTMiss(int vpn) {
   pageLock->Acquire();
   if((currentThread->space->pageTable[vpn].pageLoc) == PageInSwap) {
     // Find page in Swap File
-    DEBUG('v', "handleIPTMiss: trying to access Swap File.\n");
+    DEBUG('v', "handleIPTMiss: trying to access page in SwapFile.\n");
+    
+    swapFileLock->Acquire();
+    int swapLoc = currentThread->space->pageTable[vpn].swapByteOffset;
+    swapFile->ReadAt(machine->mainMemory + (ppn*PageSize), PageSize, swapLoc*PageSize);
+    swapFileMap->Clear(swapLoc);
+    swapFileLock->Release();
+    
+    currentThread->space->pageTable[vpn].swapByteOffset = -1;
+    currentThread->space->pageTable[vpn].pageLoc = PageInMem;
+    currentThread->space->pageTable[vpn].dirty = true;
+    
   } else if(currentThread->space->pageTable[vpn].pageLoc == PageInExec) {
     // Copying page from Executable
     currentThread->space->pExec->ReadAt(machine->mainMemory + (ppn*PageSize), PageSize, currentThread->space->pageTable[vpn].location);
@@ -977,7 +1056,7 @@ int handleIPTMiss(int vpn) {
 
 
 // Handle any PageFaultExceptions found
-void handlePageFault(int vAddress) {
+void handlePageFault(unsigned int vAddress) {
 
 //  DEBUG('v', "PF Exception: PageFaultException found in %s at vAddress=%i\n", currentThread->getName(), vAddress);
   
@@ -985,7 +1064,7 @@ void handlePageFault(int vAddress) {
   IntStatus oldLevel = interrupt->SetLevel(IntOff);
   
   // Define the Virtual Page Number
-  int vpn = vAddress / PageSize;
+  int vpn = vAddress/PageSize; //divRoundUp(vAddress, PageSize);
   int ppn = -1;                        // Defines physical page number to look for
   
   // Find the physical page number that matches the VPN passed in
@@ -993,7 +1072,7 @@ void handlePageFault(int vAddress) {
   
   // Increase timestamp on all IPT values. Higher value = older.
   for(int i=0; i<TLBSize; i++) {
-    if(machine->tlb[i].valid == TRUE)
+    if(machine->tlb[i].valid == true)
       ipt[machine->tlb[i].physicalPage].timeStamp++;
   }
   
@@ -1002,12 +1081,12 @@ void handlePageFault(int vAddress) {
     if(ipt[i].valid && (vpn == ipt[i].virtualPage) && (currentThread->getProcessID() == ipt[i].processID)) {
       ipt[i].use = true;
       ppn=i;
+//      printf("FUCKER: IPT valid=%i;  vpn=%i, ipt.vpn=%i;  pID=%i, ipt.pID=%i;\n", ipt[i].valid, vpn, ipt[i].virtualPage, currentThread->getProcessID(), ipt[i].processID);
 //      DEBUG('v', "Found physical page number '%i' in thread '%s'\n", ppn, currentThread->getName());
       break;
-//    } else {
-//      printf("FUCKER: IPT valid=%i;  vpn=%i, ipt.vpn=%i;  pID=%i, ipt.pID=%i;\n", ipt[i].valid, vpn, ipt[i].virtualPage, currentThread->getProcessID(), ipt[i].processID);
     }
   }
+  iptLock->Release();
   
   if(ppn == -1) {
     DEBUG('v', "IPT miss in thread '%s'\n", currentThread->getName());
@@ -1017,19 +1096,20 @@ void handlePageFault(int vAddress) {
 
 
     // TODO: should this section below be here?
+    iptLock->Acquire();
     pageLock->Acquire();
     ipt[ppn].virtualPage = vpn;
     ipt[ppn].physicalPage = ppn;
-    ipt[ppn].valid = currentThread->space->pageTable[vpn].valid;
+    ipt[ppn].valid = true;
     ipt[ppn].readOnly = currentThread->space->pageTable[vpn].readOnly;
     ipt[ppn].use = currentThread->space->pageTable[vpn].use;
 //    ipt[ppn].use = true;
     ipt[ppn].dirty = currentThread->space->pageTable[vpn].dirty;
     ipt[ppn].processID = currentThread->space->pageTable[vpn].processID;
+    ipt[ppn].location = currentThread->space->pageTable[vpn].location;
     pageLock->Release();
+    iptLock->Release();
   }
-  
-  iptLock->Release();
   
   // Check to see if current page in TLB is dirty; update IPT, pageTable if it is
   if(machine->tlb[currentTLB].dirty && machine->tlb[currentTLB].valid) {
@@ -1041,7 +1121,7 @@ void handlePageFault(int vAddress) {
   if(ppn >= 0 && ppn < NumPhysPages) {
     machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage;
     machine->tlb[currentTLB].physicalPage = ipt[ppn].physicalPage;
-    machine->tlb[currentTLB].valid = true;
+    machine->tlb[currentTLB].valid = ipt[ppn].valid;
     machine->tlb[currentTLB].use = ipt[ppn].use;
     machine->tlb[currentTLB].dirty = ipt[ppn].dirty;
     machine->tlb[currentTLB].readOnly = ipt[ppn].readOnly;

@@ -42,6 +42,12 @@ Table* processTable;
 IPTEntry ipt[NumPhysPages];
 Lock *iptLock;
 
+// Swapfile Data
+BitMap *swapFileMap;
+Lock *swapFileLock;
+OpenFile *swapFile;
+int evictType;
+
 #endif
 
 #ifdef NETWORK
@@ -173,6 +179,11 @@ Initialize(int argc, char **argv)
     
     // IPT Data
     iptLock = new Lock("IPT Lock");
+    
+    // Swapfile Data
+    swapFileMap = new BitMap(NumPhysPages*50);
+    swapFileLock = new Lock("Swap File Lock");
+    evictType = 0;
 #endif
 
 #ifdef FILESYS
@@ -181,6 +192,11 @@ Initialize(int argc, char **argv)
 
 #ifdef FILESYS_NEEDED
     fileSystem = new FileSystem(format);
+    if (!fileSystem->Create("swapfile", NumPhysPages*50*PageSize)) {	 // Create SwapFile
+      printf("System Error: couldn't create output SwapFile, shit.\n");
+      return;
+    }
+    swapFile = fileSystem->Open("swapfile");
 #endif
 
 #ifdef NETWORK
