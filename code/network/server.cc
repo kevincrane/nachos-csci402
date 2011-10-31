@@ -179,7 +179,6 @@ void CreateLock(char* msg) {
 
   postOffice->Send(outPacketHeader, outMailHeader, response);
 
-  printf("8.\n");
 
   nextLock++;
 }
@@ -189,6 +188,7 @@ void Acquire(int index) {
   char* response = new char[MAX_SIZE];
 
   if(index < 0 || index >= nextLock) {
+		printf("ERROR: Bad index on acquire\n");
     sprintf(response, "e%d", BADINDEX);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);
@@ -196,6 +196,7 @@ void Acquire(int index) {
   }
 
   else if(lcks[index].isDeleted) {
+		printf("ERROR: Lock is already deleted\n");
     sprintf(response, "e%d", DELETED);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);
@@ -203,6 +204,7 @@ void Acquire(int index) {
   }
 
   else if(lcks[index].toBeDeleted) {
+		printf("ERROR: Lock is already to be deleted\n");
     sprintf(response, "e%d", TOBEDELETED);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);
@@ -244,6 +246,7 @@ void Release(int index) {
   waitingThread* thread;
 
   if(index < 0 || index >= nextLock) {
+		printf("ERROR: Bad index on release\n");
     sprintf(response, "e%d", BADINDEX);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);
@@ -251,6 +254,7 @@ void Release(int index) {
   }
 
   else if (lcks[index].isDeleted) {
+		printf("ERROR: This lock is already deleted.\n");
     sprintf(response, "e%d", DELETED);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);
@@ -297,6 +301,7 @@ void DestroyLock(int index) {
   char* response = new char[MAX_SIZE];
  
   if(index < 0 || index >= nextLock) {
+		printf("ERROR: Bad index on destroy lock\n");
     sprintf(response, "e%d", BADINDEX);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);
@@ -304,6 +309,7 @@ void DestroyLock(int index) {
   }
 
   else if(lcks[index].isDeleted) {
+		printf("ERROR: This lock is already deleted\n");
     sprintf(response, "e%d", DELETED);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);
@@ -311,6 +317,7 @@ void DestroyLock(int index) {
   }
 
   else if(lcks[index].toBeDeleted) {
+		printf("ERROR: This lock is already to be deleted\n");
     sprintf(response, "e%d", TOBEDELETED);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);
@@ -496,24 +503,25 @@ void Signal(char* msg) {
 	for(int i = 3; i < MAX_SIZE + 1; i++)
 		index[i-3] = msg[i];
 	int i = 1;
-	int j = strlen(index);
+	int j = strlen(index) - 1;
 	int cvIndex = 0;
 	int lockIndex = 0;
-	
+	DEBUG('b', "SIGNAL: MSG: %s, INDEX: %s\n", msg, index);
 	while(index[j] != 'l'){
+		DEBUG('b', "SIGNAL: IN LOCK LOOP; index[j]: %i\n", index[j]);
 		lockIndex += (index[j]-48)*i;
 		i = i*10;
 		j--;
 	}
 	i = 1;
 	j--;
-	while(index[j] != 'c'){
+	while(j>-1){
+		DEBUG('b', "SIGNAL: IN CV LOOP; index[j]: %i\n", index[j]);
 		cvIndex += (index[j]-48)*i;
 		i = i*10;
 		j--;
-	}
-	
-	
+	}  
+	DEBUG('b', "SIGNAL: CVINDEX: %i, LOCKINDEX: %i\n", cvIndex, lockIndex);
   if(cvIndex < 0 || cvIndex >= nextCV) {
     printf("ERROR: The given cv index is not valid.\n");
     sprintf(response, "e%d", BADINDEX);
@@ -595,23 +603,25 @@ void Broadcast(char* msg) {
 	for(int i = 3; i < MAX_SIZE + 1; i++)
 		index[i-3] = msg[i];
 	int i = 1;
-	int j = strlen(index);
+	int j = strlen(index) - 1;
 	int cvIndex = 0;
 	int lockIndex = 0;
-	
+	DEBUG('b', "BROADCAST: MSG: %s, INDEX: %s\n", msg, index);
 	while(index[j] != 'l'){
+		DEBUG('b', "BROADCAST: IN LOCK LOOP; index[j]: %i\n", index[j]);
 		lockIndex += (index[j]-48)*i;
 		i = i*10;
 		j--;
 	}
 	i = 1;
 	j--;
-	while(index[j] != 'c'){
+	while(j>-1){
+		DEBUG('b', "BROADCAST: IN CV LOOP; index[j]: %i\n", index[j]);
 		cvIndex += (index[j]-48)*i;
 		i = i*10;
 		j--;
-	}
-
+	}  
+	DEBUG('b', "BROADCAST: CVINDEX: %i, LOCKINDEX: %i\n", cvIndex, lockIndex);
 
   if(cvIndex < 0 || cvIndex >= nextCV) {
     printf("ERROR: The given cv index is not valid.\n");
@@ -895,7 +905,7 @@ void Server() {
 
   while(true) {
     
-    printf("Entered Server loop.\n");
+    printf("***\nEntered Server loop.\n");
     message = new char[MAX_SIZE];
 
     postOffice->Receive(0, &inPacketHeader, &inMailHeader, message);
@@ -906,93 +916,104 @@ void Server() {
     outMailHeader.to = inMailHeader.from;
 
     if(message[1] == CREATELOCK && message[2] == 'n') {   
-      printf("Got a CreateLock message.\n");
+      DEBUG('s', "Got a CreateLock message.\n");
       CreateLock(message);
     } 
     else if (message[1] == ACQUIRE && message[2] == 'i') {
+			DEBUG('s', "Got a AcquireLock message.\n");
       int i = 1;
       int j = strlen(message);
       int total = 0;
       
       while(message[j] != 'i') {
-	if(message[j] != '\0') {
-	  total += (message[j]-48)*i;
-	  i=i*10;
-	}
-	j--;
+				if(message[j] != '\0') {
+	  			total += (message[j]-48)*i;
+				  i=i*10;
+				}
+			j--;
       }
       Acquire(total);
     } 
     else if (message[1] == RELEASE && message[2] == 'i') {
+			DEBUG('s', "Got a ReleaseLock message.\n");
       int i = 1;
       int j = strlen(message);
       int total = 0;
       
       while(message[j] != 'i') {
-	if(message[j] != '\0') {
-	  total += (message[j]-48)*i;
-	  i=i*10;
-	}
-	j--;
+				if(message[j] != '\0') {
+				  total += (message[j]-48)*i;
+	  			i=i*10;
+				}
+				j--;
       }
       Release(total);
     } 
     else if (message[1] == DESTROYLOCK && message[2] == 'i') {
+			DEBUG('s', "Got a DestroyLock message.\n");
       int i = 1;
       int j = strlen(message);
       int total = 0;
       
       while(message[j] != 'i') {
-	if(message[j] != '\0') {
-	  total += (message[j]-48)*i;
-	  i=i*10;
-	}
-	j--;
-      }
+				if(message[j] != '\0') {
+					total += (message[j]-48)*i;
+					i=i*10;
+				}
+				j--;
+			}
       DestroyLock(total); 
     } 
     else if (message[1] == CREATECV && message[2] == 'n') {
+			DEBUG('s', "Got a CreateCV message.\n");
       CreateCV(message);
     }
     else if (message[1] == WAIT && message[2] == 'c') {
+			DEBUG('s', "Got a Wait message.\n");
       Wait(message);
     }
     else if (message[1] == SIGNAL && message[2] == 'c') {
+			DEBUG('s', "Got a Signal message.\n");
       Signal(message);
     }
     else if (message[1] == BROADCAST && message[2] == 'c') {
+			DEBUG('s', "Got a Broadcast message.\n");
       Broadcast(message);
     }
     else if (message[1] == DESTROYCV && message[2] == 'n') {
+			DEBUG('s', "Got a DestroyCV message.\n");
       DestroyCV(message);
     }
     else if (message[1] == CREATEMV && (message[2] == 't' || message[2] == 'h' || message[2] == 'k')) {
+			DEBUG('s', "Got a CreateMV message.\n");
       CreateMV(message);
     }
     else if ((message[1]-48) == GET1 && (message[2]-48)==GET2 && message[3]=='i') {
+			DEBUG('s', "Got a Get message.\n");
       int i = 1;
       int j = strlen(message);
       int index = 0;
       int arrayIndex = 0;
 
       while(message[j] != 'a') {
-	if(message[j] != '\0') {
-	  arrayIndex += (message[j]-48)*i;
-	  i=i*10;
-	}
-	j--;
-      }
+				if(message[j] != '\0') {
+					arrayIndex += (message[j]-48)*i;
+					i=i*10;
+				}
+				j--;
+		  }
       j--;
       i=1;
       while(message[j] != 'i') {
-	index += (message[j]-48)*i;
-	i=i*10;
-	j--;
+				index += (message[j]-48)*i;
+				i=i*10;
+				j--;
       }
 
       Get(index, arrayIndex);
     }
     else if ((message[1]-48)==SET1 && (message[2]-48)==SET2 && message[3]=='i') {
+			DEBUG('s', "Got a Set message.\n");
       int i = 1;
       int j = strlen(message);
       int arrayIndex = 0;
@@ -1000,40 +1021,41 @@ void Server() {
       int index = 0;
 
       while(message[j] != 'a') {
-	if(message[j] != '\0') {
-	  arrayIndex += (message[j]-48)*i;
-	  i=i*10;
-	}
-	j--;
-      }
-      j--;
-      i = 1;
-      while(message[j] != 'i') {
-        value += (message[j]-48)*i;
-	i = i*10;
-	j--;
-      }
-      j--;
-      i = 1;
-      while(message[j] != 'i') {
-	index += (message[j]-48)*i;
-	i=i*10;
-	j--;
+				if(message[j] != '\0') {
+					arrayIndex += (message[j]-48)*i;
+					i=i*10;
+				}
+				j--;
+						}
+						j--;
+						i = 1;
+						while(message[j] != 'i') {
+						  value += (message[j]-48)*i;
+				i = i*10;
+				j--;
+						}
+						j--;
+						i = 1;
+						while(message[j] != 'i') {
+				index += (message[j]-48)*i;
+				i=i*10;
+				j--;
       }
 
       Set(index, value, arrayIndex);
     }
     else if ((message[1]-48)==DESTROYMV1 && (message[2]-48)==DESTROYMV2 && message[3]=='i') {
+			DEBUG('s', "Got a DestroyMV message.\n");
       int i = 1;
       int j = strlen(message);
       int total = 0;
       
       while(message[j] != 'i') {
-	if(message[j] != '\0') {
-	  total += (message[j]-48)*i;
-	  i=i*10;
-	}
-	j--;
+				if(message[j] != '\0') {
+					total += (message[j]-48)*i;
+					i=i*10;
+				}
+				j--;
       }
       DestroyMV(total);
     }

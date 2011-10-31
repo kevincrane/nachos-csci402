@@ -24,6 +24,10 @@
 
 #define MAXTHREADS 500
 
+#define PageInMem 0
+#define PageInSwap 1
+#define PageInExec 2
+
 extern "C" { int bzero(char *, int); };
 
 Table::Table(int s) : map(s), table(0), lock(0), maxSize(s), size(0) {
@@ -169,11 +173,16 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     fileTable.Put(0);
     fileTable.Put(0);
     
+    pExec = executable;
+    
     // Initialize table of threads
     threadTable = new Table(MaxNumThreads);		// Arbitrary number of maximum threads
     
     kernThreadLock = new Lock("KernelThread Lock");
     isMai = 0;
+    
+    // Add self to process Table and define this space's processID
+    processID = processTable->Put(this);
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
@@ -183,24 +192,42 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 
     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size ;
     numPages = divRoundUp(size, PageSize) + divRoundUp(UserStackSize*MaxNumProgs,PageSize);
+    pagesInExec = divRoundUp(noffH.code.size + noffH.initData.size, PageSize);
                                                 
     size = numPages * PageSize;
 	
     DEBUG('u', "numPagesReserved: %i, numPages: %i, NumPhysPages: %i\n", numPagesReserved, numPages, NumPhysPages);
     // Verify there are enough free pages left
-    ASSERT((numPagesReserved + numPages) <= NumPhysPages);		// check we're not trying
+
+//    ASSERT((numPagesReserved + numPages) <= NumPhysPages);		// check we're not trying to extend past the range of pages
 						
     // zero out the entire address space, to zero the unitialized data segment 
 //    bzero(machine->mainMemory, size);
 
     DEBUG('u', "Initializing address space, num pages %d, size %d\n", numPages, size);
-    DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
+    DEBUG('v', "Initializing address space, num pages %d, size %d\n", numPages, size);
+
     // Set up translation of virtual address to physical address
-    pageTable = new TranslationEntry[numPages];
+    pageTable = new IPTEntry[numPages];
+    
+    
+    pageLock->Acquire();
+    iptLock->Acquire();
+    
+    int iptOffset;
+    //TODO: Temporary fix for iptOffset, delete this later if it's found to not work on larger scale
+    for(i=0; i<NumPhysPages-1; i++) {
+      if(ipt[i].physicalPage == 0 && ipt[i+1].physicalPage == 0) {
+        iptOffset = i;
+        DEBUG('v', "AddrSpace cons (%i): iptOffset=%i; numPages=%i\n\n", processID, iptOffset, numPages);
+        break;
+      }
+    }
+      
     for (i = 0; i < numPages; i++) {
       DEBUG('a', "Acquiring page lock, times looped: %i\n", i);
-      pageLock->Acquire();
-      pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+
+/*      pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
       pageTable[i].physicalPage = pageMap->Find();    // Find a free slot in physical memory
       pageTable[i].valid = TRUE;
       pageTable[i].use = FALSE;
@@ -208,15 +235,45 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
       pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
                                       // a separate page, we could set its 
                                       // pages to be read-only
-      pageLock->Release();
+      pageTable[i].processID = processID;
+*/
+      
+      // New system to avoid pre-loading data into the IPT
+//      pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+      
+      pageTable[i].physicalPage = -1;
+      pageTable[i].valid = FALSE;
+      pageTable[i].processID = processID;
+      pageTable[i].location = noffH.code.inFileAddr + (i * PageSize);
+      if(i < pagesInExec) {
+        pageTable[i].pageLoc = PageInExec;
+      } else {
+        pageTable[i].pageLoc = PageInMem;
+      }
+      
+/*      pageTable[i].use = FALSE;
+      pageTable[i].dirty = FALSE;
+      pageTable[i].readOnly = FALSE;
+      pageTable[i].processID = processID;*/
+
+/*      ipt[i + iptOffset].virtualPage = i;
+      ipt[i + iptOffset].physicalPage = pageTable[i].physicalPage;
+      ipt[i + iptOffset].valid = TRUE;
+      ipt[i + iptOffset].readOnly = FALSE;
+      ipt[i + iptOffset].use = FALSE;
+      ipt[i + iptOffset].dirty = FALSE;
+      ipt[i + iptOffset].processID = processID;*/
       
       // Copy one page of code/data segment into memory if they exist
-      executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage*PageSize]), PageSize, (noffH.code.inFileAddr + i*PageSize));
+//      executable->ReadAt(&(machine->mainMemory[pageTable[i].physicalPage*PageSize]), PageSize, (noffH.code.inFileAddr + i*PageSize));
       numPagesReserved++;
 
-	  DEBUG('a', "Page copied to pageTable at phys add: %d. Code/data of size %d copied from %d.\n", 
+	    DEBUG('a', "Page copied to pageTable at phys add: %d. Code/data of size %d copied from %d.\n", 
           pageTable[i].physicalPage*PageSize, PageSize, (noffH.code.inFileAddr + i*PageSize));
     }
+    iptOffset += numPages;
+    pageLock->Release();
+    iptLock->Release();
 
 // then, copy in the code and data segments into memory
 /*    if (noffH.code.size > 0) {
@@ -244,6 +301,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 AddrSpace::~AddrSpace()
 {
     delete pageTable;
+    delete threadTable;
 }
 
 //----------------------------------------------------------------------
@@ -298,36 +356,24 @@ void AddrSpace::SaveState()
 //      For now, tell the machine where to find the page table.
 //----------------------------------------------------------------------
 
-void AddrSpace::RestoreState() 
+void AddrSpace::RestoreState()
 {
-    machine->pageTable = pageTable;
-    machine->pageTableSize = numPages;
+// machine->pageTable = pageTable;
+machine->pageTableSize = numPages;
+
+// Disable interrupts
+IntStatus oldLevel = interrupt->SetLevel(IntOff);
+for(int i=0;i<TLBSize;i++) {
+machine->tlb[i].valid=FALSE;
+}
+// Restore interrupts
+(void) interrupt->SetLevel(oldLevel);
 }
 
-
-
-// AddThread
-// Add new thread to address space of current process
-/*void AddrSpace::addThread(int vAddress) {
-  // TODO: check for max threads, whether vAddress is outside size of page table
-
-  char* name = currentThread->space->getProcessName();
-  Thread *t = new Thread(name);
-
-  int num = currentThread->space->threadTable->Put(t);
-  int procID = currentThread->space->getProcessID();
-  sprintf(name, "%s%d", name, num);
-
-  t->setThreadNum(num);
-  t->setProcessID(processID);
-  t->space = currentThread->space;
-  
-  t->Fork((VoidFunctionPtr)(newKernelThread), vAddress);
-}
-*/
 
 // Remove page
 void AddrSpace::removePage(int i) {
-  pageTable[i].valid = FALSE;
-  pageMap->Clear(pageTable[i].physicalPage);
+  pageTable[i].valid = true;
+//  if(pageTable[i].physicalPage != -1)
+    pageMap->Clear(pageTable[i].physicalPage);
 }

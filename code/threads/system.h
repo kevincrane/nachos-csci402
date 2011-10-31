@@ -16,6 +16,8 @@
 #include "stats.h"
 #include "timer.h"
 
+#include "../userprog/iptEntry.h"
+
 //#include "table.h"
 
 // Initialization and cleanup routines
@@ -34,6 +36,8 @@ extern Timer *timer;				// the hardware alarm clock
 #ifdef USER_PROGRAM
 #include "machine.h"
 #include "synch.h"
+#include "openfile.h"
+
 extern Machine* machine;	// user program memory and registers
 
 extern BitMap *pageMap;
@@ -41,6 +45,15 @@ extern Lock *pageLock;
 
 extern Lock* processTableLock;
 extern Table* processTable;
+
+extern IPTEntry ipt[NumPhysPages];
+extern Lock* iptLock;
+
+extern BitMap *swapFileMap;
+extern Lock *swapFileLock;
+extern OpenFile *swapFile;
+extern int evictType; // First-in, First-out = 0; Random = 1
+
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 
