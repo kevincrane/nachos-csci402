@@ -56,13 +56,11 @@ int Table::Put(void *f) {
 
     lock->Acquire();
     i = map.Find();
-    if ( i >= 0 && i < maxSize) {
+    lock->Release();
+    if ( i != -1) {
       table[i] = f;
       size++;
-    } else {
-      i = -1;
     }
-    lock->Release();
     return i;
 }
 
@@ -72,15 +70,15 @@ void *Table::Remove(int i) {
 
     void *f =0;
 
-    if ( i >= 0 && i < maxSize) {
-      lock->Acquire();
-      if ( map.Test(i) ) {
-          map.Clear(i);
-          f = table[i];
-          table[i] = 0;
-          size--;
-      }
-      lock->Release();
+    if ( i >= 0 && i < size ) {
+	lock->Acquire();
+	if ( map.Test(i) ) {
+	    map.Clear(i);
+	    f = table[i];
+	    table[i] = 0;
+	    size--;
+	}
+	lock->Release();
     }
     return f;
 }
@@ -190,7 +188,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	
     DEBUG('u', "numPagesReserved: %i, numPages: %i, NumPhysPages: %i\n", numPagesReserved, numPages, NumPhysPages);
     // Verify there are enough free pages left
-    ASSERT((numPagesReserved + numPages) <= NumPhysPages);		// check we're not trying to extend past the range of pages
+    ASSERT((numPagesReserved + numPages) <= NumPhysPages);		// check we're not trying
 						
     // zero out the entire address space, to zero the unitialized data segment 
 //    bzero(machine->mainMemory, size);
@@ -202,7 +200,6 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     for (i = 0; i < numPages; i++) {
       DEBUG('a', "Acquiring page lock, times looped: %i\n", i);
       pageLock->Acquire();
-      DEBUG('r', "Acquired page lock\n");
       pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
       pageTable[i].physicalPage = pageMap->Find();    // Find a free slot in physical memory
       pageTable[i].valid = TRUE;
@@ -303,16 +300,8 @@ void AddrSpace::SaveState()
 
 void AddrSpace::RestoreState() 
 {
-//  machine->pageTable = pageTable;
-  machine->pageTableSize = numPages;
-    
-  // Disable interrupts
-  IntStatus oldLevel = interrupt->SetLevel(IntOff);
-  for(int i=0;i<TLBSize;i++) {
-    machine->tlb[i].valid=FALSE;
-  }
-  // Restore interrupts
-  (void) interrupt->SetLevel(oldLevel);
+    machine->pageTable = pageTable;
+    machine->pageTableSize = numPages;
 }
 
 
@@ -342,4 +331,3 @@ void AddrSpace::removePage(int i) {
   pageTable[i].valid = FALSE;
   pageMap->Clear(pageTable[i].physicalPage);
 }
-

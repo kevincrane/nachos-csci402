@@ -23,8 +23,8 @@ void forkThread2() {
 /* Starts executing here */
 int main() {
 	Write("Running test of Exec syscall.\n", 30, ConsoleOutput);
-  Fork((void *)forkThread1);
-  Fork((void *)forkThread2);
+  Fork((void *)forkThread1, 0);
+  Fork((void *)forkThread2, 0);
 	Write("Exec finished forking threads, now trying to create a lock\n", sizeof("Exec finished forking threads, now trying to create a lock\n"), ConsoleOutput);
 	lock_1 = CreateLock();
 	Print("lock_1 position created at %i\n", lock_1, -1, -1);

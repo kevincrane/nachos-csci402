@@ -113,8 +113,8 @@ FILESYS_O =directory.o filehdr.o filesys.o fstest.o openfile.o synchdisk.o\
 	disk.o
 
 NETWORK_H = ../network/post.h ../machine/network.h
-NETWORK_C = ../network/nettest.cc ../network/post.cc ../machine/network.cc
-NETWORK_O = nettest.o post.o network.o
+NETWORK_C = ../network/nettest.cc ../network/post.cc ../machine/network.cc ../network/server.cc
+NETWORK_O = nettest.o post.o network.o server.o
 
 S_OFILES = switch.o
 

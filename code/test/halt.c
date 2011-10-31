@@ -12,11 +12,19 @@
 
 #include "syscall.h"
 int a[3];
-int b, c;
+int b, c, d;
 
 int
 main()
 {
-    Halt();
+  b = CreateLock();  
+  c = CreateCV();
+  Write("Hi\n", 4, ConsoleOutput);
+  Acquire(b);
+  Release(b);
+  Acquire(8);
+  Acquire(b);
+  DestroyLock(b);
+  Wait(c, b);
     /* not reached */
 }

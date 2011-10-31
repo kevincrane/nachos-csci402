@@ -270,7 +270,7 @@ PostOffice::Send(PacketHeader pktHdr, MailHeader mailHdr, char* data)
 	printf("Post send: ");
 	PrintHeader(pktHdr, mailHdr);
     }
-
+		DEBUG('f', "MailHdr.length: %i, MaxMailSize: %i\n", mailHdr.length, MaxMailSize);
     ASSERT(mailHdr.length <= MaxMailSize);
     ASSERT(0 <= mailHdr.to && mailHdr.to < numBoxes);
     

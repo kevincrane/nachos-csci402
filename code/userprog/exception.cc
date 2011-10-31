@@ -24,7 +24,12 @@
 #include "copyright.h"
 #include "system.h"
 #include "syscall.h"
+#include "interrupt.h"
+#include "utility.h"
+#include "synch.h"
 #include "../threads/synch.h"
+#include "network.h"
+#include "../network/post.h"
 #include <stdio.h>
 #include <iostream>
 
@@ -33,6 +38,38 @@ using namespace std;
 #define MAX_LOCKS 1000
 #define MAX_CVS 1000
 #define MAX_PROCESSES 1000
+
+#define MAX_SIZE 20
+
+#define CREATELOCK 0
+#define ACQUIRE    1
+#define RELEASE     2
+#define DESTROYLOCK 3
+#define CREATECV    4
+#define WAIT        5
+#define SIGNAL      6
+#define BROADCAST   7
+#define DESTROYCV   8
+#define CREATEMV    9
+#define SET         10
+#define GET         11
+#define DESTROYMV   12
+#define BADINDEX1    1
+#define BADINDEX2    3
+#define WRONGPROCESS1 1
+#define WRONGPROCESS2 4
+#define DELETED1     1
+#define DELETED2     5
+#define TOBEDELETED1 1
+#define TOBEDELETED2 6
+#define SUCCESS1    1
+#define SUCCESS2    7
+#define WRONGLOCK   18
+#define EMPTYLIST   19
+#define OWNER1      2
+#define OWNER2      0
+#define WAITING1    2
+#define WAITING2    1
 
 // To hold all of the data about a created lock
 struct lockData{
@@ -364,76 +401,102 @@ void Close_Syscall(int fd) {
 
 void Acquire_Syscall(int lockIndex) {
    
-  lockArray->Acquire();
-	DEBUG('y', "1\n");
-  // Check that the index is valid
-  if(lockIndex < 0 || lockIndex >= nextLockPos) {
-    printf("ERROR: The given lock index is not valid.\n");
-    lockArray->Release();
-    return;
-  } 
+  PacketHeader inPacketHeader;
+  PacketHeader outPacketHeader;
+  MailHeader   inMailHeader;
+  MailHeader   outMailHeader;
 
-  // Check that the lock belongs to the calling process
-  else if (locks[lockIndex].space != currentThread->space) {
-    printf("ERROR: This process does not own the lock!\n");
-    lockArray->Release();
-    return;
-  } 
+  char* msg = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE];
 
-  // Check that the lock has not been deleted
-  else if (locks[lockIndex].isDeleted) {
-    printf("ERROR: This lock has been deleted.\n");
-    lockArray->Release();
-    return;
-  } 
+  sprintf(msg, "s%di%d", ACQUIRE, lockIndex);
 
-  // Check that the lock is not to be deleted
-  else if (locks[lockIndex].toBeDeleted) {
-    printf("ERROR: This lock is to be deleted.\n");
-    lockArray->Release();
-    return;
+  outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+  outMailHeader.from = currentThread->getProcessID();
+  outPacketHeader.from = currentThread->getProcessID();
+  outMailHeader.length = strlen(msg) + 1;
+
+  bool success = postOffice->Send(outPacketHeader, outMailHeader, msg);
+
+  if(!success) {
+    printf("The postOffice send failed. You must not have the other Nachos running.Terminating Nachos.\n");
+    interrupt->Halt();
   }
-	DEBUG('y', "2\n");
-  locks[lockIndex].numActiveThreads++; // A new thread is using this lock
-	DEBUG('y', "3\n");
-  locks[lockIndex].lock->Acquire();
-	DEBUG('y', "4\n");
-  lockArray->Release();
+
+  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+
+  printf("response[0] %d.\n", response[0]);
+
+  if(response[0] == 'e') {
+    if((response[1]-48) == BADINDEX1 && (response[2]-48) == BADINDEX2) {
+      printf("ERROR: Bad Index.\n");
+    }
+    else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
+      printf("ERROR: Already Deleted.\n");
+    }
+    else if((response[1]-48)==TOBEDELETED1 && (response[2]-48)==TOBEDELETED2) {
+      printf("NOTE: The lock will be deleted soon.\n");
+    }
+  }
+  else if((response[0]-48)==OWNER1 && (response[1]-48)==OWNER2) {
+    printf("ERROR: Already the lock owner.\n");
+  }
+  else if((response[0]-48)==SUCCESS1 && (response[1]-48)==SUCCESS2) {
+    printf("SUCCESS: Acquired the lock.\n");
+  }
+  else if((response[0]-48)==WAITING1 && (response[1]-48)==WAITING2) {
+    printf("SUCCESS: Waiting to acquire the lock.\n");
+  }
+  else {
+    printf("ERROR: unknown response %s.\n", response);
+  }
+  fflush(stdout);
+  return;
 }
 
 void Release_Syscall(int lockIndex) {
- 
-  lockArray->Acquire();
-  // Check that the index is valid
-  if(lockIndex < 0 || lockIndex >= nextLockPos) {
-    printf("ERROR: The given lock index is not valid.\n");
-    lockArray->Release();
-    return;
-  } 
-	
-  // Check that the lock belongs to the calling process
-  else if (locks[lockIndex].space != currentThread->space) {
-    printf("ERROR: This process does not own the lock!\n");
-    lockArray->Release();
-    return;
-  } 
 
-  // Check that the lock has not been deleted
-  else if (locks[lockIndex].isDeleted) {
-    printf("ERROR: This lock has been deleted.\n");
-    lockArray->Release();
-    return;
-  }
-  locks[lockIndex].lock->Release();
-  locks[lockIndex].numActiveThreads--; // A thread is no longer using this lock
+  PacketHeader inPacketHeader;
+  PacketHeader outPacketHeader;
+  MailHeader inMailHeader;
+  MailHeader outMailHeader;
 
-  // Check if the lock was waiting to be deleted, if so, delete it
-  if(locks[lockIndex].toBeDeleted && (locks[lockIndex].numActiveThreads == 0)) {
-    locks[lockIndex].isDeleted = true;
-    printf("Deleted lock %i.\n", lockIndex);
+  char* msg = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE];
+
+  sprintf(msg, "s%di%d", RELEASE, lockIndex);
+
+  outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+  outMailHeader.from = currentThread->getProcessID();
+  outPacketHeader.from = currentThread->getProcessID();
+  outMailHeader.length = strlen(msg) + 1;
+
+  bool success = postOffice->Send(outPacketHeader, outMailHeader, msg);
+
+  if(!success) {
+    printf("The postOffice send failed. Terminating Nachos.\n");
+    interrupt->Halt();
   }
 
-  lockArray->Release();
+  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+  
+  if(response[0] == 'e') {
+    if((response[1]-48)==BADINDEX1 && (response[2]-48)==BADINDEX2) {
+      printf("ERROR: Bad Index.\n");
+    }
+    else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
+      printf("ERROR: Already Deleted.\n");
+    }
+    else if((response[1]-48)==WRONGPROCESS1 && (response[2]-48)==WRONGPROCESS2) {
+      printf("ERROR: Not the lock owner!\n");
+    }
+  }
+  else if((response[0]-48)==SUCCESS1 && (response[1]-48) == SUCCESS2) {
+    printf("SUCCESS: Released the lock.\n");
+  }
+  return;  
 }
 
 
@@ -613,6 +676,34 @@ void Yield_Syscall() {
 }
 
 void Wait_Syscall(int cvIndex, int lockIndex) {
+  PacketHeader inPacketHeader;
+  PacketHeader outPacketHeader;
+  MailHeader   inMailHeader;
+  MailHeader   outMailHeader;
+
+  char* msg = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE]; 	
+
+  sprintf(msg, "s%dc%dl%d", WAIT, cvIndex, lockIndex);
+  DEBUG('r', "msg: %s\n", msg);
+
+  outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+	outMailHeader.length = strlen(msg) + 1;
+  outMailHeader.from = currentThread->getProcessID();   // IS THIS RIGHT?
+  outPacketHeader.from = currentThread->getProcessID(); // IS THIS RIGHT?
+	DEBUG('r', "outMailHeader.length %i\n", outMailHeader.length);
+  bool success = postOffice->Send(outPacketHeader, outMailHeader, msg);
+  if(!success) {
+    printf("The postOffice send failed in Signal. You must not have the other Nachos running. Terminating Nachos.\n");
+    interrupt->Halt();
+  }
+
+  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+
+  //TODO: Error handling
+  fflush(stdout);
+
   cvArray->Acquire();
   lockArray->Acquire();
 
@@ -687,8 +778,36 @@ void Wait_Syscall(int cvIndex, int lockIndex) {
 }
 
 void Signal_Syscall(int cvIndex, int lockIndex) {
-  
-  cvArray->Acquire();
+  PacketHeader inPacketHeader;
+  PacketHeader outPacketHeader;
+  MailHeader   inMailHeader;
+  MailHeader   outMailHeader;
+
+  char* msg = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE]; 	
+
+  sprintf(msg, "s%dc%dl%d", SIGNAL, cvIndex, lockIndex);
+  DEBUG('r', "msg: %s\n", msg);
+
+  outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+	outMailHeader.length = strlen(msg) + 1;
+  outMailHeader.from = currentThread->getProcessID();   // IS THIS RIGHT?
+  outPacketHeader.from = currentThread->getProcessID(); // IS THIS RIGHT?
+
+  bool success = postOffice->Send(outPacketHeader, outMailHeader, msg);
+	
+  if(!success) {
+    printf("The postOffice send failed in Signal. You must not have the other Nachos running. Terminating Nachos.\n");
+    interrupt->Halt();
+  }
+
+  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+
+  //TODO: Error handling
+  fflush(stdout);
+
+  /*cvArray->Acquire();
   lockArray->Acquire();
 
   // Check that the index is valid
@@ -748,12 +867,41 @@ void Signal_Syscall(int cvIndex, int lockIndex) {
     printf("Deleted condition %i.\n", cvIndex);
   }
   cvArray->Release();
-  lockArray->Release();
+  lockArray->Release();*/
 }
 
 void Broadcast_Syscall(int cvIndex, int lockIndex) {
- 
-  cvArray->Acquire();
+ 	PacketHeader inPacketHeader;
+  PacketHeader outPacketHeader;
+  MailHeader   inMailHeader;
+  MailHeader   outMailHeader;
+
+	char* msg = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE]; 	
+
+	sprintf(msg, "s%dc%dl%d", BROADCAST, cvIndex, lockIndex);
+	DEBUG('r', "msg: %s\n", msg);
+
+	outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+	outMailHeader.length = strlen(msg) + 1;
+  outMailHeader.from = currentThread->getProcessID();   // IS THIS RIGHT?
+  outPacketHeader.from = currentThread->getProcessID(); // IS THIS RIGHT?
+
+	bool success = postOffice->Send(outPacketHeader, outMailHeader, msg);
+	
+	if(!success) {
+    printf("The postOffice send failed in Broadcast. You must not have the other Nachos running. Terminating Nachos.\n");
+    interrupt->Halt();
+  }
+
+	postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+
+	//TODO: Error handling
+	fflush(stdout);
+	
+	
+  /*cvArray->Acquire();
   lockArray->Acquire();
 
   // Check that the index is valid
@@ -813,90 +961,210 @@ void Broadcast_Syscall(int cvIndex, int lockIndex) {
     printf("Deleted condition %i.\n", cvIndex);
   }
   cvArray->Release();
-  lockArray->Release();
+  lockArray->Release();*/
 }
 
-int CreateLock_Syscall() {
+int CreateLock_Syscall(unsigned int strPtr, int length) {
 
-  lockData myLock;
-  myLock.lock = new Lock("L");
-  myLock.space = currentThread->space;
-  myLock.isDeleted = false;
-  myLock.toBeDeleted = false;
-  myLock.numActiveThreads = 0;
-  lockArray->Acquire();
-	DEBUG('w', "Lock created at position: %i\n",nextLockPos);
-  locks[nextLockPos] = myLock;
-  nextLockPos++;
+  int lockIndex = -1;
+
+  PacketHeader inPacketHeader;
+  PacketHeader outPacketHeader;
+  MailHeader   inMailHeader;
+  MailHeader   outMailHeader;
+
+  char* msg = new char[MAX_SIZE];
+  char* name = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE];
   
-  lockArray->Release();
-  return (nextLockPos-1);
-}
+  copyin(strPtr, MAX_SIZE, msg);
+  
+  if(length >= MAX_SIZE - 4) {
+    printf("ERROR: This lock name is too long.\n");
+    return -1;
+  }
 
+  sprintf(name, "s%dn%s", CREATELOCK, msg);
+
+  // VALIDATE NAME?
+
+  printf("Process ID %i.\n", currentThread->getProcessID());
+
+  outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+  outMailHeader.from = currentThread->getProcessID();   // IS THIS RIGHT?
+  outPacketHeader.from = currentThread->getProcessID(); // IS THIS RIGHT?
+  outMailHeader.length = strlen(name) + 1;
+
+  bool success = postOffice->Send(outPacketHeader, outMailHeader, name);
+  
+  if(!success) {
+    printf("The postOffice send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+    interrupt->Halt();
+  }
+
+  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+
+  if(response[0] == 'e') {
+    printf("ERROR: Exceeded max number of locks.\n");
+  }
+  else if(response[0] == 's') {
+    int i = 1;
+    int j = strlen(response);
+    int total = 0;
+    
+    while(response[j] != 's') {
+      if(response[j] != '\0') {
+	total += (response[j]-48)*i;
+	i = i*10;
+      }
+      j--;
+    }
+    lockIndex = total;
+  }
+  fflush(stdout);
+
+  printf("Lock Index: %i.\n", lockIndex);
+  return lockIndex;
+}
+  
 void DestroyLock_Syscall(int lockIndex) {
   
-  lockArray->Acquire();
+  PacketHeader inPacketHeader;
+  PacketHeader outPacketHeader;
+  MailHeader   inMailHeader;
+  MailHeader   outMailHeader;
 
-  // Check that the index is valid
-  if(lockIndex < 0 || lockIndex >= nextLockPos) {
-    printf("ERROR: The given lock index is not valid.\n");
-    lockArray->Release();
-    return;
-  } 
+  char* msg = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE];
 
-  // Check that the lock belongs to the calling process
-  else if (locks[lockIndex].space != currentThread->space) {
-    printf("ERROR: This process does not own the lock!\n");
-    lockArray->Release();
-    return;
-  } 
+  sprintf(msg, "s%di%d", DESTROYLOCK, lockIndex);
+  
+  outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+  outMailHeader.from = currentThread->getProcessID();   // IS THIS RIGHT?
+  outPacketHeader.from = currentThread->getProcessID(); // IS THIS RIGHT?
+  outMailHeader.length = strlen(msg) + 1;
 
-  // Check that the lock hasn't been deleted
-  else if (locks[lockIndex].isDeleted) {
-    printf("ERROR: This lock has already been deleted.\n");
-    lockArray->Release();
-    return;
-  } 
-
-  // Check that the lock isn't already to be deleted
-  else if (locks[lockIndex].toBeDeleted) {
-    lockArray->Release();
-    return;
-  } 
-
-  // Check if there are still threads using the lock
-  else if(locks[lockIndex].numActiveThreads > 0) {
-    locks[lockIndex].toBeDeleted = true;
-  } else {
-    locks[lockIndex].isDeleted = true;
-    printf("Deleted lock %i.\n", lockIndex);
+  bool success = postOffice->Send(outPacketHeader, outMailHeader, msg);
+  
+  if(!success) {
+    printf("The postOffice send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+    interrupt->Halt();
   }
-  lockArray->Release();
+
+  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+
+  if(response[0] == 'e') {
+    if((response[1]-48) == BADINDEX1 && (response[2]-48) == BADINDEX2) {
+      printf("ERROR: Bad Index.\n");
+    }
+    else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
+      printf("ERROR: Already Deleted.\n");
+    }
+    else if((response[1]-48)==TOBEDELETED1 && (response[2]-48)==TOBEDELETED2) {
+      printf("NOTE: The lock will be deleted soon.\n");
+    }
+  }
+  else if(response[0] == 's') {
+    printf("SUCCESS: The lock was deleted.\n");
+  }
+  fflush(stdout);
+
   return;
 }
 
-int CreateCondition_Syscall() {
+int CreateCondition_Syscall(unsigned int strPtr, int length) {
   //  printf("Entered CreateCondition_Syscall.\n");
-  cvData myCV;
-  myCV.condition = new Condition("C");
-  myCV.space = currentThread->space;
-  myCV.isDeleted = false;
-  myCV.toBeDeleted = false;
-  myCV.numActiveThreads = 0;
+	int cvIndex = -1;
+	
+	PacketHeader inPacketHeader;
+  PacketHeader outPacketHeader;
+  MailHeader   inMailHeader;
+  MailHeader   outMailHeader;
 
-  cvArray->Acquire();
+  char* msg = new char[MAX_SIZE];
+  char* name = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE];
+	
+	copyin(strPtr, MAX_SIZE, msg);
+	
+	if(length >= MAX_SIZE - 4){
+		printf("ERROR: This cv name is too long.\n");
+		return -1;
+	}
+	
+	sprintf(name, "s%dn%s", CREATECV, msg);
+	outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+  outMailHeader.from = currentThread->getProcessID();   // IS THIS RIGHT?
+  outPacketHeader.from = currentThread->getProcessID(); // IS THIS RIGHT?
+  outMailHeader.length = strlen(name) + 1;
+	
+	bool success = postOffice->Send(outPacketHeader, outMailHeader, name);
+	
+	if(!success) {
+    printf("The postOffice send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+    interrupt->Halt();
+  }
+	
+	postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+	
+  if(response[0] == 'e') {
+    printf("ERROR: Exceeded max number of cvs.\n");
+  }
+  else if(response[0] == 's') {
+    int i = 1;
+    int j = strlen(response);
+    int total = 0;
+    
+    while(response[j] != 's') {
+      if(response[j] != '\0') {
+				total += (response[j]-48)*i;
+				i = i*10;
+      }
+      j--;
+    }
+    cvIndex = total;
+  }
+  fflush(stdout);
 
-  conditions[nextCVPos] = myCV;
-  nextCVPos++;
-  
-  cvArray->Release();
-
-  return (nextCVPos-1);
-  return 0;
+  return cvIndex;
 }
 
 void DestroyCondition_Syscall(int cvIndex) {
-  //printf("Entered DestroyCondition_Syscall.\n");
+	int index = cvIndex;
+
+	PacketHeader inPacketHeader;
+  PacketHeader outPacketHeader;
+  MailHeader   inMailHeader;
+  MailHeader   outMailHeader;
+
+  char* msg = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE]; 	
+
+	sprintf(msg, "s%dn%d", DESTROYCV, index);
+	outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+  outMailHeader.from = currentThread->getProcessID();   // IS THIS RIGHT?
+  outPacketHeader.from = currentThread->getProcessID(); // IS THIS RIGHT?
+  outMailHeader.length = strlen(msg) + 1;
+
+	bool success = postOffice->Send(outPacketHeader, outMailHeader, msg);
+	
+	if(!success) {
+    printf("The postOffice send failed in DestroyCV. You must not have the other Nachos running. Terminating Nachos.\n");
+    interrupt->Halt();
+  }
+
+	postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+
+	fflush(stdout);
+
+  return;
+	
+
+	/* //printf("Entered DestroyCondition_Syscall.\n");
   cvArray->Acquire();
 
   // Check that the index is valid
@@ -934,9 +1202,226 @@ void DestroyCondition_Syscall(int cvIndex) {
     printf("Deleted condition %i.\n", cvIndex);
   }
   cvArray->Release();
+  return;*/
+}
+
+int CreateMV_Syscall(unsigned int strPtr, int length, int arraySize) {
+
+  int index = -1;
+
+  PacketHeader outPacketHeader;
+  PacketHeader inPacketHeader;
+  MailHeader   outMailHeader;
+  MailHeader   inMailHeader;
+
+  char* msg = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE];
+  char* name = new char[MAX_SIZE];
+
+  copyin(strPtr, MAX_SIZE, msg);
+
+  if(length >= MAX_SIZE-4) {
+    printf("ERROR: This mv name is too long.\n");
+    return -1;
+  }
+
+  if(arraySize < 1 || arraySize > 999) {
+    printf("ERROR: Array must have at least 1 entry.\n");
+    return -1;
+  }
+
+  if(arraySize < 10) {
+    sprintf(name, "s%dt%dn%s", CREATEMV, arraySize,  msg);
+  }
+  else if(arraySize < 100) {
+    sprintf(name, "s%dh%dn%s", CREATEMV, arraySize, msg);
+  }
+  else if(arraySize < 1000) {
+    sprintf(name, "s%dk%dn%s", CREATEMV, arraySize, msg);
+  }
+  
+  // VALIDATE NAME?
+
+  outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+  outMailHeader.from = currentThread->getProcessID();
+  outPacketHeader.from = currentThread->getProcessID();
+  outMailHeader.length = strlen(name) + 1;
+
+  bool success = postOffice->Send(outPacketHeader, outMailHeader, name);
+
+  if(!success) {
+    printf("The postOffice send failed. Terminating Nachos.\n");
+    interrupt->Halt();
+  }
+
+  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+
+  if(response[0] == 'e') {
+    printf("ERROR: Exceeded max number of mvs.\n");
+  }
+  else if(response[0] == 's') {
+    int i = 1;
+    int j = strlen(response);
+    int total = 0;
+
+    while(response[j] != 's') {
+      if(response[j] != '\0') {
+	total += (response[j]-48)*i;
+	i = i*10;
+      }
+      j--;
+    }
+    index = total;
+    printf("SUCCESS: Created the MV.\n");
+  }
+
+  fflush(stdout);
+  return index;
+}
+
+void DestroyMV_Syscall(int index) {
+
+  PacketHeader outPacketHeader;
+  PacketHeader inPacketHeader;
+  MailHeader   outMailHeader;
+  MailHeader   inMailHeader;
+
+  char* message = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE];
+
+  sprintf(message, "s%di%d", DESTROYMV, index);
+
+  outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+  outMailHeader.from = currentThread->getProcessID();
+  outPacketHeader.from = currentThread->getProcessID();
+  outMailHeader.length = strlen(message) + 1;
+
+  bool success = postOffice->Send(outPacketHeader, outMailHeader, message);
+
+  if(!success) {
+    printf("The postOffice send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+    interrupt->Halt();
+  }
+
+  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+
+  if(response[0] == 'e') {
+    if((response[1]-48)==BADINDEX1 && (response[2]-48)==BADINDEX2) {
+      printf("ERROR: Bad Index.\n");
+    }
+    else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
+      printf("ERROR: Already Deleted.\n");
+    }
+    else if((response[1]-48)==TOBEDELETED1 && (response[2]-48)==TOBEDELETED2) {
+      printf("NOTE: The lock will be deleted soon.\n");
+    }
+  }
+  else if(response[0] == 's') {
+    printf("SUCCESS: The lock was deleted.\n");
+  }
+  fflush(stdout);
   return;
 }
 
+void SetMV_Syscall(int index, int value, int arrayIndex) {
+
+  PacketHeader outPacketHeader;
+  PacketHeader inPacketHeader;
+  MailHeader   outMailHeader;
+  MailHeader   inMailHeader;
+
+  char* message = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE];
+
+  sprintf(message, "s%di%di%da%d", SET, index, value, arrayIndex);
+
+  outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+  outMailHeader.from = currentThread->getProcessID();
+  outPacketHeader.from = currentThread->getProcessID();
+  outMailHeader.length = strlen(message) + 1;
+
+  bool success = postOffice->Send(outPacketHeader, outMailHeader, message);
+  
+  if(!success) {
+    printf("The postOffice send failed. Terminating Nachos.\n");
+    interrupt->Halt();
+  }
+
+  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+
+  if(response[0] == 'e') {
+    if((response[1]-48)==BADINDEX1 && (response[2]-48)==BADINDEX2) {
+      printf("ERROR: Bad Index.\n");
+    }
+    else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
+      printf("ERROR: Already Deleted.\n");
+    }
+  }
+  else if(response[0] == 's') {
+    printf("SUCCESS: The MV value is %i.\n", value);
+  }
+  fflush(stdout);
+  return;
+}
+
+int GetMV_Syscall(int index, int arrayIndex) {
+
+  int value = -1;
+ 
+  PacketHeader outPacketHeader;
+  PacketHeader inPacketHeader;
+  MailHeader   outMailHeader;
+  MailHeader   inMailHeader;
+
+  char* message = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE];
+
+  sprintf(message, "s%di%da%d", GET, index, arrayIndex);
+
+  outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+  outMailHeader.from = currentThread->getProcessID();
+  outPacketHeader.from = currentThread->getProcessID();
+  outMailHeader.length = strlen(message) + 1;
+
+  bool success = postOffice->Send(outPacketHeader, outMailHeader, message);
+  
+  if(!success) {
+    printf("The postOffice send failed. Terminating Nachos.\n");
+    interrupt->Halt();
+  }
+
+  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+
+  if(response[0] == 'e') {
+    if((response[1]-48)==BADINDEX1 && (response[2]-48)==BADINDEX2) {
+      printf("ERROR: Bad Index.\n");
+    }
+    else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
+      printf("ERROR: Already Deleted.\n");
+    }
+  }
+  else if(response[0] == 's') {
+    int i = 1;
+    int j = strlen(response);
+    int total = 0;
+
+    while(response[j] != 's') {
+      if(response[j] != '\0') {
+	total += (response[j]-48)*i;
+	i=i*10;
+      }
+      j--;
+    }
+    value = total;
+    printf("SUCCESS: Getting MV value %i.\n", value);
+  }
+  fflush(stdout);
+  return value;
+}
 
 // Handle any PageFaultExceptions found
 void handlePageFault(int vAddress) {
@@ -1059,7 +1544,8 @@ void ExceptionHandler(ExceptionType which) {
       break;
       case SC_CreateLock:
         DEBUG('a', "CreateLock syscall.\n");
-        rv = CreateLock_Syscall();
+        rv = CreateLock_Syscall(machine->ReadRegister(4),
+				machine->ReadRegister(5));
       break;
       case SC_DestroyLock:
         DEBUG('a', "DestroyLock syscall.\n");
@@ -1067,12 +1553,34 @@ void ExceptionHandler(ExceptionType which) {
       break;
       case SC_CreateCondition:
         DEBUG('a', "CreateCondition syscall.\n");
-        rv = CreateCondition_Syscall();
+        rv = CreateCondition_Syscall(machine->ReadRegister(4),
+				     machine->ReadRegister(5));
       break;
       case SC_DestroyCondition:
         DEBUG('a', "DestroyCondition syscall.\n");
         DestroyCondition_Syscall(machine->ReadRegister(4));
       break;
+      case SC_CreateMV:
+	DEBUG('a', "CreateMV syscall.\n");
+	CreateMV_Syscall(machine->ReadRegister(4),
+			 machine->ReadRegister(5),
+			 machine->ReadRegister(6));
+      break;
+      case SC_SetMV:
+	DEBUG('a', "Set syscall.\n");
+	SetMV_Syscall(machine->ReadRegister(4),
+		      machine->ReadRegister(5),
+		      machine->ReadRegister(6));
+      break;
+      case SC_GetMV:
+	DEBUG('a', "Get syscall.\n");
+	GetMV_Syscall(machine->ReadRegister(4),
+		      machine->ReadRegister(5));
+      break;
+      case SC_DestroyMV:
+	DEBUG('a', "DestroyMV syscall.\n");
+	DestroyMV_Syscall(machine->ReadRegister(4));
+      break;	
       }
 
       // Put in the return value and increment the PC
@@ -1085,8 +1593,7 @@ void ExceptionHandler(ExceptionType which) {
     } else if(which==PageFaultException) {
       // Handle TLB miss
       int faultVAddress = machine->ReadRegister(39);
-      handlePageFault(faultVAddress);
-      
+      handlePageFault(faultVAddress);      
     } else {
       cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
       interrupt->Halt();
