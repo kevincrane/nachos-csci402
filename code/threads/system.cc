@@ -183,7 +183,7 @@ Initialize(int argc, char **argv)
     // Swapfile Data
     swapFileMap = new BitMap(NumPhysPages*100);
     swapFileLock = new Lock("Swap File Lock");
-    evictType = 0;
+//    evictType = 0;    -- Declared in main.c according to command line param '-P RAND'
 #endif
 
 #ifdef FILESYS

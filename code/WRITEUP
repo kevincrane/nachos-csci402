@@ -3,70 +3,37 @@ Title: Writeup for Project 3, Fall 2011
 Date: 10/30/2011
 
 Group Num 8:  Name      Email             Student ID
+    Kevin Crane         kevincra@usc.edu  3218277159
     Michelle Forcier    mforcier@usc.edu  7557790576
     Ryan Ball           rball@usc.edu	    3005164367
-    Kevin Crane         kevincra@usc.edu  3218277151
 
 I. Requirements
 
-	Overall: Support multiprogramming in Nachos, so that it can run 
-		 more than one user-level C program at a time.
+  Overall:  Support memory management and virtual memory, as well as
+      implementing remote procedure calls.
 
-	Part 1:  Implement system calls and exception handling. Support the
-		 Fork, Exec, Exit, and Yield system calls. Implement new 
-		 system calls for the Lock and Condition class methods we 
-		 created in Project 1 (Acquire(), Release(), Wait(), Signal(),
-		 and Broadcast()). Implement system calls for the constructors
-		 and destructors for the Lock and Condition classes - 
-		 CreateLock, DestroyLock, CreateCondition, DestroyCondition. 
-		 The system calls for constructors may take in a "name" argument,
-		 or no arguments at all, but must return an integer which 
-		 represents an index position for that Lock or Condition object
-		 in the kernel's array. Destructors will take one parameter, the
-		 integer identifier for the Lock or Condition to be deleted.
+  Part 1:   Implement software-management of the TLB with software-page
+      translation, including software page translation for handling
+      TLB misses.
 
-		 Nachos must terminate (last process calls interrupt->Halt()
-		 instead of Thread::Finish).
+  Part 2:   Implement virtual memory. Has to be able to move page data
+      from memory to a swap file and back. Must be able to evict pages
+      from memory to make room for new pages, using an IPT to keep
+      track of pages between swap file and executable locations.
 
-		 Implement Exec and Fork to work with multiprogramming by
-		 creating address spaces, initializing them with code, creating
-		 new threads, binding threads to address spaces, and creating
-		 a new stack.
-		 		 
-		 Maintain a process table to keep the mapping from SpaceIds to
-		 actual address space data structures. The address space and
-		 resources for a process should be deleted upon exit of the 
-		 last thread.
+  Part 3:   Implement remote procedure calls for the locks and condition
+      variable syscalls. Must be able to create, set values, and retrieve
+      values. Commands sent from Nachos client to server, and must be
+      able to handle multiple clients.
 
-		 Test suite of user programs to prove that our system calls work
-		 when used correctly and that they do not crash Nachos when
-		 used incorrectly. 
-
-		 Test cases should demonstrate the line buffering behavior of
-		 our synchronized console.
-
-	Part 2:  Implement multiprogramming. Allocate physical memory frames
-		 so that multiple programs can be loaded into memory at once.
-		 Copy data to/from the kernel from/to virtual address space.
-		 Implement Exec and Fork. Design a test suite to prove that
-		 Exec and Fork work correctly and will not break the OS. 
-
-	Part 3:  Turn Project 1 Part 2 into a set of multithreaded Nachos
-		 user programs, by using the new system calls created in
-		 part one. Multiple movie theaters should be able to run
-		 independently as different simultaneous processes. Provide
-		 a test suite. Explain what Locks and CVs you used and how
-		 they guarantee synchronization.
-	
 
 II. Assumptions: 
-            
-	We have enough physical memory to allow new requests to run user 
-	programs have the OS load the user program into unused physical 
-	memory.
+
 
 III. Design: 
-- This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  This should include a description of classes, algorithms, etc. 
+- This section is to cover your logic and ideas as to how  you are going to 
+  solve the problem presented.  This should include a description of classes, 
+  algorithms, etc. 
 
   Parts 1 & 2 - 
   - Major parts modified:
@@ -116,498 +83,278 @@ III. Design:
 	
 
   Part 3 - 
+    Created a new file in the network directory called server.cc to
+    act as both the server stub and the server application. 
 
-  Nachos Virtual Address Space		Nachos Executable File - 3 values per segment (byte offset in executable, size of segment, start of VA of segment)
-   ----------------------			 ----------------------------
-  | Code                 |		| Header - map of all        |
-   ----------------------			| virtual addresses except   |
-  | Initialized Data     |		| stack & where in executable|
-   ----------------------			 ----------------------------
-  | Uninitialized Data   |		| Code                       |
-   ----------------------			 ----------------------------
-  | Stack                |		| Initialized Data           |
-   ---------------------- 		 ----------------------------
+    Server application runs a while loop that waits for a message,
+    then figures out the syscall the message wants, then calls a 
+    function to do work and return a value.
 
-  Memory is divided into equal size pieces - pages, memory is allocated one page at a time
-  OS must track which pages are used/unused and which "process" owns each page
-  Mapping virtual pages to physical pages - page table (an array)
-  Nachos page table is in AddrSpace class in userprog
-  Address Space loading must be completed BEFORE the user program can start executing (in AddrSpace constructor), populate page table, copy to memory
+    Functions validate the input, then do any necessary work,
+    then prepare a response message to send to the client.
 
-  Finding an unused page of memory: use BitMap class
-	  Find() - returns an int representing an unused page of physical memory it also marks the entry as "in use"
-	  Clear(int)
+    Example Function:
 
-  Create one BitMap object for all of Nachos - system.h/.cc
-  Physical memory must have the same number of pages as entries in your BitMap object in machine.h
-  3define NumPhysPages 512 (bigger maybe)
+    void CreateLock(char* msg) {
 
-  Need a lock when called BitMap Find()
-  Must change AddrSpace Constructor to copy 1 page at a time
-  executable->ReadAt( ,Page size, );
-  Nachos only allows 1 thread per process, which only creates 1 state
-  To support multiple threads, each thread must have its own stack, stacks are NOT shared between threads
+      lockData myLock;
+      char* response = new char[MAX_SIZE];
+      char* name = new char[MAX_SIZE - 3];
 
-  We chose to do Option 1 for Fork, adding enough memory for all possible
-  stacks at the beginning.	
+      for(int i = 3; i < MAX_SIZE + 1; i++) {
+        // Copy name part of the msg into name
+      }
 
-  We created a function called newKernelThread in exception.cc to run off of Fork.
+      for(int i = 0; i < nextLock; i++) {
+        // Check if the lock already exists
+        if(*lcks[i].lock.name == *name) {
+          // Send a response with the existing
+          // lock index
+          return;
+        }
+      } 
 
-	  void newKernelThread(int vAddress) {
-		  currentThread->space->kernThreadLock->Acquire();
+      myLock.isDeleted = false;
+      myLock.toBeDeleted = false;
+      myLock.numActiveThreads = 0;
+      myLock.lock.name = new char[MAX_SIZE];
 
-		  // Set PCReg and NextPCReg to the kernel thread's virtual address
-		  // Set the StackReg to the new starting position of the stack for this thread
-		  // Prevent info loss during context switching using restore state
-		  // Increment number of threads running
+      // Copy name into the myLock's name field
 
-		  currentThread->space->kernThreadLock->Release();
+      if(nextLock >= MAX_LOCKS) {
+        // Send an error response    				
+      }
+      else {
+        // Add the lock to the array of locks
+        // Send a successful response
+      }
 
-		  // Run the new kernel thread
-	  }
-		
-  We created a function to start new processes, it is called from the Exec syscall
-	
-	  void exec_thread(int vAddr) {
-		  // Initialize Registers using InitRegisters()
-		  // Restore state using RestoreState()
-		  machine->Run();
-	  }
+      outMailHeader.length = strlen(response) + 1;
 
+      postOffice->Send(outPacketHeader, outMailHeader, response);
+
+      nextLock++;
+    }
+    
 
 IV. Implementation: 
-            + Files Modified 
 
-		WRITEUP
-	
-		Userprog Folder: addrspace.h
-				 addrspace.cc
-				 exception.cc
-				 progtest.cc
-				 start.s
-				 syscall.h
-				 table.h
+    + Files Modified 
 
-		Machine Folder:  machine.h
+      WRITEUP
 
-		Threads Folder:  synch.cc
-				 thread.cc
-				 system.h
-				 system.cc
-				 thread.h
-		Test Folder:
-				 Makefile
-				 testfiles.c	
+      Userprog Folder:  exception.cc
+                        syscall.h
+                        addrspace.cc
+                        addrspace.h
 
-            + Files added 
+      Threads Folder:   main.cc
 
-		Test Folder: theater_sim.c
-			     theater_sim_test.c
-			     exectest.c
+      Test Folder:      testfiles.c
+                        networktests.c
+                        start.s
 
-            + Data Structures added, and the file they were added to. 
+    + Files added 
 
-		struct lockData                      -- file exception.cc
-		{
-			Lock* lock;
-			AddrSpace *space;
-			bool isDeleted;
-			bool toBeDeleted;
-			int numActiveThreads;
-		};
+      VM Folder:        iptEntry.h
+      
+      Network Folder:   server.cc
 
-		lockData locks[MAX_LOCKS];           -- file exception.cc
-		Lock* lockArray;		     -- file exception.cc
-		int nextLockPos;		     -- file exception.cc
+      Test Folder:      networktests.c
+                        two_matmults.c (actually runs 7 matmults, as a demonstration of multiple processes)
 
-		struct cvData 			     -- file exception.cc
-		{
-			Condition* condition;
-			AddrSpace *space;
-			bool isDeleted;
-			bool toBeDeleted;
-			int numActiveThreads;
-		};
+    + Data Structures added, and the file they were added to. 
 
-		cvData conditions[MAX_CVS];	     -- file exception.cc
-		Lock* cvArray;			     -- file exception.cc
-		int nextCVPos;			     -- file exception.cc
-	
-		Lock* procLock;			     -- file exception.cc
-		Lock* printLock;		     -- file exception.cc
+      iptEntry (extension of TranslationEntry) -- iptEntry.h
+      
+      PacketHeader inPacketHeader;		-- server.cc
+      PacketHeader outPacketHeader;		-- server.cc
+      MailHeader   inMailHeader;		-- server.cc
+      MailHeader   outMailHeader;		-- server.cc
 
-		Table threadTable;		     -- file addrspace.h		
-		Lock *threadLock;		     -- file addrspace.h
-		Lock *kernThreadLock; 		     -- file addrspace.h
-		char* processName		     -- file addrspace.h
-		int processID			     -- file addrspace.h
-		int endStackReg			     -- file addrspace.h
-		int numThreadsRunning		     -- file addrspace.h
-			
+      char* message;				-- server.cc
+      int nextLock;				-- server.cc
+      int nextCV;				-- server.cc
+      int nextMVPos;				-- server.cc
 
-            + Data Structures modified, and the file they were added to. 
+      class serverLock {			-- server.cc
+
+		      char* name;
+		      bool available;
+		      int machineID;
+		      int mailboxNum;
+		      List* waitList;
+      }
+
+      class serverCV {			-- server.cc
+
+	      char* name;
+		      int lockIndex;
+		      int machineID;
+		      int mailboxNum;
+		      List* waitList;
+
+	      }
+
+      class waitingThread {			-- server.cc
+
+		      int machineID;
+		      int mailboxNum;
+
+      };
+
+      struct lockData {			-- server.cc
+		      serverLock lock;
+		      bool isDeleted;
+		      bool toBeDeleted;
+		      int numActiveThreads;
+      };
+
+      struct cvData {				-- server.cc
+		      serverCV condition;
+		      bool isDeleted;
+		      bool toBeDeleted;
+		      int numActiveThreads;
+      };
+
+      struct mvData {				-- server.cc
+		      int values[1000];
+		      int size;
+		      bool isDeleted;
+		      char* name;
+      };
+
+      lockData lcks[MAX_LOCKS];		-- server.cc
+      cvData   cvs[MAX_CVS];			-- server.cc
+      mvData   mvs[MAX_MVS];			-- server.cc
+      
+      
+    + Data Structures modified, and the file they were added to. 
+      iptEntry pageTable;       -- addrSpace.h
+      
+      
+    + Functions added and in which file. 
+    
+      int evictAPage();             -- exception.cc
+      int handleIPTMiss(int vpn);   -- exception.cc
+      void handlePageFault(int vAddress);   -- exception.cc
+
+      void CreateLock(char* msg); 		-- server.cc
+      void Acquire(int index);		-- server.cc
+      void Release(int index);		-- server.cc
+      void DestroyLock(int index);		-- server.cc
+      void CreateCV(char* msg);		-- server.cc
+      void Wait(char* msg);			-- server.cc
+      void Signal(char* msg);			-- server.cc
+      void Broadcast(char* msg);		-- server.cc
+      void DestroyCV(char* msg);		-- server.cc
+      void CreateMV(char* msg);		-- server.cc
+      void Set(int index, int value, int arrayIndex); -- server.cc
+      void Get(int index, int arrayIndex);	-- server.cc
+      void DestroyMV(int index);		-- server.cc
+      void Server();				-- server.cc
+
+
+    + Functions modified and in which file. 
+
+      void Acquire_Syscall(int lockIndex);	-- exception.cc
+      void Release_Syscall(int lockIndex);	-- exception.cc
+      void Wait_Syscall(int cvIndex, int lockIndex); -- exception.cc
+      void Signal_Syscall(int cvIndex, int lockIndex); -- exception.cc
+      void Broadcast_Syscall(int cvIndex, int lockIndex); -- exception.cc
+      int  CreateLock_Syscall(unsigned int strPtr, int length); -- exception.cc
+      void DestroyLock_Syscall(int lockIndex);-- exception.cc
+      int  CreateCondition_Syscall(unsigned int strPtr, int length); -- exception.cc
+      void DestroyCondition_Syscall(int cvIndex); -- exception.cc
+      int  CreateMV_Syscall(unisgned int strPtr, int length, int arraySize); -- exception.cc
+      void DestroyMV_Syscall(int index); 	-- exception.cc
+      void SetMV_Syscall(int index, int value, int arrayIndex); -- exception.cc
+      int  GetMV_Syscall(int index, int arrayIndex);	-- exception.cc
+      void ExceptionHandler(ExceptionType which);	-- exception.cc
 		
-		int numPagesReserved		     -- file addrspace.h
-
-            + Functions added and in which file. 
-
-		void newKernelThread(int vAddress);  -- file exception.cc
-		void exec_thread(int vAddr);         -- file exception.cc
-		void Print_Syscall(unsigned int stPtr, int p1, int p2, int p3) -- file exception.cc
-		void Acquire_Syscall(int lockIndex); -- file exception.cc
-		void Release_Syscall(int lockIndex); -- file exception.cc
-		void Fork_Syscall(int vAddress, int index); -- file exception.cc
-		void Exec_Syscall(int vAddress, int len);   -- file exception.cc
-		void Exit_Syscall();                 -- file exception.cc
-		void Yield_Syscall();		     -- file exception.cc
-		void Wait_Syscall(int cvIndex, int lockIndex) -- file exception.cc
-		void Signal_Syscall(int cvIndex, int lockIndex) -- file exception.cc
-		void Broadcast_Syscall(int cvIndex int lockIndex) -- file exception.cc 
-		int  CreateLock_Syscall() 			  -- file exception.cc
-		void DestroyLock_Syscall(int lockIndex) 	  -- file exception.cc
-		int CreateCondition_Syscall() 			  -- file exception.cc
-		void DestroyCondition_Syscall(int cvIndex) 	  -- file exception.cc	
-		char* getProcessName();			-- file addrspace.h
-		int getProcessID()			-- file addrspace.h
-		int getNumThreadsRunning()		-- file addrspace.h
-		int Random_Syscall()			-- file exception.cc
-
-            + Functions modified and in which file. 
-
-		int getEndStackReg() 	-- file addrspace.h
-		void incNumThreadsRunning()	-- file addrspace.h
-		void decNumThreadsRunning()	-- file addrspace.h
-
-V. Testing:  (For each test case, you must show) 
-            + How to test 
-
-		Compile the test and userprog folders.
-	
-		To run all syscall test cases, run nachos -x ../test/testfiles
-		from the userprog folder.
-	
-		To run tests for the theater simulation, run nachos -x 
-		../test/theater_sim_test.
-
-		Note: In the Theater Sim tests, the Customers making it all the
-		way through the theater is tested by the main theater simulation...
-		our theater does not fork threads for individual customers (unless
-		they use the restroom), only for groups.
-
-		Yield Test: Calls Yield, allowing another thread in the queue to 
-		run.
-
-		Lock Tests:
-		1. Default test to create a lock that will later be deleted.
-		2. Create lots of locks test which will be used for various
-		   other tests.
-		3. Default test destroys the create lock in the default create 
-		   test.
-		4. Checks to make sure that a bad index will be blocked from
-		   reaching the system call.
-		5. Checks to make sure an already deleted lock deletion will be
-		   blocked from reaching the system call.
-		6. Checks to make sure an in use lock can't be deleted yet.
-		7. Default acquire test.
-		8. Test to make sure that a bad index will be blocked before
-		   the syscall.
-		9. Test to make sure that an already deleted lock cannot be
-		   acquired.
-		10. Default test releasing the lock in a previous test.
-		11. Release a lock that does not have the lock.
-		12. Test to check that a bad index will be blocked before 
-		    the syscall.
-		13. Test to check that release won't be called on an already
-		    deleted lock.
 		
-		CV Tests:
-		1. Default test to create a cv to later be destroyed.
-		2. Create a lot of CV's to be used in later tests.
-		3. Destroy the CV created in the default test.
-		4. Test to make sure a bad index will be blocked from reaching
-		   the system call.
-		5. Test to make sure an already deleted CV will be blocked 
-		   from reaching the system call.
-		6. Test to make sure that an active CV will not be deleted, but 
-		   marked for deletion.
-		7. Default test to make sure wait syscall works and will be 
-		   used for a later test.
-		8. Test to make sure a bad index will be blocked before it
-		   reaches the syscall.
-		9. Test to make sure an already deleted lock or CV will be 
-		   blocked before it reaches the syscall.
-		10.Default test to check if the signal syscall works.
-		11.Test to check if a bad index will be blocked before it 
-		   reaches syscall.
-		12.Test to check that an already deleted CV signal call will be
-		   blocked before it reaches syscall.
-		13.Setup to test default broadcast case.
-		14.Default test to make sure broadcast works.
-		15.Test to make sure a bad index will be blocked before it 
-		   enters syscall.
-		16.Test to make sure an already deleted CV or lock will be 
-		   blocked before it enters syscall.
-
-		Fork:
-		1. Fork test to make sure that forked threads can signal 
-		   waiting threads back to life.
-		2. Test to make sure that functions being forked get called.
-		
-		Exec:
-		1. Default exec test to make sure that exec works correctly.
-		2. Test to make sure a bad file will be blocked before
-		   reaching syscall.
-
-		Theater Simulation:
+V. Testing:  (For each test case, you must show)
+    + How to test
+    
+      (From network folder; must be compiled from here because of new 'network' features)
+        gmake
+      
+    
+      - FIFO vs. Random Eviction type
+        - From network folder:
+          nachos -P RAND -x ../test/{test_file}
+          OR
+          nachos -P FIFO -x ../test/{test_file}
+      - Simple test of memory management/virtual memory
+        - From network folder:
+          nachos -P {RAND || FIFO} -x ../test/sort
+          nachos -P {RAND || FIFO} -x ../test/matmult
+      - Demonstration of multiple simultaneous processes using same memory/swapfile
+          nachos -P {RAND || FIFO} -x ../test/two_matmults    [ (actually more 7 different matmults, just large-scale demo) ]
+      
+      - Demonstration of network functionality
+        [NETWORK]
 	
 
-            + Test Output 
+    + Test Output
+    
+      SORT EXPECTED OUTPUT
+        Sort output=1023
+        Exit: Nachos successfully shutting down.
+        Machine halting!
+      
+      MATMULT EXPECTED OUTPUT
+        Matmult output=7220
+        Exit: Nachos successfully shutting down.
+        Machine halting!
+        
+      TWO_MATMULTS EXPECTED OUTPUT
+        Matmult 1!
+        Matmult 2!
+        Matmult 3!
+        Matmult 4!
+        Matmult 5!
+        Matmult 6!
+        Matmult 7!
+        Matmult output=7220
+        Matmult output=7220
+        Matmult output=7220
+        Matmult output=7220
+        Matmult output=7220
+        Matmult output=7220
+        Matmult output=7220
+        Exit: Nachos successfully shutting down.
+        Machine halting!
 
-		SYSCALL TESTS EXPECTED OUTPUT
-
-		*** YIELD TEST ***
-
-
-		Testing Yield syscall. Calling Yield()
-		Yield syscall successful. End of Yield test
-
-
-		*** LOCK TEST ***
-	
-
-		Testing CreateLock syscall. Calling CreateLock()
-		Lock syscall successful.
-		Testing Many Lock syscalls. Calling CreateLock() 9 times
-		Many locks created finished!
-		Testing Destroy Lock syscall. Calling DestroyLock()
-		Deleted lock 0.
-		Testing Destroy Lock syscall with a negative index.
-		ERROR: The given lock index is not valid.
-		Testing Destroy Lock sys call with a lock index of 12 (Larger than next index)
-		ERROR: The given lock index is not valid.
-		Testing Destroy Lock on already destroyed lock
-		ERROR: This lock has already been deleted.
-		Acquiring unused lock_10 to check destroy_Lock
-		Destroying Lock 10!!!
-
-		*** CV TEST ***
-		Testing Create CV. Calling CreateCV()
-		Testing Create CV 9 more times
-		Testing Destroy CV. Destroying cv_1
-		Deleted condition 0.
-		Testing Destroy CV on a negative index
-		ERROR: The given condition index is not valid.
-		Testing Destroy CV on index of 12 (Larger than next index)
-		ERROR: The given condition index is not valid.
-		Testing Destroy CV on index 11
-		ERROR: The given condition index is not valid.
-		Testing Destroy CV on already deleted CV, cv_1
-		ERROR: This lock has already been deleted.
-		Testing Destroy CV on waiting cv_9
-		Deleted condition 8.
-
-		*** ACQUIRE TEST ***
-		Testing Acquire on lock_2
-		Testing Acquire on negative index
-		ERROR: The given lock index is not valid.
-		Testing Acquire on out of bounds index
-		ERROR: The given lock index is not valid.
-		Testing Acquire on on deleted lock, lock_1
-		ERROR: This lock has been deleted.
-	
-		*** RELEASE TEST ***
-		Testing Release on lock_2
-		Testing Release on lock_2 again
-		Error: There is no lock owner; thread (main) cannot release the lock!
-		Testing Release on negative index
-		ERROR: The given lock index is not valid.
-		Testing Release on out of bounds index
-		ERROR: The given lock index is not valid.
-		Testing Release on deleted lock, lock_1
-		ERROR: This lock has been deleted.
+		[NETWORK]
 		
-		*** WAIT TEST ***
-		Forking thread to test wait
-		Acquiring lock_9 and waiting on cv_9
-		ERROR: This condition has been deleted.
-		Testing Wait, Nachos should not end
-		Testing Wait on a negative cv index
-		ERROR: The given cv index is not valid.
-		Testing Wait on a out of bounds cv index
-		ERROR: The given cv index is not valid.
-		Testing Wait on a negative lock index
-		ERROR: The given lock index is not valid.
-		Testing Wait on a out of bounds lock index
-		ERROR: The given lock index is not valid.
-		Testing Wait on a deleted cv
-		ERROR: This condition has been deleted.
-		Testing Wait on a deleted lock
-		ERROR: This lock has been deleted.
-		Forking thread to test wait
-	
-		*** SIGNAL TEST ***
-		Testing Signal on cv_2
-		Testing Signal on negative cv index
-		ERROR: The given cv index is not valid.
-		Testing Signal on a out of bounds cv index
-		ERROR: The given cv index is not valid.
-		Testing Signal on a out of bounds lock index
-		ERROR: The given lock index is not valid.
-		Testing Signal on a negative lock index
-		ERROR: The given lock index is not valid.
-		Testing Signal on deleted cv
-		ERROR: This condition has been deleted.
-		Testing Signal on deleted lock
-		ERROR: This lock has been deleted.
-		
-		*** BROADCAST TEST ***
-		Testing Broadcast on cv_4
-		Testing Wait, Nachos should not end
-		#0-wait_Test has woke up
-		Successfully forked Broadcast Setup, Acquiring lock_4
-		Successfully forked Broadcast Setup 2, Acquiring lock_4
-		Broadcasted on cv_4
-		Testing Broadcast on negative cv index
-		ERROR: The given cv index is not valid.
-		Testing Broadcast on out of bounds cv index
-		ERROR: The given cv index is not valid.
-		Testing Broadcast on negative lock index
-		ERROR: The given lock index is not valid.
-		Testing Broadcast on out of bounds lock index
-		ERROR: The given lock index is not valid.
-		Testing Broadcast on deleted cv
-		ERROR: This condition has been deleted.
-		Testing Broadcast on deleted lock
-		ERROR: This lock has been deleted.
-		Exited wait thru Broadcast
-		Exited wait thru Broadcast 2
-	
-		*** FORK TEST ***
-		
-		Testing Fork syscall. Calling Fork()
-		Forking 2 threads for testing purposes
-		Forked test thread1
-		Forked test thread2
-		Forked test thread3
-		Fork Test 1 ready
-		Fork Test 1 Acquiring lock_3
-		Fork Test 2 ready
-		Fork Test 2 Acquiring lock_3
-		Fork Test 1 Signaled lock_3
-		
-
-		Testing Exec syscall. Calling Exec()
-		
-		DONESTICKS, Exec called successfully
-		Hi, #1 got out of wait succsssfully!
-		Running test of Exec syscall.
-		Exec finished forking threads, now trying to create a lock
-		lock_1 position created at 10
-		Exec created a lock!
-		Trying to destroy lock 5 from wrong process
-		ERROR: This process does not own the lock!
-		Trying to destroy cv 5 from wrong process
-		ERROR: This process does not own the cv!
-		Trying to acquire lock 6 from wrong process
-		ERROR: This process does not own the lock!
-		Trying to release lock 6 from wrong process
-		ERROR: This process does not own the lock!
-		Trying to wait on cv 6 from wrong process
-		ERROR: This process does not own the condition!
-		Trying to signal on cv 6 from wrong process
-		ERROR: This process does not own the condition!
-		Trying to broadcast on cv 6 from wrong process
-		ERROR: This process does not own the condition!
-		Testing Exec on a bad file
-		Error opening file at ../test/OMGBADFILEZ
-		Forked test thread1 in exec
-		Forked test thread2 in exec
-	
-
-
-		*** END OF TESTING BEFORE EXEC ***
-
-		*****************************************************************
-		MOVIE THEATER TEST EXPECTED OUTPUT:
-
-		Starting tests.
-
-
-
-		Manager collected [100] from TicketClerk[0].
-		---------------------------------------------------------------------------
-		Test A is Complete 
-		---------------------------------------------------------------------------
-		Manager signaled Test B clerk to get off break
-		Test B Clerk got off break successfully
-		---------------------------------------------------------------------------
-		Test B is Complete 
-		---------------------------------------------------------------------------
-		Customer 1 began
-		Customer 2 began
-		Customer 2 acquired clerk line lock
-		Clerk has been released!
-		TicketClerk 0 has a line length 1 and is signaling a customer.
-		Clerk is done
-		Clerk has grabbed me
-		---------------------------------------------------------------------------
-		Test C is Complete 
-		---------------------------------------------------------------------------
-		Line 0: 0 | Line 1: 0
-		Customer 2 is getting in line 0| Length : 1
-		Customer 1 is getting in line 1| Length : 1
-		---------------------------------------------------------------------------
-		Test D is Complete 
-		---------------------------------------------------------------------------
-		Manager collected 1 from ConcessionClerk0.
-		Manager collected 14 from ConcessionClerk1.
-		Manager collected 19 from ConcessionClerk2.	
-		Manager collected 12 from ConcessionClerk3.
-		Manager collected 5 from ConcessionClerk4.
-		Manager collected 11 from TicketClerk0.
-		Manager collected 7 from TicketClerk1.
-		Manager collected 8 from TicketClerk2.
-		Manager collected 11 from TicketClerk3.
-		Manager collected 1 from TicketClerk4.
-		Total money made by office = 89
-		Actual Revenue: 89
-		---------------------------------------------------------------------------
-		Test E is Complete 
-		---------------------------------------------------------------------------
 
 VI. Discussion: 
-            + Experiment expectation.  (What you hope will happen.) 
+    + Experiment expectation.  (What you hope will happen.) 
 
-		We hope that by the end of the project we will have an operating
-		system that can run multiple programs at once. We hope to have
-		an efficient system of storing and mapping pages from virtual
-		memory to physical memory as well as new system calls that will
-		allow user programs to fork new threads, exec new processes, 
-		exit threads, and use locks and conditions. We also expect
-		our movie theater to run as a nachos program and to be able to
-		run multiple movie theaters at once.
+      By the end of this project, we hope to have learned how to properly
+      manage memory between multiple processes and a swapfile. This will
+      involve some tricky interactions between the various processes, IPT
+      and TLB, and the physical swapfile.
+      In addition, we hope to learn about how to communicate between different
+      Nachos instances through networking and a client-server interaction.
 
-            + Experiment result.  (What actually happens.) 
+    + Experiment result.  (What actually happens.) 
 
-		To run the program run nachos -x ../test/theater_sim. The syscalls work. 
-		The ConcessionClerk does not work and the movie theater
-		never ends, but Nachos does end. To run the program with 2 theaters, run
-		nachos -x ../test/two_theaters. This successfully runs two theaters, they 
-		each make it as far as they would if they were running by themselves. We
-		ran out of time to remove some of our extra print statements, which we 
-		used for debugging, so unfortunately the theater won't follow the expected
-		output exactly		
+      In the end, implementing the software memory management features were
+      tough, but very doable. We created a very robust system of memory
+      management that seems very capable for handling multiple threads and
+      processes with ease.
+      [NETWORK]
 
-            + Explanation 
+    + Explanation 
 
-		We didn't expect the theater to be as difficult to convert to a Nachos user
-		program as it ended up being. It took us 3 days of working almost non-stop
-		to get it where it is. We thought it would be as simple as converting it to
-		C, but some of the logic had to change and debugging took an unexpected 
-		amount of time. We were hoping to complete this project, we have learned 
-		that if we were to do this again we would want to create the move theater
-		part of the project earlier.
-
+      I found that breaking the memory management portion into discrete steps
+      (as Professor Crowley did in class) made it substantially easier to
+      grasp and understand as we progressed, helping me to better understand
+      the concepts as I went. 
+      [NETWORK]
+		  
 VII. Miscellaneous: 
 
 		

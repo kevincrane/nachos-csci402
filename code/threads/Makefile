@@ -42,9 +42,8 @@ main.o: ../threads/main.cc ../threads/copyright.h ../threads/utility.h \
   /usr/include/v7/sys/psr.h /usr/include/sys/fsr.h ../threads/system.h \
   ../threads/thread.h ../threads/scheduler.h ../threads/list.h \
   ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
-  ../machine/timer.h ../threads/utility.h \
-  ../threads/../userprog/iptEntry.h \
-  ../threads/../userprog/../machine/translate.h ../threads/copyright.h \
+  ../machine/timer.h ../threads/utility.h ../threads/../vm/iptEntry.h \
+  ../threads/../vm/../machine/translate.h ../threads/copyright.h \
   ../threads/utility.h ../threads/theater_sim.cc ../threads/theater_sim.h \
   ../threads/synch.h ../threads/theater_sim_test.cc
 list.o: ../threads/list.cc ../threads/copyright.h ../threads/list.h \
@@ -95,9 +94,8 @@ scheduler.o: ../threads/scheduler.cc ../threads/copyright.h \
   /usr/include/v7/sys/psr.h /usr/include/sys/fsr.h ../threads/thread.h \
   ../threads/system.h ../machine/interrupt.h ../threads/list.h \
   ../machine/stats.h ../machine/timer.h ../threads/utility.h \
-  ../threads/../userprog/iptEntry.h \
-  ../threads/../userprog/../machine/translate.h ../threads/copyright.h \
-  ../threads/utility.h
+  ../threads/../vm/iptEntry.h ../threads/../vm/../machine/translate.h \
+  ../threads/copyright.h ../threads/utility.h
 synch.o: ../threads/synch.cc ../threads/copyright.h ../threads/synch.h \
   ../threads/thread.h ../threads/utility.h ../threads/bool.h \
   ../machine/sysdep.h ../threads/copyright.h \
@@ -123,8 +121,8 @@ synch.o: ../threads/synch.cc ../threads/copyright.h ../threads/synch.h \
   /usr/include/v7/sys/psr.h /usr/include/sys/fsr.h ../threads/list.h \
   ../threads/system.h ../threads/scheduler.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../threads/utility.h ../threads/../userprog/iptEntry.h \
-  ../threads/../userprog/../machine/translate.h ../threads/copyright.h \
+  ../threads/utility.h ../threads/../vm/iptEntry.h \
+  ../threads/../vm/../machine/translate.h ../threads/copyright.h \
   ../threads/utility.h
 synchlist.o: ../threads/synchlist.cc ../threads/copyright.h \
   ../threads/synchlist.h ../threads/list.h ../threads/utility.h \
@@ -175,8 +173,8 @@ system.o: ../threads/system.cc ../threads/copyright.h ../threads/system.h \
   /usr/include/v7/sys/psr.h /usr/include/sys/fsr.h ../threads/thread.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../threads/utility.h ../threads/../userprog/iptEntry.h \
-  ../threads/../userprog/../machine/translate.h ../threads/copyright.h \
+  ../threads/utility.h ../threads/../vm/iptEntry.h \
+  ../threads/../vm/../machine/translate.h ../threads/copyright.h \
   ../threads/utility.h ../threads/synch.h
 thread.o: ../threads/thread.cc ../threads/copyright.h ../threads/thread.h \
   ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \
@@ -204,9 +202,8 @@ thread.o: ../threads/thread.cc ../threads/copyright.h ../threads/thread.h \
   ../threads/synch.h ../threads/list.h ../threads/system.h \
   ../threads/scheduler.h ../machine/interrupt.h ../threads/list.h \
   ../machine/stats.h ../machine/timer.h ../threads/utility.h \
-  ../threads/../userprog/iptEntry.h \
-  ../threads/../userprog/../machine/translate.h ../threads/copyright.h \
-  ../threads/utility.h
+  ../threads/../vm/iptEntry.h ../threads/../vm/../machine/translate.h \
+  ../threads/copyright.h ../threads/utility.h
 utility.o: ../threads/utility.cc ../threads/copyright.h \
   ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \
   ../threads/copyright.h \
@@ -255,8 +252,8 @@ threadtest.o: ../threads/threadtest.cc ../threads/copyright.h \
   /usr/include/v7/sys/psr.h /usr/include/sys/fsr.h ../threads/thread.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../threads/utility.h ../threads/../userprog/iptEntry.h \
-  ../threads/../userprog/../machine/translate.h ../threads/copyright.h \
+  ../threads/utility.h ../threads/../vm/iptEntry.h \
+  ../threads/../vm/../machine/translate.h ../threads/copyright.h \
   ../threads/utility.h ../threads/synch.h
 theater_sim.o: ../threads/theater_sim.cc \
   /usr/sfw/lib/gcc/sparc-sun-solaris2.10/3.4.3/include/stdio.h \
@@ -283,8 +280,8 @@ theater_sim.o: ../threads/theater_sim.cc \
   /usr/include/iso/string_iso.h ../threads/thread.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../threads/utility.h ../threads/../userprog/iptEntry.h \
-  ../threads/../userprog/../machine/translate.h ../threads/copyright.h \
+  ../threads/utility.h ../threads/../vm/iptEntry.h \
+  ../threads/../vm/../machine/translate.h ../threads/copyright.h \
   ../threads/utility.h ../threads/theater_sim.h ../threads/synch.h
 theater_sim_test.o: ../threads/theater_sim_test.cc ../threads/copyright.h \
   ../threads/system.h ../threads/utility.h ../threads/bool.h \
@@ -311,8 +308,8 @@ theater_sim_test.o: ../threads/theater_sim_test.cc ../threads/copyright.h \
   /usr/include/v7/sys/psr.h /usr/include/sys/fsr.h ../threads/thread.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../threads/utility.h ../threads/../userprog/iptEntry.h \
-  ../threads/../userprog/../machine/translate.h ../threads/copyright.h \
+  ../threads/utility.h ../threads/../vm/iptEntry.h \
+  ../threads/../vm/../machine/translate.h ../threads/copyright.h \
   ../threads/utility.h ../threads/synch.h
 interrupt.o: ../machine/interrupt.cc \
   /usr/sfw/lib/gcc/sparc-sun-solaris2.10/3.4.3/include/stdio.h \
@@ -431,9 +428,8 @@ interrupt.o: ../machine/interrupt.cc \
   ../machine/sysdep.h ../threads/system.h ../threads/thread.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../machine/stats.h ../machine/timer.h ../threads/utility.h \
-  ../threads/../userprog/iptEntry.h \
-  ../threads/../userprog/../machine/translate.h ../threads/copyright.h \
-  ../threads/utility.h
+  ../threads/../vm/iptEntry.h ../threads/../vm/../machine/translate.h \
+  ../threads/copyright.h ../threads/utility.h
 sysdep.o: ../machine/sysdep.cc ../threads/copyright.h \
   /usr/include/stdlib.h /usr/include/iso/stdlib_iso.h \
   /usr/include/sys/feature_tests.h /usr/include/sys/ccompile.h \
@@ -478,9 +474,8 @@ sysdep.o: ../machine/sysdep.cc ../threads/copyright.h \
   ../machine/sysdep.h ../threads/system.h ../threads/thread.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../machine/stats.h ../machine/timer.h ../threads/utility.h \
-  ../threads/../userprog/iptEntry.h \
-  ../threads/../userprog/../machine/translate.h ../threads/copyright.h \
-  ../threads/utility.h
+  ../threads/../vm/iptEntry.h ../threads/../vm/../machine/translate.h \
+  ../threads/copyright.h ../threads/utility.h
 stats.o: ../machine/stats.cc \
   /usr/sfw/lib/gcc/sparc-sun-solaris2.10/3.4.3/include/stdio.h \
   /usr/include/stdarg.h /usr/include/iso/stdarg_iso.h \
@@ -620,8 +615,8 @@ timer.o: ../machine/timer.cc ../threads/copyright.h ../machine/timer.h \
   /usr/include/v7/sys/psr.h /usr/include/sys/fsr.h ../threads/system.h \
   ../threads/utility.h ../threads/thread.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../threads/list.h \
-  ../machine/stats.h ../machine/timer.h ../threads/../userprog/iptEntry.h \
-  ../threads/../userprog/../machine/translate.h ../threads/copyright.h \
+  ../machine/stats.h ../machine/timer.h ../threads/../vm/iptEntry.h \
+  ../threads/../vm/../machine/translate.h ../threads/copyright.h \
   ../threads/utility.h
 # DEPENDENCIES MUST END AT END OF FILE
 # IF YOU PUT STUFF HERE IT WILL GO AWAY

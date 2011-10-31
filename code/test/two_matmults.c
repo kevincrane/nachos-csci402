@@ -7,19 +7,19 @@ int main() {
 /*  Write("Matmult 2!\n", sizeof("Matmult 2!\n"), ConsoleOutput);
   Exec("../test/testfiles", sizeof("../test/testfiles"));*/
   
+  Write("Matmult 2!\n", sizeof("Matmult 2!\n"), ConsoleOutput);
+  Exec("../test/matmult", sizeof("../test/matmult"));
+  
   Write("Matmult 3!\n", sizeof("Matmult 2!\n"), ConsoleOutput);
   Exec("../test/matmult", sizeof("../test/matmult"));
   
   Write("Matmult 4!\n", sizeof("Matmult 2!\n"), ConsoleOutput);
   Exec("../test/matmult", sizeof("../test/matmult"));
-  
-  Write("Matmult 2!\n", sizeof("Matmult 2!\n"), ConsoleOutput);
+  Write("Matmult 5!\n", sizeof("Matmult 2!\n"), ConsoleOutput);
   Exec("../test/matmult", sizeof("../test/matmult"));
-  Write("Matmult 2!\n", sizeof("Matmult 2!\n"), ConsoleOutput);
+  Write("Matmult 6!\n", sizeof("Matmult 2!\n"), ConsoleOutput);
   Exec("../test/matmult", sizeof("../test/matmult"));
-  Write("Matmult 2!\n", sizeof("Matmult 2!\n"), ConsoleOutput);
-  Exec("../test/matmult", sizeof("../test/matmult"));
-  Write("Matmult 2!\n", sizeof("Matmult 2!\n"), ConsoleOutput);
+  Write("Matmult 7!\n", sizeof("Matmult 2!\n"), ConsoleOutput);
   Exec("../test/matmult", sizeof("../test/matmult"));
   
   

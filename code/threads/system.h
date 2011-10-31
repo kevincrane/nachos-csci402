@@ -16,7 +16,7 @@
 #include "stats.h"
 #include "timer.h"
 
-#include "../userprog/iptEntry.h"
+#include "../vm/iptEntry.h"
 
 //#include "table.h"
 

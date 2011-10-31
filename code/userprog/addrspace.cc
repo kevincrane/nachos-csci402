@@ -60,11 +60,13 @@ int Table::Put(void *f) {
 
     lock->Acquire();
     i = map.Find();
-    lock->Release();
-    if ( i != -1) {
+    if ( i >= 0 && i < maxSize) {
       table[i] = f;
       size++;
+    } else {
+      i = -1;
     }
+    lock->Release();
     return i;
 }
 

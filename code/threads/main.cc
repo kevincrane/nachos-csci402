@@ -113,6 +113,14 @@ main(int argc, char **argv)
 #endif
 
 #ifdef USER_PROGRAM
+  if(!strcmp(*argv, "RAND")) {
+    DEBUG('z', "RARGHHHH1=%i\n", strcmp(*argv, "-P RAND"));
+    evictType = 1;
+	} else if(evictType != 1) {
+	DEBUG('z', "RARGHHHH2=%i\n", strcmp(*argv, "-P RAND"));
+	  evictType = 0;
+	}
+	
   if (!strcmp(*argv, "-x")) {        	// run a user program
 	  ASSERT(argc > 1);
     StartProcess(*(argv + 1));

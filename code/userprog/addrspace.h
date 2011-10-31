@@ -16,7 +16,7 @@
 #include "copyright.h"
 #include "filesys.h"
 #include "table.h"
-#include "iptEntry.h"
+#include "../vm/iptEntry.h"
 
 #define UserStackSize   1024   // increase this as necessary!
 #define MaxNumProgs     10     // max number of programs/stacks
