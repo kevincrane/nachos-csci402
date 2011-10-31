@@ -1,11 +1,11 @@
-Title: Writeup for Project 2, Fall 2011
+Title: Writeup for Project 3, Fall 2011
 
-Date: 10/9/2011
+Date: 10/30/2011
 
-Group Num 8: 	Name			Email			Student ID
-		Michelle Forcier	mforcier@usc.edu	7557790576
-		Ryan Ball		rball@usc.edu		3005164367
-		Kevin Crane		kevincra@usc.edu	3218277151
+Group Num 8:  Name      Email             Student ID
+    Michelle Forcier    mforcier@usc.edu  7557790576
+    Ryan Ball           rball@usc.edu	    3005164367
+    Kevin Crane         kevincra@usc.edu  3218277151
 
 I. Requirements
 
@@ -68,349 +68,111 @@ II. Assumptions:
 III. Design: 
 - This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  This should include a description of classes, algorithms, etc. 
 
-	Part 1 - 
-	
-	Add prototypes and system call codes to syscall.h
-	Connect the public interface to an interrupt handler in start.s
-
-	Acquire Syscall:
-
-	void Acquire_Syscall(int lockIndex) {
-		
-		lockArray->Acquire();
-		
-		// Check that the lock index is valid, if not release lock and return
-		// Check that the lock belongs to the calling process, if not, release and return
-		// Check that the lock has not been deleted, if it has, release and return
-		// Check that the lock is not to be deleted, if it is, release and return
-		
-		// Increment number of active threads
-		locks[lockIndex].numActiveThreads++;
-
-		locks[lockIndex].lock->Acquire();
-		lockArray->Release();
-	}
-
-	Release Syscall:
-
-	void Release_Syscall(int lockIndex) {
-		
-		lockArray->Acquire();
-
-		// Check that the index is valid, if not release and return
-		// Check that the lock belongs to the calling process, if not, release and return
-		// Check that the lock has not been deleted, if it has, release and return
-		
-		locks[lockIndex].lock->Release();
-		locks[lockIndex].numActiveThreads--;
-
-		// Check if the lock was waiting to be deleted and there are no
-		// more active threads, if so, delete it
-
-		lockArray->Release();
-	}
-
-	Fork Syscall:
-
-	void Fork_Syscall(int vAddress, int index) {
-		
-		// Check that MAX threads has not been reached, if it has, return
-		// Check that the virtual address given is valid, if not, return
-
-		// Add new thread to thread table
-		int num = currentThread->space->threadTable->Put(t);
-
-		int processID = currentThread->space->threadTable->Put(t);
-		char* tName = currentThread->space->getProcessName();
-		name = new char[30];
-		strcpy(name, tName);
-		
-		// Set thread variables
-		t->setName(name);
-		t->setThreadNum(num);
-		t->setProcessID(processID);
-		t->space = currentThread->space;
-
-		// Fork new thread
-		t->Fork((VoidFunctionPtr)newKernelThread, vAddress);
-	}
-		
-	Exec Syscall:
-
-	int Exec_Syscall(int vAddress, int len) {
-
-		// Create a Kernel buffer to put the name in
-		// Open a new file
-
-		// Check that we can allocale the kernel bugger and that
-		// the pointer passed is not bad
-
-		// Check that we can open the file
-
-		// Create a new addr space and add the 1st thread the process
-		AddrSpace* processSpace = new AddrSpace(f);
-		
-		processTableLock->Acquire();
-		int pID = processTable->Put(processSpace);
-		// Copy process name
-		processTableLock->Release();
-
-		// Close the file
-
-		// Create the first thread
-		Thread *newThread = new Thread(buf);
-		newThread->space = processSpace;
-		int threadNum = processSpace->threadTable->Put(newThread);
-		newThread->setThreadNum(threadNum);
-		newThread->setProcessID(pID);
-		newThread->space->incNuMThreadsRunning();
-
-		// Fork new thread
-		// Return pID
-	}
-	
-	Exit Syscall:
-
-	void Exit_Syscall() {
-
-		processTableLock->Acquire();
-
-		// Check that all processes haven't already exitted
-		// Check that the current thread did not have an error when
-		// making the process
-
-		// If last executing thread in the process
-		if(processTable->Size() == 1) {
-			if(currentThread->space->threadTable->Size() == 1) {
-				// Release Lock
-				interrupt->Halt();
-			}
-		}
-
-		// If Last executing thread in a process - not last process
-		if(currentThread->space->threadTable->Size() == 1) {
-			currentThread->space->threadTable->Remove(currentThread->getThreadNum());
-			processTable->Remove(currentThread->getProcessID());
-
-			// Remove pages
-		} else {
-			// Remove thread from thread table
-		}
-		
-		processTableLock->Release();
-
-		if(!(currentThread->space->isMain())
-			currentThread->Finish();
-	}	
-
-	Yield Syscall:
-
-	void Yield_Syscall() {
-		currentThread->Yield();
-	}
-
-	Wait Syscall:
- 
-	void Wait_Syscall(int cvIndex, int lockIndex) {
-		cvArray->Acquire();
-		lockArray->Acquire();
-
-		  // Check that the index is valid
-		  // Check that the condition belongs to the calling processes
-		  // Check that the lock index is valid
-		  // Check that the lock belongs to the calling process
-		  // Check that the condition has not been deleted
-		  // Check that the condition is not to be deleted
-		  // Check that the lock is not deleted
- 		  // Check that the lock is not to be deleted
-		
-		conditions[cvIndex].numActiveThreads++
-		 cvArray->Release()
-		  lockArray->Release()
-		conditions[cvIndex].condition->Wait(locks[lockIndex].lock); 
-	}
-
-	Signal Syscall:
-
-	void Signal_Syscall(int cvIndex, int lockIndex) {
-		cvArray->Acquire();
-		lockArray->Acquire();
-
-		// Check that the index is valid
-		// Check that the condition belongs to the calling process
-		// Check that the lock index is valid
-		// Check that the lock belongs to the calling process
- 		// Check that the condition has not been deleted
-		// Check that the lock has not been deleted
-
-		conditions[cvIndex].numActiveThreads--; 
-  		conditions[cvIndex].condition->Signal(locks[lockIndex].lock);
-
-  		// Check if the condition is to be deleted, if so, delete it
-
-		cvArray->Release();
-		lockArray->Release();
-	}
-
-	Broadcast Syscall:
-
-	void Broadcast_Syscall(int cvIndex, int lockIndex) {
-
-		cvArray->Acquire();
- 		lockArray->Acquire();
-
-		// Check that the index is valid
-		// Check that the condition belongs to the calling process
-		// Check that the lock index is valid
-		// Check that the lock belongs to the calling process
-		// Check that the condition has not been deleted
- 		// Check that the lock has not been deleted
-
-		conditions[cvIndex].condition->Broadcast(locks[lockIndex].lock);
-		conditions[cvIndex].numActiveThreads = 0;
-
-		// Check if the condition is to be deleted, if so, delete it
-
-		cvArray->Release();
-		lockArray->Release();
-	}
-
-	int CreateLock_Syscall() {
-		lockData myLock;
-		myLock.lock = new Lock("L");
-		myLock.space = currentThread->space;
-		myLock.isDeleted = false;
-		myLock.toBeDeleted = false;
-		myLock.numActiveThreads = 0;
-
-		lockArray->Acquire();
-
-		locks[nextLockPos] = myLock;
-		nextLockPos++;
+  Parts 1 & 2 - 
+  - Major parts modified:
+    - AddrSpace
+      - Constructor
+      - RestoreState (Sets all values in TLB to invalid)
+    - exception.cc
+      - added new handler for PageFaultExceptions
+      - incorporated the use of a TLB and IPT to allow for gradual loading of executable data
+      - added a swapfile and page swapping to account for small allotment of memory
+    - machine.h
+      - NumPhysPages changed from 1024 pages to 32 pages. Forces swapping to happen as there are not enough pages to go around
+    - IPTEntry.h
+      - Created a container for IPT entries. Inherits from TranslationEntry but adds several important values (swapfile data, location of data, etc.)
+    - system.h
+      - Added locks and an OpenFile handler to work with the swapfile
   
-		lockArray->Release();
-
-		return (nextLockPos-1);
-	}
-
-	Destroy Lock Syscall
-
-		void DestoryLock_Syscall(int lockIndex) {
-		lockArray->Acquire();
-
-    		// Check that the lock belongs to the calling process
-  		// Check that the lock hasn't been deleted
-    		// Check that the lock isn't already to be deleted
-  		// Check if there are still threads using the lock
-  
-		else if(locks[lockIndex].numActiveThreads > 0) {
-		    locks[lockIndex].toBeDeleted = true;
-		  } else {
-		    locks[lockIndex].isDeleted = true;
-		    printf("Deleted lock %i.\n", lockIndex);
-		  }
-		  lockArray->Release();
-		  return;
-		}
-
-	Create Condition Syscall
-
-	int CreateCondition_Syscall() {
+	    
+  AddrSpace Consructor
+  - Saves a pointer to the executable file, no longer deletes executable as it needs to maintain a connection with it to keep reading data
+  - Initialize all values in pageTable. Unlike in previous versions where all of the data from the executable is loaded in now, the 
+    executable data is not read yet.
+    
+  PageFault Handler
+  - handlePageFaul(int vAddress)
+    - Disable interrupts
+    - Increase the timestamp on all pages in the TLB
+    - Find the correct IPT page matching the page that threw the PageFaultException
+      - If it can't find a matching IPT page, search for a new one (handleIPTMiss)
+    - Propagate dirty bits in the TLB to the IPT and thread pageTable
+    - Copy all relevant fields from the IPT to the TLB
+    - Restore Interrupts
+  - handleIPTMiss(int vpn)
+    - Search for a new free page from the page map
+    - If it can't find one, time to evict a page (evictAPage)
+    - Locate the data that needs to get stored in the new page
+      - If it's in the swap file, locate it using its swapByteOffset, read it, and store it in the pageTable
+      - If it's in the executable, read it and store it in the pageTable
+  - evictAPage()
+    - If FIFO eviction:
+      - Find the page in the IPT with the largest timestamp and take that as the PPN to evict
+    - If Random eviction:
+      - Generate a random number and evict a page with that number
+    - Propagate dirty bit from TLB to IPT and disable current page in TLB
+    - Copy page from memory to swap page
+    - Update PageTable to reflect page moving from memory to swapfile
 	
-  		cvData myCV;
-  		myCV.condition = new Condition("C");
-  		myCV.space = currentThread->space;
-  		myCV.isDeleted = false;
-  		myCV.toBeDeleted = false;
-  		myCV.numActiveThreads = 0;
 
-  		cvArray->Acquire();
+  Part 3 - 
 
-  		conditions[nextCVPos] = myCV;
-  		nextCVPos++;
-  	
-  		cvArray->Release();
+  Nachos Virtual Address Space		Nachos Executable File - 3 values per segment (byte offset in executable, size of segment, start of VA of segment)
+   ----------------------			 ----------------------------
+  | Code                 |		| Header - map of all        |
+   ----------------------			| virtual addresses except   |
+  | Initialized Data     |		| stack & where in executable|
+   ----------------------			 ----------------------------
+  | Uninitialized Data   |		| Code                       |
+   ----------------------			 ----------------------------
+  | Stack                |		| Initialized Data           |
+   ---------------------- 		 ----------------------------
 
-  		return (nextCVPos-1);
-  		return 0;
-	}
+  Memory is divided into equal size pieces - pages, memory is allocated one page at a time
+  OS must track which pages are used/unused and which "process" owns each page
+  Mapping virtual pages to physical pages - page table (an array)
+  Nachos page table is in AddrSpace class in userprog
+  Address Space loading must be completed BEFORE the user program can start executing (in AddrSpace constructor), populate page table, copy to memory
 
-	void DestroyCondition_Syscall(int cvIndex) {
-  		cvArray->Acquire();
+  Finding an unused page of memory: use BitMap class
+	  Find() - returns an int representing an unused page of physical memory it also marks the entry as "in use"
+	  Clear(int)
 
-  		// Check that the index is valid
-  		// Check that the condition belongs to the calling thread
-		// Check that the condition hasn't already been deleted
-  		// Check that the condition isn't already set to tobeDeleted
-  		// Check that there are no more active threads
-  		else if(conditions[cvIndex].numActiveThreads > 0) {
-  		  conditions[cvIndex].toBeDeleted = true;
-  		} else {
-  		  conditions[cvIndex].isDeleted = true;
-  		  printf("Deleted condition %i.\n", cvIndex);
-  		}
-  		cvArray->Release();
-  		return;
-	}
+  Create one BitMap object for all of Nachos - system.h/.cc
+  Physical memory must have the same number of pages as entries in your BitMap object in machine.h
+  3define NumPhysPages 512 (bigger maybe)
 
-	Part 2 - 
-	
-	Nachos Virtual Address Space		Nachos Executable File - 3 values per segment (byte offset in executable, size of segment, start of VA of segment)
-	 ----------------------			 ----------------------------
- 	| Code                 |		| Header - map of all        |
-	 ----------------------			| virtual addresses except   |
-	| Initialized Data     |		| stack & where in executable|
-         ----------------------			 ----------------------------
-	| Uninitialized Data   |		| Code                       |
-  	 ----------------------			 ----------------------------
-	| Stack                |		| Initialized Data           |
-         ---------------------- 		 ----------------------------
+  Need a lock when called BitMap Find()
+  Must change AddrSpace Constructor to copy 1 page at a time
+  executable->ReadAt( ,Page size, );
+  Nachos only allows 1 thread per process, which only creates 1 state
+  To support multiple threads, each thread must have its own stack, stacks are NOT shared between threads
 
-	Memory is divided into equal size pieces - pages, memory is allocated one page at a time
-	OS must track which pages are used/unused and which "process" owns each page
-	Mapping virtual pages to physical pages - page table (an array)
-	Nachos page table is in AddrSpace class in userprog
-	Address Space loading must be completed BEFORE the user program can start executing (in AddrSpace constructor), populate page table, copy to memory
-	
-	Finding an unused page of memory: use BitMap class
-		Find() - returns an int representing an unused page of physical memory it also marks the entry as "in use"
-		Clear(int)
-	
-	Create one BitMap object for all of Nachos - system.h/.cc
-	Physical memory must have the same number of pages as entries in your BitMap object in machine.h
-	3define NumPhysPages 512 (bigger maybe)
+  We chose to do Option 1 for Fork, adding enough memory for all possible
+  stacks at the beginning.	
 
-	Need a lock when called BitMap Find()
-	Must change AddrSpace Constructor to copy 1 page at a time
-	executable->ReadAt( ,Page size, );
-	Nachos only allows 1 thread per process, which only creates 1 state
-	To support multiple threads, each thread must have its own stack, stacks are NOT shared between threads
-	
-	We chose to do Option 1 for Fork, adding enough memory for all possible
-	stacks at the beginning.	
+  We created a function called newKernelThread in exception.cc to run off of Fork.
 
-	We created a function called newKernelThread in exception.cc to run off of Fork.
+	  void newKernelThread(int vAddress) {
+		  currentThread->space->kernThreadLock->Acquire();
 
-		void newKernelThread(int vAddress) {
-			currentThread->space->kernThreadLock->Acquire();
+		  // Set PCReg and NextPCReg to the kernel thread's virtual address
+		  // Set the StackReg to the new starting position of the stack for this thread
+		  // Prevent info loss during context switching using restore state
+		  // Increment number of threads running
 
-			// Set PCReg and NextPCReg to the kernel thread's virtual address
-			// Set the StackReg to the new starting position of the stack for this thread
-			// Prevent info loss during context switching using restore state
-			// Increment number of threads running
+		  currentThread->space->kernThreadLock->Release();
 
-			currentThread->space->kernThreadLock->Release();
-
-			// Run the new kernel thread
-		}
-			
-	We created a function to start new processes, it is called from the Exec syscall
+		  // Run the new kernel thread
+	  }
 		
-		void exec_thread(int vAddr) {
-			// Initialize Registers using InitRegisters()
-			// Restore state using RestoreState()
-			machine->Run();
-		}
+  We created a function to start new processes, it is called from the Exec syscall
+	
+	  void exec_thread(int vAddr) {
+		  // Initialize Registers using InitRegisters()
+		  // Restore state using RestoreState()
+		  machine->Run();
+	  }
 
 
 IV. Implementation: 

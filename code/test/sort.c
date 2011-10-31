@@ -31,5 +31,6 @@ main()
     	   
 /*   	Write("Sorted sumpin\n", 14, ConsoleOutput);*/
     	}
+    Print("Print output=%i\n", A[0], -1, -1);
     Exit(A[0]);		/* and then we're done -- should be 0! */
 }
