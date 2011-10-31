@@ -192,10 +192,10 @@ void customerInit(int numGroups)
       totalCustomers += groups[i];
       
     }
-  customerLobbyLock = CreateLock();
+  customerLobbyLock = CreateLock("cll", 3);
   customerLobbyCV = CreateCV();
   for(k=0; k<totalGroups; k++) {
-    waitingOnGroupLock[k] = CreateLock();
+    waitingOnGroupLock[k] = CreateLock("wogl", 4);
     waitingOnGroupCV[k] = CreateCV();
   }    
 }
@@ -1273,40 +1273,40 @@ void init_values(){
   }
 	
   /* Initialize ticketClerk values */
-  ticketClerkLineLock = CreateLock();
+  ticketClerkLineLock = CreateLock("tcll", 4);
   for(i=0; i<MAX_TC; i++) 
   {
     ticketClerkLineCV[i] = CreateCV();		/* instantiate line condition variables */
-    ticketClerkLock[i] = CreateLock();
+    ticketClerkLock[i] = CreateLock("tcli", 4); /*********************CHANGE THIS******************************/
     ticketClerkCV[i] = CreateCV();
-    ticketClerkBreakLock[i] = CreateLock();
+    ticketClerkBreakLock[i] = CreateLock("tcbli", 5); /*****************************CHANGE THIST*********************/
     ticketClerkBreakCV[i] = CreateCV();
     ticketClerkIsWorking[i] = 1;
   }
 	
   /* Initialize ticketTaker values */
-  ticketTakerLineLock = CreateLock();
-  ticketTakerMovieLock = CreateLock();
+  ticketTakerLineLock = CreateLock("ttll", 4);
+  ticketTakerMovieLock = CreateLock("ttml", 4);
   ticketTakerMovieCV = CreateCV();
-  ticketTakerBreakLock = CreateLock();
+  ticketTakerBreakLock = CreateLock("ttbl", 4);
   ticketTakerBreakCV = CreateCV();
   movieStarted = 0;
   for(i=0; i<MAX_TT; i++)
   {
     ticketTakerLineCV[i] = CreateCV();
-    ticketTakerLock[i] = CreateLock();
+    ticketTakerLock[i] = CreateLock("ttli", 4); /****************************CHANGE THIS*****************************/
     ticketTakerCV[i] = CreateCV();
     ticketTakerIsWorking[i] = 1;
   }
 	
   /* Initialize concessionClerk values */
-  concessionClerkLineLock = CreateLock();
+  concessionClerkLineLock = CreateLock("ccll", 4);
   concessionClerkWorking = MAX_CC;
   for(i=0; i<MAX_CC; i++) {
     concessionClerkLineCV[i] = CreateCV(); /* instantiate line condition variables */
-    concessionClerkLock[i] = CreateLock();
+    concessionClerkLock[i] = CreateLock("ccli", 4); /***************************CHANGE THIS**************************/
     concessionClerkCV[i] = CreateCV();
-    concessionClerkBreakLock[i] = CreateLock();
+    concessionClerkBreakLock[i] = CreateLock("ccbli", 5); /**************************CHANGE THIS********************/
     concessionClerkBreakCV[i] = CreateCV();
     
     concessionClerkLineCount[i] = 0;
@@ -1323,8 +1323,8 @@ void init_values(){
   movieLength = 0;
   movieFinishedLockCV = CreateCV();
   movieStatusLockCV = CreateCV();
-  movieFinishedLock = CreateLock();
-  movieStatusLock = CreateLock();
+  movieFinishedLock = CreateLock("mfl", 3);
+  movieStatusLock = CreateLock("msl", 3);
   numSeatsOccupied = 0; 
 	
   /* Initialize manager values */
@@ -1335,8 +1335,8 @@ void init_values(){
 void init() {
   int i;
 
-  int chooseSeatsLock = CreateLock();
-  int ticketTakerCounterLock = CreateLock();
+  int chooseSeatsLock = CreateLock("csl", 3);
+  int ticketTakerCounterLock = CreateLock("ttcl", 4);
   int custsLeftToAssign = MAX_CUST;
   int aNumGroups = 0;
 

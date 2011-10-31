@@ -22,6 +22,7 @@
 #include "network.h"
 #include "post.h"
 #include "interrupt.h"
+//#include "exception.cc"
 
 // Test out message delivery, by doing the following:
 //	1. send a message to the machine with ID "farAddr", at mail box #0
@@ -33,6 +34,10 @@
 void
 MailTest(int farAddr)
 {
+    
+  // int lockIndex = CreateLock("a", sizeof("a"));
+
+
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
     char *data = "Hello there!";
@@ -77,6 +82,6 @@ MailTest(int farAddr)
     printf("Got \"%s\" from %d, box %d\n",buffer,inPktHdr.from,inMailHdr.from);
     fflush(stdout);
 
-    // Then we're done!
+    // Then we're done! 
     interrupt->Halt();
 }

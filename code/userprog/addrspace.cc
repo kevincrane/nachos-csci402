@@ -60,13 +60,11 @@ int Table::Put(void *f) {
 
     lock->Acquire();
     i = map.Find();
-    if ( i >= 0 && i < maxSize) {
+    lock->Release();
+    if ( i != -1) {
       table[i] = f;
       size++;
-    } else {
-      i = -1;
     }
-    lock->Release();
     return i;
 }
 
@@ -76,15 +74,15 @@ void *Table::Remove(int i) {
 
     void *f =0;
 
-    if ( i >= 0 && i < maxSize) {
-      lock->Acquire();
-      if ( map.Test(i) ) {
-          map.Clear(i);
-          f = table[i];
-          table[i] = 0;
-          size--;
-      }
-      lock->Release();
+    if ( i >= 0 && i < size ) {
+	lock->Acquire();
+	if ( map.Test(i) ) {
+	    map.Clear(i);
+	    f = table[i];
+	    table[i] = 0;
+	    size--;
+	}
+	lock->Release();
     }
     return f;
 }
@@ -200,6 +198,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	
     DEBUG('u', "numPagesReserved: %i, numPages: %i, NumPhysPages: %i\n", numPagesReserved, numPages, NumPhysPages);
     // Verify there are enough free pages left
+
 //    ASSERT((numPagesReserved + numPages) <= NumPhysPages);		// check we're not trying to extend past the range of pages
 						
     // zero out the entire address space, to zero the unitialized data segment 
@@ -357,18 +356,18 @@ void AddrSpace::SaveState()
 //      For now, tell the machine where to find the page table.
 //----------------------------------------------------------------------
 
-void AddrSpace::RestoreState() 
+void AddrSpace::RestoreState()
 {
-//  machine->pageTable = pageTable;
-  machine->pageTableSize = numPages;
-    
-  // Disable interrupts
-  IntStatus oldLevel = interrupt->SetLevel(IntOff);
-  for(int i=0;i<TLBSize;i++) {
-    machine->tlb[i].valid=FALSE;
-  }
-  // Restore interrupts
-  (void) interrupt->SetLevel(oldLevel);
+// machine->pageTable = pageTable;
+machine->pageTableSize = numPages;
+
+// Disable interrupts
+IntStatus oldLevel = interrupt->SetLevel(IntOff);
+for(int i=0;i<TLBSize;i++) {
+machine->tlb[i].valid=FALSE;
+}
+// Restore interrupts
+(void) interrupt->SetLevel(oldLevel);
 }
 
 
@@ -378,4 +377,3 @@ void AddrSpace::removePage(int i) {
 //  if(pageTable[i].physicalPage != -1)
     pageMap->Clear(pageTable[i].physicalPage);
 }
-

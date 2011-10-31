@@ -38,6 +38,8 @@
 //    -n sets the network reliability
 //    -m sets this machine's host id (needed for the network)
 //    -o runs a simple test of the Nachos network software
+//    -s runs the Nachos server
+//    -c runs a Nachos client program
 //
 //  NOTE -- flags are ignored until the relevant assignment.
 //  Some of the flags are interpreted here; some in system.cc.
@@ -62,6 +64,7 @@ extern void TestSuite(void), Copy(char *unixFile, char *nachosFile);
 extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
+extern void Server();
 #ifdef THREADS
 extern void TestSuite(void); //Problem2(void)
 extern void Theater_Sim(void);
@@ -158,6 +161,9 @@ main(int argc, char **argv)
             MailTest(atoi(*(argv + 1)));
             argCount = 2;
         }
+	else if(!strcmp(*argv, "-s")) {
+	  Server();
+	}
 #endif // NETWORK
     }
 

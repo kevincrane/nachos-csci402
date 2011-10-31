@@ -36,5 +36,5 @@ main()
           C[i][j] += A[i][k] * B[k][j];
 
     Print("Matmult output=%i\n", C[Dim-1][Dim-1], -1, -1);
-    Exit(C[Dim-1][Dim-1]);		/* and then we're done */
+    Exit(C[Dim-1][Dim-1]);		 /*and then we're done */
 }

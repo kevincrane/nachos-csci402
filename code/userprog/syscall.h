@@ -39,7 +39,11 @@
 #define SC_CreateCondition  18
 #define SC_DestroyCondition 19	
 #define SC_Print            20
-#define SC_Random						21
+#define SC_Random           21
+#define SC_CreateMV         22
+#define SC_SetMV            23
+#define SC_GetMV            24
+#define SC_DestroyMV        25
 
 #define MAXFILENAME 256
 
@@ -156,19 +160,24 @@ void Signal(int cvIndex, int lockIndex);
 void Broadcast(int cvIndex, int lockIndex);
 
 /* Create a new lock */
-int CreateLock();
+int CreateLock(char* name, int length);
 
 /* Destroy the lock with the given index */
 void DestroyLock(int lockIndex);
 
 /* Create a new condition variable */
-int CreateCV();
+int CreateCV(char* name, int length);
 
 /* Destroy the CV with the given index */
 void DestroyCV(int cvIndex);
 
 /* Create random int with modulus paramater */
 int Random(int m);
+
+int CreateMV(char* name, int length, int size);
+void DestroyMV(int mvIndex);
+void SetMV(int index, int value, int arrayIndex);
+int GetMV(int index, int arrayIndex);
 
 #endif /* IN_ASM */
 

@@ -46,23 +46,23 @@ int mainLock;
 void init_values(){
   int i;
 	mainCV = CreateCV();
-	mainLock = CreateLock();
+	mainLock = CreateLock("ml", 2);
 	
   /* Initialize ticketClerk values */
-  ticketClerkLineLock = CreateLock();
+  ticketClerkLineLock = CreateLock("tcll", 4);
   for(i=0; i<MAX_TC; i++) 
   {
     ticketClerkLineCV[i] = CreateCV();		/* instantiate line condition variables */
-    ticketClerkLock[i] = CreateLock();
+    ticketClerkLock[i] = CreateLock("tcli", 4); /*********************CHANGE THIS*******************************/
     ticketClerkCV[i] = CreateCV();
-    ticketClerkBreakLock[i] = CreateLock();
+    ticketClerkBreakLock[i] = CreateLock("tcbli", 5); /*****************************CHANGE THIS**********************/
     ticketClerkBreakCV[i] = CreateCV();
   }
 	
 	
   /* Initialize concessionClerk values */
   for(i=0; i<MAX_CC; i++) {
-   	concessionClerkLock[i] = CreateLock();
+    concessionClerkLock[i] = CreateLock("ccli", 4); /*****************CHANGE THIS************************/
     
     concessionClerkRegister[i] = 0;
   }
@@ -410,7 +410,7 @@ int main()
 	
 	/* Test B */
 	/* Manager test to get clerks off break */
-	testBLock = CreateLock();
+	testBLock = CreateLock("tbl", 3);
 	testBCV = CreateCV();
 	Fork((void*)TestBManagerOffBreak);
 
@@ -427,7 +427,7 @@ int main()
 	
 	/* Test C*/
 	/* Clerks wait for customer to signal them to move on*/
-	testCLock = CreateLock();
+	testCLock = CreateLock("tcl", 3);
 	testCCV = CreateCV();	
 	Fork((void*)TestCCustomer);
 	Fork((void*)TestCCustomer2);
@@ -445,7 +445,7 @@ int main()
 	
 	/* Test D*/
 	/* Customers always choose shortest line*/
-	testDLock = CreateLock();
+	testDLock = CreateLock("tdl", 3);
 	testDCV = CreateCV();
 	Fork((void*)TestD_1);
 	Fork((void*)TestD_2);
@@ -461,7 +461,7 @@ int main()
 	
 	/* Test E */
 	/* Manager collecting cash nevers suffers a race condition */
-		testELock = CreateLock();
+		testELock = CreateLock("tel", 3);
 		testECV = CreateCV();
 		Fork((void*)TestE_1);
 		Fork((void*)TestE_2);

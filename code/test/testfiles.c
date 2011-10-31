@@ -56,7 +56,7 @@ int cv_10;
 		Write("\n\nTesting Yield syscall. Calling Yield()\n", sizeof("\n\nTesting Yield syscall. Calling Yield()\n"), ConsoleOutput);
 		Yield();
 		Write("Yield syscall successful. End of Yield test\n\n", sizeof("Yield syscall successful. End of Yield test\n\n"), ConsoleOutput);
-	}
+	} 
 
 /*-------------------------- Lock Tests */
 
@@ -66,7 +66,7 @@ int cv_10;
 
 	create_Lock_Test() {
 	  Write("\n\nTesting CreateLock syscall. Calling CreateLock()\n", sizeof("\n\nTesting CreateLock syscall. Calling CreateLock()\n"), ConsoleOutput);
-		lock_1 =  CreateLock();
+		lock_1 =  CreateLock("a", 1);
 		Write("Lock syscall successful.\n", sizeof("Lock syscall successful.\n"), ConsoleOutput);
 	}
 
@@ -74,15 +74,15 @@ int cv_10;
 /* Create Lots of Locks Test which will be used for various other tests*/
 	create_Many_Locks_Test(){
 		Write("Testing Many Lock syscalls. Calling CreateLock() 9 times\n", sizeof("Testing Many Lock syscalls. Calling CreateLock() 10 times\n"), ConsoleOutput);
-		lock_2 = CreateLock();
-		lock_3 = CreateLock();
-		lock_4 = CreateLock();
-		lock_5 = CreateLock();
-		lock_6 = CreateLock();
-		lock_7 = CreateLock();
-		lock_8 = CreateLock();
-		lock_9 = CreateLock();
-		lock_10 = CreateLock();
+		lock_2 = CreateLock("b", 1);
+		lock_3 = CreateLock("c", 1);
+		lock_4 = CreateLock("d", 1);
+		lock_5 = CreateLock("e", 1);
+		lock_6 = CreateLock("f", 1);
+		lock_7 = CreateLock("g", 1);
+		lock_8 = CreateLock("h", 1);
+		lock_9 = CreateLock("i", 1);
+		lock_10 = CreateLock("j", 1);
 		Write("Many locks created finished!\n", sizeof("Many locks created finished!\n"),ConsoleOutput);
 	}
 	
@@ -412,115 +412,118 @@ int cv_10;
 	}
 
 int main() {
-	OpenFileId fd;
+ 
+  OpenFileId fd;
   int bytesread;
   char buf[20];
-  
-	/* Yield Test */
-	Write("\n*** YIELD TEST ***\n", sizeof("\n*** YIELD TEST ***\n"), ConsoleOutput);
-	yield_Test();
 
-	/* Lock Tests */
-	Write("\n*** LOCK TEST ***\n", sizeof("\n*** LOCK TEST ***\n"), ConsoleOutput);
-	create_Lock_Test();
+  Write("2.\n", sizeof("2.\n"), ConsoleOutput);
+  
+  /* Yield Test */
+  /*Write("\n*** YIELD TEST ***\n", sizeof("\n*** YIELD TEST ***\n"), ConsoleOutput);
+    yield_Test();*/
+
+  /* Lock Tests */
+  Write("\n*** LOCK TEST ***\n", sizeof("\n*** LOCK TEST ***\n"), ConsoleOutput);
+  create_Lock_Test();
 
   create_Many_Locks_Test();
 
-	destroy_Lock_Test();
+  /*destroy_Lock_Test();*/
+  
+  /*destroy_Lock_Bad_Index_Test();*/
 
-	destroy_Lock_Bad_Index_Test();
+  /*destroy_Lock_Already_Deleted();*/
 
-	destroy_Lock_Already_Deleted();
-
-	destroy_Lock_Using_Lock_Setup();
+  /*destroy_Lock_Using_Lock_Setup();*/
 	
-	destroy_Lock_Thread_Using_Lock();
+  /*destroy_Lock_Thread_Using_Lock();*/
 
-	/* CV Tests */
-	Write("\n*** CV TEST ***\n", sizeof("\n*** CV TEST ***\n"), ConsoleOutput);
-	create_CV_Test();
+  /* CV Tests */
+  Write("\n*** CV TEST ***\n", sizeof("\n*** CV TEST ***\n"), ConsoleOutput);
+  /*create_CV_Test();*/
 
-  create_Many_CVs_Test();
+  /*create_Many_CVs_Test();*/
 
-	destroy_CV_Test();
+  /*destroy_CV_Test();*/
+  
+  /*destroy_CV_Bad_Index_Test();*/
 
-	destroy_CV_Bad_Index_Test();
+  /*destroy_CV_Already_Deleted();*/
 
-	destroy_CV_Already_Deleted();
+  /*Fork((void*)destroy_CV_Setup);*/
 
-	Fork((void*)destroy_CV_Setup);
-
-	destroy_CV_Thread_Using_CV();
+  /*destroy_CV_Thread_Using_CV();*/
 	
-	/* Acquire/Release Tests */
-	Write("\n*** ACQUIRE TEST ***\n", sizeof("\n*** ACQUIRE TEST ***\n"), ConsoleOutput);
-	acquire_Lock_Test();
+  /* Acquire/Release Tests */
+  Write("\n*** ACQUIRE TEST ***\n", sizeof("\n*** ACQUIRE TEST ***\n"), ConsoleOutput);
+  /*acquire_Lock_Test();*/
 
-	acquire_Lock_Bad_Index();
+  /*acquire_Lock_Bad_Index();*/
 	
-	acquire_Lock_Already_Deleted();
+  /*acquire_Lock_Already_Deleted();*/
 	
-	Write("\n*** RELEASE TEST ***\n", sizeof("\n*** RELEASE TEST ***\n"), ConsoleOutput);
-	release_Lock_Test();
+  Write("\n*** RELEASE TEST ***\n", sizeof("\n*** RELEASE TEST ***\n"), ConsoleOutput);
+  /*release_Lock_Test();*/
 	
-	release_Lock_Without_Acquire();   
+  /*release_Lock_Without_Acquire();*/   
 	
-	release_Lock_Bad_Index();
+  /*release_Lock_Bad_Index();*/
 	
-	release_Lock_Already_Deleted();
+  /*release_Lock_Already_Deleted();*/
 	
 
-	/* CV Operation Tests */
-		/* Wait */
-	Write("\n*** WAIT TEST ***\n", sizeof("\n*** WAIT TEST ***\n"), ConsoleOutput);
+  /* CV Operation Tests */
+  /* Wait */
+  Write("\n*** WAIT TEST ***\n", sizeof("\n*** WAIT TEST ***\n"), ConsoleOutput);
 	
-	Write("Forking thread to test wait\n", sizeof("Forking thread to test wait\n"), ConsoleOutput);
-	Fork((void*)wait_Test);	
+  Write("Forking thread to test wait\n", sizeof("Forking thread to test wait\n"), ConsoleOutput);
+  /*Fork((void*)wait_Test);*/	
 	
-	Yield();
+  /*Yield();*/
 
-	wait_Bad_Index();	
+  /*wait_Bad_Index();*/	
 
-	wait_Already_Deleted();
+  /*wait_Already_Deleted();*/
 
-		/* Signal */
-	Write("\n*** SIGNAL TEST ***\n", sizeof("\n*** SIGNAL TEST ***\n"), ConsoleOutput);	
+  /* Signal */
+  Write("\n*** SIGNAL TEST ***\n", sizeof("\n*** SIGNAL TEST ***\n"), ConsoleOutput);	
 
-	signal_Test(); /* Signal thread waiting from wait_Test */
+  /*signal_Test();*/ /* Signal thread waiting from wait_Test */
 
-	signal_Bad_Index();
+  /*signal_Bad_Index();*/
 
-	signal_Already_Deleted();  
+  /*signal_Already_Deleted();*/  
 	
-		/* Broadcast */
-	Write("\n*** BROADCAST TEST ***\n", sizeof("\n*** BROADCAST TEST ***\n"), ConsoleOutput);
+  /* Broadcast */
+  Write("\n*** BROADCAST TEST ***\n", sizeof("\n*** BROADCAST TEST ***\n"), ConsoleOutput);
 	
-	broadcast_Test();		
+  /*broadcast_Test();*/		
 
-	broadcast_Bad_Index();
+  /*broadcast_Bad_Index();*/
 
-	broadcast_Already_Deleted();
+  /*broadcast_Already_Deleted();*/
 	
-	Yield();
+  /*Yield();*/
 	
-		/* Fork */
-	Write("\n*** FORK TEST ***\n", sizeof("\n*** FORK TEST ***\n"), ConsoleOutput);
- 	fork_Test();		
+  /* Fork */
+  Write("\n*** FORK TEST ***\n", sizeof("\n*** FORK TEST ***\n"), ConsoleOutput);
+  /*fork_Test();*/		
 
-	fork_2_Threads();
+  /*fork_2_Threads();*/
 	
-	Yield();
-		/* Exec */
+  /*Yield();*/
+  /* Exec */
   /* Executing all kinds of threads */
-  exec_Test();
+  /*exec_Test();*/
 
-	Yield();
-	
-	exec_Bad_File();
+  /*Yield();*/
   
-	Yield();
+  /*exec_Bad_File();*/
   
-	Write("\n\n\n*** END OF TESTING BEFORE EXIT ***\n\n", sizeof("\n\n\n*** END OF TESTING BEFORE EXIT ***\n"), ConsoleOutput);
+  /*Yield();*/
+  
+  Write("\n\n\n*** END OF TESTING BEFORE EXIT ***\n\n", sizeof("\n\n\n*** END OF TESTING BEFORE EXIT ***\n"), ConsoleOutput); 
     
-	Exit(0);
+  Exit(0);
 }
