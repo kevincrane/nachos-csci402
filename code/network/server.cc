@@ -230,13 +230,11 @@ void Acquire(int index) {
     return;
   }
   else {
-    waitingThread* wt;
+		DEBUG('s', "Lock %i is unavailable, time to wait\n", index);
+    waitingThread* wt = new waitingThread;
     wt->machineID = inPacketHeader.from;
     wt->mailboxNum = inMailHeader.from;
-    sprintf(response, "%d", WAITING);
     lcks[index].lock.waitList->Append((void*)wt);
-    //postOffice->Send(outPacketHeader, outMailHeader, response);
-    return;
   } 
 }
 
@@ -476,23 +474,24 @@ void Wait(char* msg) {
     return;
   }
   
-	DEBUG('b', "\nNo errors yet, yay! \n \n");
+	DEBUG('s', "\nNo errors yet, yay! \n \n");
   cvs[cvIndex].numActiveThreads++;   // Add a thread using the condition
 
 	// 1st thread to wait on lock
   if(cvs[cvIndex].condition.lockIndex == -1) {
-		DEBUG('b', "Entered 1st thread to wait on lock\n");
+		DEBUG('s', "Entered 1st thread to wait on lock\n");
     cvs[cvIndex].condition.lockIndex = lockIndex;
 		thread->machineID = inPacketHeader.from;
 		thread->mailboxNum = inMailHeader.from;
 		cvs[cvIndex].condition.waitList->Append((void *)thread);
 		if(!(lcks[lockIndex].lock.waitList->IsEmpty())) {
-			DEBUG('b', "Lock wait list is not empty\n");
+			DEBUG('s', "Lock wait list is not empty\n");
       thread = (waitingThread*)lcks[lockIndex].lock.waitList->Remove();
       lcks[lockIndex].lock.machineID = thread->machineID;
       lcks[lockIndex].lock.mailboxNum = thread->mailboxNum;
       char* response2 = new char[MAX_SIZE];
       sprintf(response2, "%d", SUCCESS);
+			DEBUG('s', "Response going to %i: %s\n", thread->mailboxNum, response2);
       outMailHeader.to = thread->mailboxNum;
       outPacketHeader.to = thread->machineID;
       outMailHeader.length = strlen(response) + 1;
@@ -501,7 +500,7 @@ void Wait(char* msg) {
     }
     else {
 			//WORKS
-			DEBUG('b', "Lock wait list is empty\n");
+			DEBUG('s', "Lock wait list is empty\n");
       lcks[lockIndex].lock.available = true;
       lcks[lockIndex].lock.machineID = -1;
       lcks[lockIndex].lock.mailboxNum = -1;
@@ -510,10 +509,12 @@ void Wait(char* msg) {
   }
 	//All tests passed, time to wait
 	else{
+		DEBUG('s', "All tests passed, time to wait!\n");
 		thread->machineID = inPacketHeader.from;
     thread->mailboxNum = inMailHeader.from;
     cvs[cvIndex].condition.waitList->Append((void *)thread);
     if(!(lcks[lockIndex].lock.waitList->IsEmpty())) {
+			DEBUG('s', "WaitList is not empty, getting next thread\n");
       thread = (waitingThread*)lcks[lockIndex].lock.waitList->Remove();
       lcks[lockIndex].lock.machineID = thread->machineID;
       lcks[lockIndex].lock.mailboxNum = thread->mailboxNum;
@@ -647,9 +648,9 @@ void Broadcast(char* msg) {
 	int j = strlen(index) - 1;
 	int cvIndex = 0;
 	int lockIndex = 0;
-	DEBUG('b', "BROADCAST: MSG: %s, INDEX: %s\n", msg, index);
+	DEBUG('s', "BROADCAST: MSG: %s, INDEX: %s\n", msg, index);
 	while(index[j] != 'l'){
-		DEBUG('b', "BROADCAST: IN LOCK LOOP; index[j]: %i\n", index[j]);
+		DEBUG('s', "BROADCAST: IN LOCK LOOP; index[j]: %i\n", index[j]);
 		lockIndex += (index[j]-48)*i;
 		i = i*10;
 		j--;
@@ -657,12 +658,12 @@ void Broadcast(char* msg) {
 	i = 1;
 	j--;
 	while(j>-1){
-		DEBUG('b', "BROADCAST: IN CV LOOP; index[j]: %i\n", index[j]);
+		DEBUG('s', "BROADCAST: IN CV LOOP; index[j]: %i\n", index[j]);
 		cvIndex += (index[j]-48)*i;
 		i = i*10;
 		j--;
 	}  
-	DEBUG('b', "BROADCAST: CVINDEX: %i, LOCKINDEX: %i\n", cvIndex, lockIndex);
+	DEBUG('s', "BROADCAST: CVINDEX: %i, LOCKINDEX: %i\n", cvIndex, lockIndex);
 
   if(cvIndex < 0 || cvIndex >= nextCV) {
     printf("ERROR: The given cv index is not valid.\n");
@@ -711,10 +712,11 @@ void Broadcast(char* msg) {
     return;
   }
   while(!cvs[cvIndex].condition.waitList->IsEmpty()) {
+		DEBUG('s', "Broadcast: Waiting for waitList to empty\n");
   	thread = (waitingThread *)cvs[cvIndex].condition.waitList->Remove();
 		lcks[lockIndex].lock.waitList->Append((void *)thread);  
   }
-
+	
   cvs[cvIndex].numActiveThreads = 0;
 	cvs[cvIndex].condition.lockIndex = -1;
   if(cvs[cvIndex].toBeDeleted && (cvs[cvIndex].numActiveThreads == 0)) {
@@ -820,6 +822,7 @@ void CreateMV(char* msg) {
 
   for(int i = 0; i < nextMVPos; i++) {
     if(*mvs[i].name == *name) {
+			DEBUG('s', "CreateMV name found %s at index %i\n", name, i);
       sprintf(response, "s%d", i);
       outMailHeader.length = strlen(response) + 1;
       postOffice->Send(outPacketHeader,outMailHeader, response);
@@ -828,7 +831,7 @@ void CreateMV(char* msg) {
   } 
 
   for(int i = 0; i < 1000; i++) {
-    myMV.values[i] = -1;
+    myMV.values[i] = 0;
   }
   myMV.isDeleted = false;
   myMV.name = new char[MAX_SIZE];
@@ -842,7 +845,7 @@ void CreateMV(char* msg) {
     mvs[nextMVPos] = myMV;
     sprintf(response, "s%d", nextMVPos);
   }
- 
+ 	DEBUG('s', "CreateMV position: %i\n", nextMVPos);
   outMailHeader.length = strlen(response) + 1;
 
   bool success = postOffice->Send(outPacketHeader, outMailHeader, response);
@@ -857,8 +860,9 @@ void CreateMV(char* msg) {
 void Set(int index, int value, int arrayIndex) {
 
   char* response = new char[MAX_SIZE];
-
+	DEBUG('s', "Set index: %i, value: %i, arrayIndex: %i\n", index, value, arrayIndex);
   if(index < 0 || index >= nextMVPos) {
+		DEBUG('s', "Set: Bad index\n");
     sprintf(response, "e%d", BADINDEX);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);
@@ -866,6 +870,7 @@ void Set(int index, int value, int arrayIndex) {
   }
 
   if(arrayIndex < 0 || arrayIndex >= mvs[index].size-1) {
+		DEBUG('s', "Set: Bad arrayIndex\n");
     sprintf(response, "e%d", BADINDEX);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);
@@ -873,12 +878,14 @@ void Set(int index, int value, int arrayIndex) {
   }
 
   if(mvs[index].isDeleted) {
+		DEBUG('s', "Set: Is Deleted\n");
     sprintf(response, "e%d", DELETED);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);
     return;
   }
   mvs[index].values[arrayIndex] = value;
+	DEBUG('s', "Set value: %i, index: %i\n", mvs[index].values[arrayIndex], index);
   sprintf(response, "s");
   outMailHeader.length = strlen(response) + 1;
   postOffice->Send(outPacketHeader, outMailHeader, response);
@@ -888,7 +895,6 @@ void Set(int index, int value, int arrayIndex) {
 void Get(int index, int arrayIndex) {
 
   char* response = new char[MAX_SIZE];
-  
   if(index < 0 || index >= nextMVPos) {
     sprintf(response, "e%d", BADINDEX);
     outMailHeader.length = strlen(response) + 1;
@@ -909,7 +915,9 @@ void Get(int index, int arrayIndex) {
     postOffice->Send(outPacketHeader, outMailHeader, response);
     return;
   }
+	DEBUG('s', "Get value: %i, index: %i, array index: %i\n", mvs[index].values[arrayIndex], index, arrayIndex);
   sprintf(response, "s%d", mvs[index].values[arrayIndex]);
+	DEBUG('s', "Get: Sending back response: %s\n", response);
   outMailHeader.length = strlen(response) + 1;
   postOffice->Send(outPacketHeader, outMailHeader, response);
   return;
@@ -948,7 +956,7 @@ void Identify(){
 
 	outPacketHeader.to = inPacketHeader.from;
 	outMailHeader.to = inMailHeader.from;
-
+	DEBUG('s', "inMailHeader.from: %i, outMailHeader.to: %i\n", inMailHeader.from,outMailHeader.to);
 	sprintf(response, "i%d", outMailHeader.to);
 	outMailHeader.length = strlen(response)+1;
 
@@ -1067,7 +1075,7 @@ void Server() {
       Get(index, arrayIndex);
     }
     else if ((message[1]-48)==SET1 && (message[2]-48)==SET2 && message[3]=='i') {
-			DEBUG('s', "Got a Set message.\n");
+			DEBUG('s', "Got a Set message: %s\n", message);
       int i = 1;
       int j = strlen(message);
       int arrayIndex = 0;

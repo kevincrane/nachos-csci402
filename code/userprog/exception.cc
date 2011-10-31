@@ -298,12 +298,12 @@ int Identify_Syscall(){
 
 	postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 	DEBUG('r', "Received response: %s\n", response);
-	if(response[0] == 's') {
+	if(response[0] == 'i') {
     int i = 1;
     int j = strlen(response);
     int total = 0;
     
-    while(response[j] != 's') {
+    while(response[j] != 'i') {
       if(response[j] != '\0') {
 				total += (response[j]-48)*i;
 				i = i*10;
@@ -314,7 +314,7 @@ int Identify_Syscall(){
   }
   fflush(stdout);
 
-	DEBUG('u', "ID: %i\n", id);
+	DEBUG('r', "ID: %i\n", id);
 	return id;
 }
 
@@ -474,9 +474,9 @@ void Acquire_Syscall(int lockIndex) {
     printf("The postOffice send failed. You must not have the other Nachos running.Terminating Nachos.\n");
     interrupt->Halt();
   }
-
+	
   postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
-
+	DEBUG('r', "%i: Acquire: Response, %s\n", currentThread->getProcessID(),response);
   if(response[0] == 'e') {
     if((response[1]-48) == BADINDEX1 && (response[2]-48) == BADINDEX2) {
       printf("ERROR: Bad Index.\n");
@@ -744,7 +744,7 @@ void Wait_Syscall(int cvIndex, int lockIndex) {
     printf("The postOffice send failed in Signal. You must not have the other Nachos running. Terminating Nachos.\n");
     interrupt->Halt();
   }
-	DEBUG('r', "In wait before receive call\n");
+	DEBUG('r', "%i: In wait before receive call\n", currentThread->getProcessID());
   postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 	DEBUG('r', "Just got a response: %s\n", response);
   //TODO: Error handling
@@ -1397,7 +1397,7 @@ void SetMV_Syscall(int index, int value, int arrayIndex) {
   }
 
   postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
-
+	DEBUG('r', "SetMV response: %s\n", response);
   if(response[0] == 'e') {
     if((response[1]-48)==BADINDEX1 && (response[2]-48)==BADINDEX2) {
       printf("ERROR: Bad Index.\n");
@@ -1786,7 +1786,7 @@ void ExceptionHandler(ExceptionType which) {
       break;
 			case SC_CreateMV:
 	DEBUG('a', "CreateMV syscall.\n");
-	CreateMV_Syscall(machine->ReadRegister(4),
+	rv = CreateMV_Syscall(machine->ReadRegister(4),
 			 machine->ReadRegister(5),
 			 machine->ReadRegister(6));
       break;
@@ -1798,7 +1798,7 @@ void ExceptionHandler(ExceptionType which) {
       break;
       case SC_GetMV:
 	DEBUG('a', "Get syscall.\n");
-	GetMV_Syscall(machine->ReadRegister(4),
+	rv = GetMV_Syscall(machine->ReadRegister(4),
 		      machine->ReadRegister(5));
       break;
       case SC_DestroyMV:
@@ -1807,7 +1807,7 @@ void ExceptionHandler(ExceptionType which) {
       break;	
 			case SC_Identify:
 	DEBUG('a', "Identify syscall.\n");
-	Identify_Syscall();
+	rv = Identify_Syscall();
       break;	
       }
 

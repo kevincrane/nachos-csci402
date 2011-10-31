@@ -292,10 +292,10 @@ void release_Lock_Already_Deleted(){
 /* Default test to make sure wait syscall works and will be used for later test */
 void wait_Test(){
 	Write("Testing Wait, Nachos should not end\n", sizeof("Testing Wait, Nachos should end now\n"), ConsoleOutput);
-	Acquire(lock_2);
+	
 	Wait(cv_2, lock_2);
 	Release(lock_2);
-	Write("#0-wait_Test has woke up\n", sizeof("   wait_Test has woke up\n"), ConsoleOutput);
+	Write("wait_Test has woke up\n", sizeof("   wait_Test has woke up\n"), ConsoleOutput);
 	Exit(0);	
 }
 
@@ -410,12 +410,22 @@ int main() {
   int bytesread;
   char buf[20];
 	int myid;
+	int numTimes;
+	int mvIndex;
+	int lockIndex;
+	int cvIndex;
+	myid = -1;
 	Print("Starting Tests\n", -1, -1, -1);
 	/*Identify client */
 	myid = Identify();
-	Print("My id is %i\n", myid, -1, -1);
+	Print("My super awesome id is %d\n", myid, -1, -1);
+	
+	/* Creation for main tests */
+	lockIndex = CreateLock("MainLock", 8);
+	cvIndex = CreateCV("MainCV", 6);
+	mvIndex = CreateMV("MainMV", 6, 5);
 
-  /* Lock Tests */
+  if(myid == 3){/* Currently will never enter this *//* Lock Tests */
   Write("\n*** LOCK TEST ***\n", sizeof("\n*** LOCK TEST ***\n"), ConsoleOutput);
   create_Lock_Test();
 
@@ -481,11 +491,30 @@ int main() {
 
   /* CV Operation Tests */
   /* Wait */
-  Write("\n*** WAIT TEST ***\n", sizeof("\n*** WAIT TEST ***\n"), ConsoleOutput);
-	Print("CV_2: %i\n", cv_2, -1, -1);
-  wait_Test();	
+	}
+	/*Write("\n*** WAIT TEST ***\n", sizeof("\n*** WAIT TEST ***\n"), ConsoleOutput);*/
 	
-  Yield();
+	Acquire(lockIndex);
+	Print("%i: Acquired the lock\n", myid, -1, -1);
+	numTimes = GetMV(mvIndex, 1);
+	Print("NumTimes: %i, mvIndex: %i\n", numTimes, mvIndex, -1);
+	if(numTimes == 1){ /* Both clients have now reached this point */
+		Print("Last client inside, about to broadcast\n", -1, -1, -1);
+  	Broadcast(lockIndex, cvIndex);
+		SetMV(mvIndex, 0, 1);
+	}
+	else{
+		SetMV(mvIndex, numTimes + 1, 1);
+		numTimes = GetMV(mvIndex, 1);
+		Print("numTimes to %i\n", numTimes, -1, -1);
+		Wait(lockIndex, cvIndex);
+	}
+
+	Release(lockIndex);
+	Print("\n\n*****\n%i: Got outside wait cycle\n*****\n\n", myid, -1, -1);
+	
+  if(myid == 3){ /* Not being used yet */
+	Yield();
 
   wait_Bad_Index();	
 
@@ -512,7 +541,7 @@ int main() {
   /*Yield();*/
 	
   Write("\n\n\n*** END OF TESTING BEFORE EXIT ***\n\n", sizeof("\n\n\n*** END OF TESTING BEFORE EXIT ***\n"), ConsoleOutput); 
-    
+  }
   Exit(0);
 }
 
