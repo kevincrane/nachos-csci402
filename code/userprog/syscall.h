@@ -44,6 +44,7 @@
 #define SC_SetMV            23
 #define SC_GetMV            24
 #define SC_DestroyMV        25
+#define SC_Identify					26
 
 #define MAXFILENAME 256
 
@@ -173,6 +174,9 @@ void DestroyCV(int cvIndex);
 
 /* Create random int with modulus paramater */
 int Random(int m);
+
+/* Identify own client id */
+int Identify();
 
 int CreateMV(char* name, int length, int size);
 void DestroyMV(int mvIndex);

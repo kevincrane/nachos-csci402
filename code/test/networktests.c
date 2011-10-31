@@ -374,8 +374,8 @@ void broadcast_Setup2(){
 	/* Default test to make sure broadcast works */
 void broadcast_Test(){			
 		Write("Testing Broadcast on cv_4\n", sizeof("Testing Broadcast on cv_3\n"), ConsoleOutput);
-		Fork((void*)broadcast_Setup);
-		Fork((void*)broadcast_Setup2);
+		/*Fork((void*)broadcast_Setup);
+		Fork((void*)broadcast_Setup2);*/
 		Yield();
 		Yield();
 		Acquire(lock_4);
@@ -409,6 +409,11 @@ int main() {
   OpenFileId fd;
   int bytesread;
   char buf[20];
+	int myid;
+	Print("Starting Tests\n", -1, -1, -1);
+	/*Identify client */
+	myid = Identify();
+	Print("My id is %i\n", myid, -1, -1);
 
   /* Lock Tests */
   Write("\n*** LOCK TEST ***\n", sizeof("\n*** LOCK TEST ***\n"), ConsoleOutput);
@@ -477,9 +482,8 @@ int main() {
   /* CV Operation Tests */
   /* Wait */
   Write("\n*** WAIT TEST ***\n", sizeof("\n*** WAIT TEST ***\n"), ConsoleOutput);
-	
-  Write("Forking thread to test wait\n", sizeof("Forking thread to test wait\n"), ConsoleOutput);
-  Fork((void*)wait_Test);	
+	Print("CV_2: %i\n", cv_2, -1, -1);
+  wait_Test();	
 	
   Yield();
 

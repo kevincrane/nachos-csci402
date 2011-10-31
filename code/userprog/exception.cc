@@ -70,6 +70,7 @@ using namespace std;
 #define OWNER2      0
 #define WAITING1    2
 #define WAITING2    1
+#define IDENTIFY 		34
 
 #define PageInMem 0
 #define PageInSwap 1
@@ -270,6 +271,53 @@ int Random_Syscall(int m){
 	return retVal;
 }
 
+int Identify_Syscall(){
+	PacketHeader inPacketHeader;
+  PacketHeader outPacketHeader;
+  MailHeader   inMailHeader;
+  MailHeader   outMailHeader;
+
+	int id;
+  char* msg = new char[MAX_SIZE];
+  char* response = new char[MAX_SIZE];
+	DEBUG('r', "Entered Identify\n");
+  sprintf(msg, "s%d", IDENTIFY);
+
+  outPacketHeader.to = 0;
+  outMailHeader.to = 0;
+  outMailHeader.from = currentThread->getProcessID();
+  outPacketHeader.from = currentThread->getProcessID();
+  outMailHeader.length = strlen(msg) + 1;
+	DEBUG('r', "Sending msg: %s\n", msg);
+	bool success = postOffice->Send(outPacketHeader, outMailHeader, msg);
+
+	if(!success) {
+    printf("The postOffice send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+    interrupt->Halt();
+  }
+
+	postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
+	DEBUG('r', "Received response: %s\n", response);
+	if(response[0] == 's') {
+    int i = 1;
+    int j = strlen(response);
+    int total = 0;
+    
+    while(response[j] != 's') {
+      if(response[j] != '\0') {
+				total += (response[j]-48)*i;
+				i = i*10;
+      }
+      j--;
+    }
+    id = total;
+  }
+  fflush(stdout);
+
+	DEBUG('u', "ID: %i\n", id);
+	return id;
+}
+
 
 void Print_Syscall(unsigned int stPtr, int p1, int p2, int p3) {
   char *string = new char[100];
@@ -427,7 +475,7 @@ void Acquire_Syscall(int lockIndex) {
     interrupt->Halt();
   }
 
-  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+  postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 
   if(response[0] == 'e') {
     if((response[1]-48) == BADINDEX1 && (response[2]-48) == BADINDEX2) {
@@ -481,7 +529,7 @@ void Release_Syscall(int lockIndex) {
     interrupt->Halt();
   }
 
-  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+  postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
   
   if(response[0] == 'e') {
     if((response[1]-48)==BADINDEX1 && (response[2]-48)==BADINDEX2) {
@@ -626,7 +674,6 @@ void Exit_Syscall() {
   }
 
   DEBUG('u', "Shit: EXIT CALLED %d times!\n", ++exit_count);
-
   DEBUG('u', "Exit: Number threads left in process = %i \n", currentThread->space->threadTable->Size());
   DEBUG('u', "Exit: Number of processes left = %i \n", processTable->Size());
 
@@ -638,7 +685,7 @@ void Exit_Syscall() {
       interrupt->Halt();
     }
   }
-
+  DEBUG('u', "Exit: Did this work?\n");
   // Last executing thread in a process - not the last process
   if(currentThread->space->threadTable->Size() == 1) {
     DEBUG('u', "Exit: Removing process '%s' from Nachos (no threads left).\n", currentThread->space->getProcessName());
@@ -657,7 +704,8 @@ void Exit_Syscall() {
   } else {
    currentThread->space->threadTable->Remove(currentThread->getThreadNum());
   }
-
+  
+  DEBUG('u', "Exit: Did this work 2?\n");
   processTableLock->Release();
 
   DEBUG('u', "Thread %s has been exited (%i).\n", currentThread->getName(), currentThread->space->isMain());
@@ -686,15 +734,15 @@ void Wait_Syscall(int cvIndex, int lockIndex) {
 	outMailHeader.length = strlen(msg) + 1;
   outMailHeader.from = currentThread->getProcessID();   // IS THIS RIGHT?
   outPacketHeader.from = currentThread->getProcessID(); // IS THIS RIGHT?
-	DEBUG('r', "outMailHeader.length %i\n", outMailHeader.length);
+	DEBUG('r', "outMailHeader.length %i, outMailHeader.from %i\n", outMailHeader.length, outMailHeader.from);
   bool success = postOffice->Send(outPacketHeader, outMailHeader, msg);
   if(!success) {
     printf("The postOffice send failed in Signal. You must not have the other Nachos running. Terminating Nachos.\n");
     interrupt->Halt();
   }
-
-  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
-
+	DEBUG('r', "In wait before receive call\n");
+  postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
+	DEBUG('r', "Just got a response: %s\n", response);
   //TODO: Error handling
   fflush(stdout);
 
@@ -796,7 +844,7 @@ void Signal_Syscall(int cvIndex, int lockIndex) {
     interrupt->Halt();
   }
 
-  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+  postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 
   //TODO: Error handling
   fflush(stdout);
@@ -889,7 +937,7 @@ void Broadcast_Syscall(int cvIndex, int lockIndex) {
     interrupt->Halt();
   }
 
-	postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+	postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 
 	//TODO: Error handling
 	fflush(stdout);
@@ -997,7 +1045,7 @@ int CreateLock_Syscall(unsigned int strPtr, int length) {
     interrupt->Halt();
   }
 
-  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+  postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 
   if(response[0] == 'e') {
     printf("ERROR: Exceeded max number of locks.\n");
@@ -1047,7 +1095,7 @@ void DestroyLock_Syscall(int lockIndex) {
     interrupt->Halt();
   }
 
-  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+  postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 
   if(response[0] == 'e') {
     if((response[1]-48) == BADINDEX1 && (response[2]-48) == BADINDEX2) {
@@ -1102,7 +1150,7 @@ int CreateCondition_Syscall(unsigned int strPtr, int length) {
     interrupt->Halt();
   }
 	
-	postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+	postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 	
   if(response[0] == 'e') {
     printf("ERROR: Exceeded max number of cvs.\n");
@@ -1151,7 +1199,7 @@ void DestroyCondition_Syscall(int cvIndex) {
     interrupt->Halt();
   }
 
-	postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+	postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 
 	fflush(stdout);
 
@@ -1249,7 +1297,7 @@ int CreateMV_Syscall(unsigned int strPtr, int length, int arraySize) {
     interrupt->Halt();
   }
 
-  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+  postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 
   if(response[0] == 'e') {
     printf("ERROR: Exceeded max number of mvs.\n");
@@ -1299,7 +1347,7 @@ void DestroyMV_Syscall(int index) {
     interrupt->Halt();
   }
 
-  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+  postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 
   if(response[0] == 'e') {
     if((response[1]-48)==BADINDEX1 && (response[2]-48)==BADINDEX2) {
@@ -1344,7 +1392,7 @@ void SetMV_Syscall(int index, int value, int arrayIndex) {
     interrupt->Halt();
   }
 
-  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+  postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 
   if(response[0] == 'e') {
     if((response[1]-48)==BADINDEX1 && (response[2]-48)==BADINDEX2) {
@@ -1388,7 +1436,7 @@ int GetMV_Syscall(int index, int arrayIndex) {
     interrupt->Halt();
   }
 
-  postOffice->Receive(0, &inPacketHeader, &inMailHeader, response);
+  postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 
   if(response[0] == 'e') {
     if((response[1]-48)==BADINDEX1 && (response[2]-48)==BADINDEX2) {
@@ -1627,7 +1675,6 @@ void handlePageFault(unsigned int vAddress) {
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
     int rv=0; 	// the return value from a syscall
-
     if ( which == SyscallException ) {
       switch (type) {
       default:
@@ -1751,6 +1798,10 @@ void ExceptionHandler(ExceptionType which) {
       case SC_DestroyMV:
 	DEBUG('a', "DestroyMV syscall.\n");
 	DestroyMV_Syscall(machine->ReadRegister(4));
+      break;	
+			case SC_Identify:
+	DEBUG('a', "Identify syscall.\n");
+	Identify_Syscall();
       break;	
       }
 

@@ -235,7 +235,7 @@ void Acquire(int index) {
     wt->mailboxNum = inMailHeader.from;
     sprintf(response, "%d", WAITING);
     lcks[index].lock.waitList->Append((void*)wt);
-    postOffice->Send(outPacketHeader, outMailHeader, response);
+    //postOffice->Send(outPacketHeader, outMailHeader, response);
     return;
   } 
 }
@@ -278,12 +278,19 @@ void Release(int index) {
   }
   
   if(!(lcks[index].lock.waitList->IsEmpty())) {
-    thread = (waitingThread*)lcks[index].lock.waitList->Remove();
+   	thread = (waitingThread*)lcks[index].lock.waitList->Remove();
+
     lcks[index].lock.machineID = thread->machineID;
     lcks[index].lock.mailboxNum = thread->mailboxNum;
     sprintf(response, "%d", SUCCESS);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);
+    char* response2 = new char[MAX_SIZE];
+    sprintf(response2, "%d", SUCCESS);
+    outMailHeader.to = thread->mailboxNum;
+    outPacketHeader.to = thread->machineID;
+    outMailHeader.length = strlen(response2) + 1;
+    postOffice->Send(outPacketHeader, outMailHeader, response2);
   }
   else {
     lcks[index].lock.available = true;
@@ -479,25 +486,59 @@ void Wait(char* msg) {
 		thread->machineID = inPacketHeader.from;
 		thread->mailboxNum = inMailHeader.from;
 		cvs[cvIndex].condition.waitList->Append((void *)thread);
-		//Release lock
-		lcks[lockIndex].numActiveThreads--;
-		//Michelle's code
+		if(!(lcks[lockIndex].lock.waitList->IsEmpty())) {
+			DEBUG('b', "Lock wait list is not empty\n");
+      thread = (waitingThread*)lcks[lockIndex].lock.waitList->Remove();
+      lcks[lockIndex].lock.machineID = thread->machineID;
+      lcks[lockIndex].lock.mailboxNum = thread->mailboxNum;
+      char* response2 = new char[MAX_SIZE];
+      sprintf(response2, "%d", SUCCESS);
+      outMailHeader.to = thread->mailboxNum;
+      outPacketHeader.to = thread->machineID;
+      outMailHeader.length = strlen(response) + 1;
+      postOffice->Send(outPacketHeader, outMailHeader, response2);
+      lcks[lockIndex].numActiveThreads--;
+    }
+    else {
+			//WORKS
+			DEBUG('b', "Lock wait list is empty\n");
+      lcks[lockIndex].lock.available = true;
+      lcks[lockIndex].lock.machineID = -1;
+      lcks[lockIndex].lock.mailboxNum = -1;
+      lcks[lockIndex].numActiveThreads = 0;
+    }
   }
+	//All tests passed, time to wait
 	else{
-		DEBUG('b', "Entered not 1st thread to wait on lock\n");
 		thread->machineID = inPacketHeader.from;
-		thread->mailboxNum = inMailHeader.from;
-		cvs[cvIndex].condition.waitList->Append((void *)thread);
-		//Release lock
-		lcks[lockIndex].numActiveThreads--;
-		//Michelle's code
+    thread->mailboxNum = inMailHeader.from;
+    cvs[cvIndex].condition.waitList->Append((void *)thread);
+    if(!(lcks[lockIndex].lock.waitList->IsEmpty())) {
+      thread = (waitingThread*)lcks[lockIndex].lock.waitList->Remove();
+      lcks[lockIndex].lock.machineID = thread->machineID;
+      lcks[lockIndex].lock.mailboxNum = thread->mailboxNum;
+      char* response2 = new char[MAX_SIZE];
+      sprintf(response2, "%d", SUCCESS);
+      outMailHeader.to = thread->mailboxNum;
+      outPacketHeader.to = thread->machineID;
+      outMailHeader.length = strlen(response) + 1;
+      postOffice->Send(outPacketHeader, outMailHeader, response2);
+      lcks[lockIndex].numActiveThreads--;
+    }
+		//Empty queue, how in the wait cycle!
+    else {
+      lcks[lockIndex].lock.available = true;
+      lcks[lockIndex].lock.machineID = -1;
+      lcks[lockIndex].lock.mailboxNum = -1;
+      lcks[lockIndex].numActiveThreads--;
+    }
 	}
 }
 
 void Signal(char* msg) {
 	char* index = new char[MAX_SIZE];
   char* response = new char[MAX_SIZE];
-  waitingThread *thread;
+  waitingThread *thread = new waitingThread;
   thread->machineID = inPacketHeader.from;
   thread->mailboxNum = inMailHeader.from;
 	for(int i = 3; i < MAX_SIZE + 1; i++)
@@ -506,7 +547,7 @@ void Signal(char* msg) {
 	int j = strlen(index) - 1;
 	int cvIndex = 0;
 	int lockIndex = 0;
-	DEBUG('b', "SIGNAL: MSG: %s, INDEX: %s\n", msg, index);
+	DEBUG('s', "SIGNAL: FROM: %i MSG: %s, INDEX: %s\n", inMailHeader.from, msg, index);
 	while(index[j] != 'l'){
 		DEBUG('b', "SIGNAL: IN LOCK LOOP; index[j]: %i\n", index[j]);
 		lockIndex += (index[j]-48)*i;
@@ -579,7 +620,8 @@ void Signal(char* msg) {
 	cvs[cvIndex].numActiveThreads--; 
   thread = (waitingThread *)cvs[cvIndex].condition.waitList->Remove();
 	lcks[lockIndex].lock.waitList->Append((void *)thread);  
-
+	outMailHeader.to = thread->mailboxNum;
+  outPacketHeader.to = thread->machineID;
   if(cvs[cvIndex].condition.waitList->IsEmpty()) {
     cvs[cvIndex].condition.lockIndex = -1;
   }  
@@ -588,16 +630,15 @@ void Signal(char* msg) {
     cvs[cvIndex].isDeleted = true;
     printf("Deleted condition %i.\n", cvIndex);
   }
-
+	
+	DEBUG('s', "Signalling mailbox %i\n", outMailHeader.to);
   sprintf(response, "s%d", SUCCESS);
   outMailHeader.length = strlen(response) + 1;
   postOffice->Send(outPacketHeader, outMailHeader, response);
-
-		
 }
 
 void Broadcast(char* msg) {
-	waitingThread *thread;
+	waitingThread *thread = new waitingThread;
   char* index = new char[MAX_SIZE];
   char* response = new char[MAX_SIZE];
 	for(int i = 3; i < MAX_SIZE + 1; i++)
@@ -901,6 +942,19 @@ void DestroyMV(int index) {
   return;
 }
 
+void Identify(){
+	int id;
+	char* response = new char[MAX_SIZE];
+
+	outPacketHeader.to = inPacketHeader.from;
+	outMailHeader.to = inMailHeader.from;
+
+	sprintf(response, "i%d", outMailHeader.to);
+	outMailHeader.length = strlen(response)+1;
+
+	postOffice->Send(outPacketHeader, outMailHeader, response);
+}
+
 void Server() {
 
   while(true) {
@@ -911,7 +965,7 @@ void Server() {
     postOffice->Receive(0, &inPacketHeader, &inMailHeader, message);
 
     printf("Received a message.\n");
-
+		DEBUG('s', "Message from: %i\n", inMailHeader.from);
     outPacketHeader.to = inPacketHeader.from;
     outMailHeader.to = inMailHeader.from;
 
@@ -1059,6 +1113,10 @@ void Server() {
       }
       DestroyMV(total);
     }
+		else if (message[1]=='3' && message[2]=='4'){
+			DEBUG('s', "Got an Identify message.\n");
+			Identify();
+		}
     else {
       printf("ERROR: Received an invalid message.\n");
     }

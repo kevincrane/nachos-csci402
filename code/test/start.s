@@ -259,6 +259,14 @@ DestroyMV:
 	syscall
 	j $31
 	.end DestroyMV
+
+	.globl Identify
+	.ent   Identify
+Identify:
+	addiu $2,$0,SC_Identify
+	syscall
+	j $31
+	.end Identify
 			
 
 /* dummy function to keep gcc happy */
