@@ -600,6 +600,8 @@ int Exec_Syscall(int vAddress, int len) {
   OpenFile *f;                  // The new open file
   int fileID;                       // The openfile id
 
+  DEBUG('u', "Shit: FORK (Exec) CALLED %d times!\n", ++fork_count);
+  
   // Error checking
   if (!buf) {
     printf("%s","Can't allocate kernel buffer in Exec\n");
@@ -688,14 +690,16 @@ void Exit_Syscall() {
   DEBUG('u', "Exit: Did this work?\n");
   // Last executing thread in a process - not the last process
   if(currentThread->space->threadTable->Size() == 1) {
-    DEBUG('u', "Exit: Removing process '%s' from Nachos (no threads left).\n", currentThread->space->getProcessName());
+    DEBUG('u', "Exit: Removing process '%s' (id=%i) from Nachos (no threads left).\n", currentThread->space->getProcessName(), currentThread->getProcessID());
+    printf("CUSTARDDICK before=%i\n", processTable->Size());
     currentThread->space->threadTable->Remove(currentThread->getThreadNum());
     processTable->Remove(currentThread->getProcessID());
+    printf("CUSTARDDICK after=%i\n", processTable->Size());
 
     for(int i = 0; i < currentThread->space->getNumPages(); i++) {
       if(currentThread->space->pageTable[i].valid == true && currentThread->space->pageTable[i].physicalPage != -1) {
         iptLock->Acquire();
-        ipt[currentThread->space->pageTable[i].physicalPage].valid = true;
+        ipt[currentThread->space->pageTable[i].physicalPage].valid = false;
         iptLock->Release();
         currentThread->space->removePage(i);
       }
@@ -1475,10 +1479,11 @@ int evictAPage() {
     iptLock->Acquire();
     // Find page in IPT with oldest (largest) time-stamp
     for(int i=1; i<NumPhysPages; i++) {
-      if(ipt[evictPPN].timeStamp > ipt[i].timeStamp) {
+      if(ipt[evictPPN].timeStamp < ipt[i].timeStamp) {
         evictPPN = i;
       }
     }
+    ipt[evictPPN].timeStamp = 0;
     iptLock->Release();
     DEBUG('v', "evictAPage: evicting PPN %i through FIFO method (timeStamp=%i).\n", evictPPN, ipt[evictPPN].timeStamp);
     
@@ -1545,8 +1550,8 @@ int handleIPTMiss(unsigned int vpn) {
   
   if(ppn == -1) {
     // Could not find a free space in the pageMap, must evict one to make space
-    DEBUG('v', "\nhandleIPTMiss: could not find a free space in pageMap, looking to evict a bitch.\n");
     ppn = evictAPage();
+    DEBUG('v', "\nhandleIPTMiss: could not find a free space in pageMap, looking to evict bitch ppn %i.\n", ppn);
   }
   
   DEBUG('v', "handleIPTMiss: in thread '%s': VPN=%i; found PPN= %i.\n", currentThread->getName(), vpn, ppn);
@@ -1569,6 +1574,7 @@ int handleIPTMiss(unsigned int vpn) {
     
   } else if(currentThread->space->pageTable[vpn].pageLoc == PageInExec) {
     // Copying page from Executable
+    DEBUG('v', "Acquired a slut, boning MEM\n");
     currentThread->space->pExec->ReadAt(machine->mainMemory + (ppn*PageSize), PageSize, currentThread->space->pageTable[vpn].location);
     currentThread->space->pageTable[vpn].dirty = false;
     
@@ -1581,7 +1587,7 @@ int handleIPTMiss(unsigned int vpn) {
   currentThread->space->pageTable[vpn].valid = TRUE;
   
   pageLock->Release();
-  
+  DEBUG('v', "Acquired a slut, leaving with ppn%i\n",ppn);
   return ppn;
   
 }
