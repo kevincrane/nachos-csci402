@@ -691,10 +691,8 @@ void Exit_Syscall() {
   // Last executing thread in a process - not the last process
   if(currentThread->space->threadTable->Size() == 1) {
     DEBUG('u', "Exit: Removing process '%s' (id=%i) from Nachos (no threads left).\n", currentThread->space->getProcessName(), currentThread->getProcessID());
-    printf("CUSTARDDICK before=%i\n", processTable->Size());
     currentThread->space->threadTable->Remove(currentThread->getThreadNum());
     processTable->Remove(currentThread->getProcessID());
-    printf("CUSTARDDICK after=%i\n", processTable->Size());
 
     for(int i = 0; i < currentThread->space->getNumPages(); i++) {
       if(currentThread->space->pageTable[i].valid == true && currentThread->space->pageTable[i].physicalPage != -1) {
@@ -748,6 +746,7 @@ void Wait_Syscall(int cvIndex, int lockIndex) {
   postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 	DEBUG('r', "Just got a response: %s\n", response);
   //TODO: Error handling
+
   fflush(stdout);
 
   /*cvArray->Acquire();
@@ -1633,7 +1632,6 @@ void handlePageFault(unsigned int vAddress) {
     ppn = handleIPTMiss(vpn);
 
 
-    // TODO: should this section below be here?
     iptLock->Acquire();
     pageLock->Acquire();
     ipt[ppn].virtualPage = vpn;
@@ -1641,7 +1639,6 @@ void handlePageFault(unsigned int vAddress) {
     ipt[ppn].valid = true;
     ipt[ppn].readOnly = currentThread->space->pageTable[vpn].readOnly;
     ipt[ppn].use = currentThread->space->pageTable[vpn].use;
-//    ipt[ppn].use = true;
     ipt[ppn].dirty = currentThread->space->pageTable[vpn].dirty;
     ipt[ppn].processID = currentThread->space->pageTable[vpn].processID;
     ipt[ppn].location = currentThread->space->pageTable[vpn].location;
