@@ -508,7 +508,7 @@ int main() {
 	
   /* Fork */
   Write("\n*** FORK TEST ***\n", sizeof("\n*** FORK TEST ***\n"), ConsoleOutput);
-  /*fork_Test();*/		
+  fork_Test();
 
   /*fork_2_Threads();*/
 	

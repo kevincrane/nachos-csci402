@@ -181,7 +181,7 @@ Initialize(int argc, char **argv)
     iptLock = new Lock("IPT Lock");
     
     // Swapfile Data
-    swapFileMap = new BitMap(NumPhysPages*50);
+    swapFileMap = new BitMap(NumPhysPages*100);
     swapFileLock = new Lock("Swap File Lock");
     evictType = 0;
 #endif
@@ -192,7 +192,7 @@ Initialize(int argc, char **argv)
 
 #ifdef FILESYS_NEEDED
     fileSystem = new FileSystem(format);
-    if (!fileSystem->Create("swapfile", NumPhysPages*50*PageSize)) {	 // Create SwapFile
+    if (!fileSystem->Create("swapfile", NumPhysPages*100*PageSize)) {	 // Create SwapFile
       printf("System Error: couldn't create output SwapFile, shit.\n");
       return;
     }

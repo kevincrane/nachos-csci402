@@ -69,22 +69,22 @@ int Table::Put(void *f) {
 }
 
 void *Table::Remove(int i) {
-    // Remove the element associated with identifier i from the table,
-    // and return it.
+  // Remove the element associated with identifier i from the table,
+  // and return it.
 
-    void *f =0;
+  void *f =0;
 
-    if ( i >= 0 && i < size ) {
-	lock->Acquire();
-	if ( map.Test(i) ) {
-	    map.Clear(i);
+  if ( i >= 0 && i < maxSize ) {
+    lock->Acquire();
+    if ( map.Test(i) ) {
+      map.Clear(i);
 	    f = table[i];
-	    table[i] = 0;
-	    size--;
-	}
-	lock->Release();
+      table[i] = 0;
+      size--;
     }
-    return f;
+    lock->Release();
+  }
+  return f;
 }
 
 //----------------------------------------------------------------------
@@ -358,16 +358,18 @@ void AddrSpace::SaveState()
 
 void AddrSpace::RestoreState()
 {
-// machine->pageTable = pageTable;
-machine->pageTableSize = numPages;
+  // machine->pageTable = pageTable;
+  machine->pageTableSize = numPages;
 
-// Disable interrupts
-IntStatus oldLevel = interrupt->SetLevel(IntOff);
-for(int i=0;i<TLBSize;i++) {
-machine->tlb[i].valid=FALSE;
-}
-// Restore interrupts
-(void) interrupt->SetLevel(oldLevel);
+  // Disable interrupts
+  IntStatus oldLevel = interrupt->SetLevel(IntOff);
+  
+  for(int i=0;i<TLBSize;i++) {
+   machine->tlb[i].valid=FALSE;
+  }
+ 
+  // Restore interrupts
+  (void) interrupt->SetLevel(oldLevel);
 }
 
 

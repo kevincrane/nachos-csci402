@@ -17,7 +17,7 @@ int b, c, d;
 int
 main()
 {
-  b = CreateLock();  
+/*  b = CreateLock();  
   c = CreateCV();
   Write("Hi\n", 4, ConsoleOutput);
   Acquire(b);
@@ -25,6 +25,6 @@ main()
   Acquire(8);
   Acquire(b);
   DestroyLock(b);
-  Wait(c, b);
+  Wait(c, b);*/
     /* not reached */
 }
