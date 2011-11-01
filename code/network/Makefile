@@ -136,10 +136,10 @@ main.o: ../threads/main.cc ../threads/copyright.h ../threads/utility.h \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../threads/list.h \
-  ../machine/stats.h ../machine/timer.h ../threads/../vm/iptEntry.h \
+  ../machine/stats.h ../machine/timer.h ../threads/../userprog/iptEntry.h \
   ../threads/synch.h ../filesys/openfile.h ../filesys/filesys.h \
   ../network/post.h ../threads/copyright.h ../machine/network.h \
   ../threads/synchlist.h ../threads/theater_sim.cc \
@@ -285,10 +285,10 @@ scheduler.o: ../threads/scheduler.cc ../threads/copyright.h \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/system.h \
   ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
-  ../machine/timer.h ../threads/../vm/iptEntry.h ../threads/synch.h \
+  ../machine/timer.h ../threads/../userprog/iptEntry.h ../threads/synch.h \
   ../filesys/openfile.h ../filesys/filesys.h ../network/post.h \
   ../threads/copyright.h ../machine/network.h ../threads/synchlist.h
 synch.o: ../threads/synch.cc ../threads/copyright.h ../threads/synch.h \
@@ -408,11 +408,11 @@ synch.o: ../threads/synch.cc ../threads/copyright.h ../threads/synch.h \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/list.h \
   ../threads/system.h ../threads/scheduler.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../threads/../vm/iptEntry.h ../filesys/openfile.h \
+  ../threads/../userprog/iptEntry.h ../filesys/openfile.h \
   ../filesys/filesys.h ../network/post.h ../threads/copyright.h \
   ../machine/network.h ../threads/synchlist.h
 synchlist.o: ../threads/synchlist.cc ../threads/copyright.h \
@@ -533,7 +533,7 @@ synchlist.o: ../threads/synchlist.cc ../threads/copyright.h \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h
 system.o: ../threads/system.cc ../threads/copyright.h ../threads/system.h \
   ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \
@@ -653,10 +653,10 @@ system.o: ../threads/system.cc ../threads/copyright.h ../threads/system.h \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../threads/list.h \
-  ../machine/stats.h ../machine/timer.h ../threads/../vm/iptEntry.h \
+  ../machine/stats.h ../machine/timer.h ../threads/../userprog/iptEntry.h \
   ../threads/synch.h ../filesys/openfile.h ../filesys/filesys.h \
   ../network/post.h ../threads/copyright.h ../machine/network.h \
   ../threads/synchlist.h
@@ -777,11 +777,11 @@ thread.o: ../threads/thread.cc ../threads/copyright.h ../threads/thread.h \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/switch.h \
   ../threads/synch.h ../threads/list.h ../threads/system.h \
   ../threads/scheduler.h ../machine/interrupt.h ../threads/list.h \
-  ../machine/stats.h ../machine/timer.h ../threads/../vm/iptEntry.h \
+  ../machine/stats.h ../machine/timer.h ../threads/../userprog/iptEntry.h \
   ../filesys/openfile.h ../filesys/filesys.h ../network/post.h \
   ../threads/copyright.h ../machine/network.h ../threads/synchlist.h
 utility.o: ../threads/utility.cc ../threads/copyright.h \
@@ -925,10 +925,10 @@ threadtest.o: ../threads/threadtest.cc ../threads/copyright.h \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../threads/list.h \
-  ../machine/stats.h ../machine/timer.h ../threads/../vm/iptEntry.h \
+  ../machine/stats.h ../machine/timer.h ../threads/../userprog/iptEntry.h \
   ../threads/synch.h ../filesys/openfile.h ../filesys/filesys.h \
   ../network/post.h ../threads/copyright.h ../machine/network.h \
   ../threads/synchlist.h
@@ -1049,10 +1049,10 @@ theater_sim.o: ../threads/theater_sim.cc \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../threads/list.h \
-  ../machine/stats.h ../machine/timer.h ../threads/../vm/iptEntry.h \
+  ../machine/stats.h ../machine/timer.h ../threads/../userprog/iptEntry.h \
   ../threads/synch.h ../filesys/openfile.h ../filesys/filesys.h \
   ../network/post.h ../threads/copyright.h ../machine/network.h \
   ../threads/synchlist.h ../threads/theater_sim.h
@@ -1174,10 +1174,10 @@ theater_sim_test.o: ../threads/theater_sim_test.cc ../threads/copyright.h \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../threads/list.h \
-  ../machine/stats.h ../machine/timer.h ../threads/../vm/iptEntry.h \
+  ../machine/stats.h ../machine/timer.h ../threads/../userprog/iptEntry.h \
   ../threads/synch.h ../filesys/openfile.h ../filesys/filesys.h \
   ../network/post.h ../threads/copyright.h ../machine/network.h \
   ../threads/synchlist.h
@@ -1300,10 +1300,10 @@ interrupt.o: ../machine/interrupt.cc \
   ../machine/disk.h ../userprog/addrspace.h ../threads/copyright.h \
   ../filesys/filesys.h ../threads/copyright.h ../filesys/openfile.h \
   ../threads/utility.h ../userprog/table.h ../userprog/bitmap.h \
-  ../threads/utility.h ../filesys/openfile.h ../vm/iptEntry.h \
+  ../threads/utility.h ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../machine/stats.h \
-  ../machine/timer.h ../threads/../vm/iptEntry.h ../threads/synch.h \
+  ../machine/timer.h ../threads/../userprog/iptEntry.h ../threads/synch.h \
   ../filesys/openfile.h ../filesys/filesys.h ../network/post.h \
   ../threads/copyright.h ../machine/network.h ../threads/synchlist.h
 sysdep.o: ../machine/sysdep.cc ../threads/copyright.h \
@@ -1443,10 +1443,10 @@ sysdep.o: ../machine/sysdep.cc ../threads/copyright.h \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../machine/stats.h \
-  ../machine/timer.h ../threads/../vm/iptEntry.h ../threads/synch.h \
+  ../machine/timer.h ../threads/../userprog/iptEntry.h ../threads/synch.h \
   ../filesys/openfile.h ../filesys/filesys.h ../network/post.h \
   ../threads/copyright.h ../machine/network.h ../threads/synchlist.h
 stats.o: ../machine/stats.cc \
@@ -1681,10 +1681,10 @@ timer.o: ../machine/timer.cc ../threads/copyright.h ../machine/timer.h \
   ../threads/copyright.h ../filesys/filesys.h ../threads/copyright.h \
   ../filesys/openfile.h ../threads/utility.h ../userprog/table.h \
   ../userprog/bitmap.h ../threads/utility.h ../filesys/openfile.h \
-  ../vm/iptEntry.h ../userprog/../machine/translate.h \
+  ../userprog/iptEntry.h ../userprog/../machine/translate.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../threads/../vm/iptEntry.h ../threads/synch.h \
+  ../threads/../userprog/iptEntry.h ../threads/synch.h \
   ../filesys/openfile.h ../filesys/filesys.h ../network/post.h \
   ../threads/copyright.h ../machine/network.h ../threads/synchlist.h
 addrspace.o: ../userprog/addrspace.cc ../threads/copyright.h \
@@ -1805,10 +1805,10 @@ addrspace.o: ../userprog/addrspace.cc ../threads/copyright.h \
   ../userprog/addrspace.h ../filesys/filesys.h ../threads/copyright.h \
   ../filesys/openfile.h ../threads/utility.h ../userprog/table.h \
   ../userprog/bitmap.h ../threads/utility.h ../filesys/openfile.h \
-  ../vm/iptEntry.h ../userprog/../machine/translate.h \
+  ../userprog/iptEntry.h ../userprog/../machine/translate.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../threads/../vm/iptEntry.h ../threads/synch.h \
+  ../threads/../userprog/iptEntry.h ../threads/synch.h \
   ../filesys/openfile.h ../filesys/filesys.h ../network/post.h \
   ../threads/copyright.h ../machine/network.h ../threads/synchlist.h \
   ../userprog/addrspace.h ../bin/noff.h ../threads/synch.h
@@ -1955,10 +1955,10 @@ exception.o: ../userprog/exception.cc ../threads/copyright.h \
   ../userprog/addrspace.h ../filesys/filesys.h ../threads/copyright.h \
   ../filesys/openfile.h ../threads/utility.h ../userprog/table.h \
   ../userprog/bitmap.h ../threads/utility.h ../filesys/openfile.h \
-  ../vm/iptEntry.h ../userprog/../machine/translate.h \
+  ../userprog/iptEntry.h ../userprog/../machine/translate.h \
   ../userprog/../threads/scheduler.h ../userprog/../threads/list.h \
   ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
-  ../machine/timer.h ../userprog/../threads/../vm/iptEntry.h \
+  ../machine/timer.h ../userprog/../threads/../userprog/iptEntry.h \
   ../userprog/../threads/synch.h ../filesys/openfile.h \
   ../filesys/filesys.h ../network/post.h ../threads/copyright.h \
   ../machine/network.h ../threads/synchlist.h ../threads/copyright.h \
@@ -2084,10 +2084,10 @@ progtest.o: ../userprog/progtest.cc ../threads/copyright.h \
   ../userprog/addrspace.h ../filesys/filesys.h ../threads/copyright.h \
   ../filesys/openfile.h ../threads/utility.h ../userprog/table.h \
   ../userprog/bitmap.h ../threads/utility.h ../filesys/openfile.h \
-  ../vm/iptEntry.h ../userprog/../machine/translate.h \
+  ../userprog/iptEntry.h ../userprog/../machine/translate.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../threads/../vm/iptEntry.h ../threads/synch.h \
+  ../threads/../userprog/iptEntry.h ../threads/synch.h \
   ../filesys/openfile.h ../filesys/filesys.h ../network/post.h \
   ../threads/copyright.h ../machine/network.h ../threads/synchlist.h \
   ../machine/console.h ../userprog/addrspace.h ../threads/synch.h
@@ -2209,10 +2209,10 @@ console.o: ../machine/console.cc ../threads/copyright.h \
   ../threads/copyright.h ../filesys/filesys.h ../threads/copyright.h \
   ../filesys/openfile.h ../threads/utility.h ../userprog/table.h \
   ../userprog/bitmap.h ../threads/utility.h ../filesys/openfile.h \
-  ../vm/iptEntry.h ../userprog/../machine/translate.h \
+  ../userprog/iptEntry.h ../userprog/../machine/translate.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../threads/../vm/iptEntry.h ../threads/synch.h \
+  ../threads/../userprog/iptEntry.h ../threads/synch.h \
   ../filesys/openfile.h ../filesys/filesys.h ../network/post.h \
   ../threads/copyright.h ../machine/network.h ../threads/synchlist.h
 machine.o: ../machine/machine.cc ../threads/copyright.h \
@@ -2334,10 +2334,10 @@ machine.o: ../machine/machine.cc ../threads/copyright.h \
   ../machine/machine.h ../userprog/addrspace.h ../threads/copyright.h \
   ../filesys/filesys.h ../threads/copyright.h ../filesys/openfile.h \
   ../threads/utility.h ../userprog/table.h ../userprog/bitmap.h \
-  ../threads/utility.h ../filesys/openfile.h ../vm/iptEntry.h \
+  ../threads/utility.h ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../threads/list.h \
-  ../machine/stats.h ../machine/timer.h ../threads/../vm/iptEntry.h \
+  ../machine/stats.h ../machine/timer.h ../threads/../userprog/iptEntry.h \
   ../threads/synch.h ../filesys/openfile.h ../filesys/filesys.h \
   ../network/post.h ../threads/copyright.h ../machine/network.h \
   ../threads/synchlist.h
@@ -2461,10 +2461,10 @@ mipssim.o: ../machine/mipssim.cc ../threads/copyright.h \
   ../threads/copyright.h ../filesys/filesys.h ../threads/copyright.h \
   ../filesys/openfile.h ../threads/utility.h ../userprog/table.h \
   ../userprog/bitmap.h ../threads/utility.h ../filesys/openfile.h \
-  ../vm/iptEntry.h ../userprog/../machine/translate.h \
+  ../userprog/iptEntry.h ../userprog/../machine/translate.h \
   ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
   ../threads/list.h ../machine/stats.h ../machine/timer.h \
-  ../threads/../vm/iptEntry.h ../threads/synch.h \
+  ../threads/../userprog/iptEntry.h ../threads/synch.h \
   ../filesys/openfile.h ../filesys/filesys.h ../network/post.h \
   ../threads/copyright.h ../machine/network.h ../threads/synchlist.h
 translate.o: ../machine/translate.cc ../threads/copyright.h \
@@ -2585,12 +2585,12 @@ translate.o: ../machine/translate.cc ../threads/copyright.h \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/system.h \
   ../threads/utility.h ../threads/thread.h ../machine/machine.h \
   ../userprog/addrspace.h ../threads/scheduler.h ../threads/list.h \
   ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
-  ../machine/timer.h ../threads/../vm/iptEntry.h ../threads/synch.h \
+  ../machine/timer.h ../threads/../userprog/iptEntry.h ../threads/synch.h \
   ../filesys/openfile.h ../filesys/filesys.h ../network/post.h \
   ../threads/copyright.h ../machine/network.h ../threads/synchlist.h
 nettest.o: ../network/nettest.cc ../threads/copyright.h \
@@ -2711,10 +2711,10 @@ nettest.o: ../network/nettest.cc ../threads/copyright.h \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../threads/list.h \
-  ../machine/stats.h ../machine/timer.h ../threads/../vm/iptEntry.h \
+  ../machine/stats.h ../machine/timer.h ../threads/../userprog/iptEntry.h \
   ../threads/synch.h ../filesys/openfile.h ../filesys/filesys.h \
   ../network/post.h ../machine/network.h ../threads/synchlist.h \
   ../network/post.h ../machine/interrupt.h
@@ -2837,7 +2837,7 @@ post.o: ../network/post.cc ../threads/copyright.h ../network/post.h \
   ../threads/copyright.h ../filesys/filesys.h ../threads/copyright.h \
   ../filesys/openfile.h ../threads/utility.h ../userprog/table.h \
   ../userprog/bitmap.h ../threads/utility.h ../filesys/openfile.h \
-  ../vm/iptEntry.h ../userprog/../machine/translate.h
+  ../userprog/iptEntry.h ../userprog/../machine/translate.h
 network.o: ../machine/network.cc ../threads/copyright.h \
   ../threads/system.h ../threads/copyright.h ../threads/utility.h \
   ../threads/bool.h ../machine/sysdep.h \
@@ -2956,10 +2956,10 @@ network.o: ../machine/network.cc ../threads/copyright.h \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../threads/list.h \
-  ../machine/stats.h ../machine/timer.h ../threads/../vm/iptEntry.h \
+  ../machine/stats.h ../machine/timer.h ../threads/../userprog/iptEntry.h \
   ../threads/synch.h ../filesys/openfile.h ../filesys/filesys.h \
   ../network/post.h ../threads/copyright.h ../machine/network.h \
   ../threads/synchlist.h
@@ -3081,10 +3081,10 @@ server.o: ../network/server.cc ../threads/system.h ../threads/copyright.h \
   ../userprog/addrspace.h ../threads/copyright.h ../filesys/filesys.h \
   ../threads/copyright.h ../filesys/openfile.h ../threads/utility.h \
   ../userprog/table.h ../userprog/bitmap.h ../threads/utility.h \
-  ../filesys/openfile.h ../vm/iptEntry.h \
+  ../filesys/openfile.h ../userprog/iptEntry.h \
   ../userprog/../machine/translate.h ../threads/scheduler.h \
   ../threads/list.h ../machine/interrupt.h ../threads/list.h \
-  ../machine/stats.h ../machine/timer.h ../threads/../vm/iptEntry.h \
+  ../machine/stats.h ../machine/timer.h ../threads/../userprog/iptEntry.h \
   ../threads/synch.h ../filesys/openfile.h ../filesys/filesys.h \
   ../network/post.h ../threads/copyright.h ../machine/network.h \
   ../threads/synchlist.h ../network/post.h ../machine/interrupt.h \

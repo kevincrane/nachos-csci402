@@ -425,7 +425,51 @@ int main() {
 	cvIndex = CreateCV("MainCV", 6);
 	mvIndex = CreateMV("MainMV", 6, 5);
 
-  if(myid == 3){/* Currently will never enter this *//* Lock Tests */
+  
+	Print("*** Two Client Tests *** \n", -1, -1, -1);
+	
+	Acquire(lockIndex);
+	Print("%i: Acquired the lock\n", myid, -1, -1);
+	numTimes = GetMV(mvIndex, 1);
+	Print("NumTimes: %i, mvIndex: %i\n", numTimes, mvIndex, -1);
+	if(numTimes == 1){ /* Both clients have now reached this point */
+		Print("Last client inside, about to broadcast\n", -1, -1, -1);
+  	Broadcast(lockIndex, cvIndex);
+		SetMV(mvIndex, 0, 1);
+	}
+	else{
+		SetMV(mvIndex, numTimes + 1, 1);
+		numTimes = GetMV(mvIndex, 1);
+		Print("numTimes to %i\n", numTimes, -1, -1);
+		Wait(lockIndex, cvIndex);
+	}
+
+	Release(lockIndex);
+	Print("\n\n*****\n%i: Got outside wait cycle from broadcast test \n*****\n\n", myid, -1, -1);
+	
+	Acquire(lockIndex);
+	Print("%i: Acquired the lock for signal test\n", myid, -1, -1);
+	numTimes = GetMV(mvIndex, 1);
+	Print("NumTimes: %i, mvIndex: %i\n", numTimes, mvIndex, -1);
+	if(numTimes == 1){ /* Both clients have now reached this point */
+		Print("Last client inside, about to signal\n", -1, -1, -1);
+  	Signal(lockIndex, cvIndex);
+		SetMV(mvIndex, 0, 1);
+	}
+	else{
+		SetMV(mvIndex, numTimes + 1, 1);
+		numTimes = GetMV(mvIndex, 1);
+		Print("numTimes to %i\n", numTimes, -1, -1);
+		Wait(lockIndex, cvIndex);
+	}
+
+	Release(lockIndex);
+	Print("\n\n*****\n%i: Got outside wait cycle from signal test\n*****\n\n", myid, -1, -1);
+	
+	Acquire(lockIndex);
+	Print("%i: Acquired the lock for signal test\n", myid, -1, -1);
+	numTimes = GetMV(mvIndex, 1);
+	if(numTimes == 1){/* Currently will never enter this *//* Lock Tests */
   Write("\n*** LOCK TEST ***\n", sizeof("\n*** LOCK TEST ***\n"), ConsoleOutput);
   create_Lock_Test();
 
@@ -491,30 +535,6 @@ int main() {
 
   /* CV Operation Tests */
   /* Wait */
-	}
-	/*Write("\n*** WAIT TEST ***\n", sizeof("\n*** WAIT TEST ***\n"), ConsoleOutput);*/
-	
-	Acquire(lockIndex);
-	Print("%i: Acquired the lock\n", myid, -1, -1);
-	numTimes = GetMV(mvIndex, 1);
-	Print("NumTimes: %i, mvIndex: %i\n", numTimes, mvIndex, -1);
-	if(numTimes == 1){ /* Both clients have now reached this point */
-		Print("Last client inside, about to broadcast\n", -1, -1, -1);
-  	Broadcast(lockIndex, cvIndex);
-		SetMV(mvIndex, 0, 1);
-	}
-	else{
-		SetMV(mvIndex, numTimes + 1, 1);
-		numTimes = GetMV(mvIndex, 1);
-		Print("numTimes to %i\n", numTimes, -1, -1);
-		Wait(lockIndex, cvIndex);
-	}
-
-	Release(lockIndex);
-	Print("\n\n*****\n%i: Got outside wait cycle\n*****\n\n", myid, -1, -1);
-	
-  if(myid == 3){ /* Not being used yet */
-	Yield();
 
   wait_Bad_Index();	
 
@@ -523,25 +543,25 @@ int main() {
   /* Signal */
   Write("\n*** SIGNAL TEST ***\n", sizeof("\n*** SIGNAL TEST ***\n"), ConsoleOutput);	
 
-  signal_Test(); /* Signal thread waiting from wait_Test */
-
   signal_Bad_Index();
 
   signal_Already_Deleted();  
 	
   /* Broadcast */
   Write("\n*** BROADCAST TEST ***\n", sizeof("\n*** BROADCAST TEST ***\n"), ConsoleOutput);
-	
-  broadcast_Test();		
 
   broadcast_Bad_Index();
 
   broadcast_Already_Deleted();
 	
-  /*Yield();*/
-	
   Write("\n\n\n*** END OF TESTING BEFORE EXIT ***\n\n", sizeof("\n\n\n*** END OF TESTING BEFORE EXIT ***\n"), ConsoleOutput); 
   }
+	else {
+		SetMV(mvIndex, numTimes + 1, 1);
+		numTimes = GetMV(mvIndex, 1);
+		Print("numTimes to %i\n", numTimes, -1, -1);
+	}
+	Release(lockIndex);
   Exit(0);
 }
 

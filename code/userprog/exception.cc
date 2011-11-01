@@ -459,7 +459,6 @@ void Acquire_Syscall(int lockIndex) {
 
   char* msg = new char[MAX_SIZE];
   char* response = new char[MAX_SIZE];
-
   sprintf(msg, "s%di%d", ACQUIRE, lockIndex);
 
   outPacketHeader.to = 0;
@@ -691,8 +690,10 @@ void Exit_Syscall() {
   // Last executing thread in a process - not the last process
   if(currentThread->space->threadTable->Size() == 1) {
     DEBUG('u', "Exit: Removing process '%s' (id=%i) from Nachos (no threads left).\n", currentThread->space->getProcessName(), currentThread->getProcessID());
+    printf("CUSTARDDICK before=%i\n", processTable->Size());
     currentThread->space->threadTable->Remove(currentThread->getThreadNum());
     processTable->Remove(currentThread->getProcessID());
+    printf("CUSTARDDICK after=%i\n", processTable->Size());
 
     for(int i = 0; i < currentThread->space->getNumPages(); i++) {
       if(currentThread->space->pageTable[i].valid == true && currentThread->space->pageTable[i].physicalPage != -1) {
@@ -745,8 +746,20 @@ void Wait_Syscall(int cvIndex, int lockIndex) {
 	DEBUG('r', "%i: In wait before receive call\n", currentThread->getProcessID());
   postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 	DEBUG('r', "Just got a response: %s\n", response);
-  //TODO: Error handling
-
+	if(response[0] == 'e') {
+    if((response[1]-48) == BADINDEX1 && (response[2]-48) == BADINDEX2) {
+      printf("ERROR: Bad Index.\n");
+    }
+    else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
+      printf("ERROR: Already Deleted.\n");
+    }
+    else if((response[1]-48)==TOBEDELETED1 && (response[2]-48)==TOBEDELETED2) {
+      printf("NOTE: The lock/cv will be deleted soon.\n");
+    }
+		else if((response[1]-48)=='1' && (response[2]-48)=='8') {
+      printf("NOTE: This is wrong lock.\n");
+    }
+  }
   fflush(stdout);
 
   /*cvArray->Acquire();
@@ -848,8 +861,20 @@ void Signal_Syscall(int cvIndex, int lockIndex) {
   }
 
   postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
-
-  //TODO: Error handling
+	if(response[0] == 'e') {
+    if((response[1]-48) == BADINDEX1 && (response[2]-48) == BADINDEX2) {
+      printf("ERROR: Bad Index.\n");
+    }
+    else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
+      printf("ERROR: Already Deleted.\n");
+    }
+    else if((response[1]-48)=='1' && (response[2]-48)=='9') {
+      printf("NOTE: Empty waiting list.\n");
+    }
+		else if((response[1]-48)=='1' && (response[2]-48)=='8') {
+      printf("NOTE: This is wrong lock.\n");
+    }
+  }
   fflush(stdout);
 
   /*cvArray->Acquire();
@@ -942,7 +967,20 @@ void Broadcast_Syscall(int cvIndex, int lockIndex) {
 
 	postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 
-	//TODO: Error handling
+	if(response[0] == 'e') {
+    if((response[1]-48) == BADINDEX1 && (response[2]-48) == BADINDEX2) {
+      printf("ERROR: Bad Index.\n");
+    }
+    else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
+      printf("ERROR: Already Deleted.\n");
+    }
+    else if((response[1]-48)=='1' && (response[2]-48)=='9') {
+      printf("NOTE: Empty waiting list.\n");
+    }
+		else if((response[1]-48)=='1' && (response[2]-48)=='8') {
+      printf("NOTE: This is wrong lock.\n");
+    }
+  }
 	fflush(stdout);
 	
 	
@@ -1632,6 +1670,7 @@ void handlePageFault(unsigned int vAddress) {
     ppn = handleIPTMiss(vpn);
 
 
+    // TODO: should this section below be here?
     iptLock->Acquire();
     pageLock->Acquire();
     ipt[ppn].virtualPage = vpn;
@@ -1639,6 +1678,7 @@ void handlePageFault(unsigned int vAddress) {
     ipt[ppn].valid = true;
     ipt[ppn].readOnly = currentThread->space->pageTable[vpn].readOnly;
     ipt[ppn].use = currentThread->space->pageTable[vpn].use;
+//    ipt[ppn].use = true;
     ipt[ppn].dirty = currentThread->space->pageTable[vpn].dirty;
     ipt[ppn].processID = currentThread->space->pageTable[vpn].processID;
     ipt[ppn].location = currentThread->space->pageTable[vpn].location;

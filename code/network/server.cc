@@ -468,7 +468,7 @@ void Wait(char* msg) {
 	else if(cvs[cvIndex].condition.lockIndex != lockIndex && cvs[cvIndex].condition.lockIndex != -1) {
 		DEBUG('b', "Correct: %i, Called: %i\n", cvs[cvIndex].condition.lockIndex, lockIndex);
     printf("ERROR: this is not the correct waiting lock.\n");
-    sprintf(response, "%d", WRONGLOCK);
+    sprintf(response, "e%d", WRONGLOCK);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);
     return;
@@ -490,11 +490,11 @@ void Wait(char* msg) {
       lcks[lockIndex].lock.machineID = thread->machineID;
       lcks[lockIndex].lock.mailboxNum = thread->mailboxNum;
       char* response2 = new char[MAX_SIZE];
-      sprintf(response2, "%d", SUCCESS);
+      sprintf(response2, "%d", SUCCESS); //Changed %d to s%d
 			DEBUG('s', "Response going to %i: %s\n", thread->mailboxNum, response2);
       outMailHeader.to = thread->mailboxNum;
       outPacketHeader.to = thread->machineID;
-      outMailHeader.length = strlen(response) + 1;
+      outMailHeader.length = strlen(response2) + 1;
       postOffice->Send(outPacketHeader, outMailHeader, response2);
       lcks[lockIndex].numActiveThreads--;
     }
@@ -563,7 +563,7 @@ void Signal(char* msg) {
 		i = i*10;
 		j--;
 	}  
-	DEBUG('b', "SIGNAL: CVINDEX: %i, LOCKINDEX: %i\n", cvIndex, lockIndex);
+	DEBUG('s', "SIGNAL: CVINDEX: %i, LOCKINDEX: %i\n", cvIndex, lockIndex);
   if(cvIndex < 0 || cvIndex >= nextCV) {
     printf("ERROR: The given cv index is not valid.\n");
     sprintf(response, "e%d", BADINDEX);
@@ -621,8 +621,7 @@ void Signal(char* msg) {
 	cvs[cvIndex].numActiveThreads--; 
   thread = (waitingThread *)cvs[cvIndex].condition.waitList->Remove();
 	lcks[lockIndex].lock.waitList->Append((void *)thread);  
-	outMailHeader.to = thread->mailboxNum;
-  outPacketHeader.to = thread->machineID;
+
   if(cvs[cvIndex].condition.waitList->IsEmpty()) {
     cvs[cvIndex].condition.lockIndex = -1;
   }  
@@ -632,9 +631,10 @@ void Signal(char* msg) {
     printf("Deleted condition %i.\n", cvIndex);
   }
 	
-	DEBUG('s', "Signalling mailbox %i\n", outMailHeader.to);
+	//Release will wake waiting client up, so message goes to caller of signal
   sprintf(response, "s%d", SUCCESS);
   outMailHeader.length = strlen(response) + 1;
+	DEBUG('s', "Signalling mailbox %i with %s\n", outMailHeader.to, response);
   postOffice->Send(outPacketHeader, outMailHeader, response);
 }
 
