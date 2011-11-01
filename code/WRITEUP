@@ -5,7 +5,7 @@ Date: 10/30/2011
 Group Num 8:  Name      Email             Student ID
     Kevin Crane         kevincra@usc.edu  3218277159
     Michelle Forcier    mforcier@usc.edu  7557790576
-    Ryan Ball           rball@usc.edu	    3005164367
+    Ryan Ball           rball@usc.edu	  3005164367
 
 I. Requirements
 
@@ -24,11 +24,13 @@ I. Requirements
   Part 3:   Implement remote procedure calls for the locks and condition
       variable syscalls. Must be able to create, set values, and retrieve
       values. Commands sent from Nachos client to server, and must be
-      able to handle multiple clients.
+      able to handle multiple clients.The server performs system calls for
+      the client and returns the results.
 
 
 II. Assumptions: 
 
+	There is a limit on the size of an array the user can use for a MV.
 
 III. Design: 
 - This section is to cover your logic and ideas as to how  you are going to 
@@ -51,7 +53,7 @@ III. Design:
     - system.h
       - Added locks and an OpenFile handler to work with the swapfile
   
-	    
+
   AddrSpace Consructor
   - Saves a pointer to the executable file, no longer deletes executable as it needs to maintain a connection with it to keep reading data
   - Initialize all values in pageTable. Unlike in previous versions where all of the data from the executable is loaded in now, the 
@@ -80,7 +82,7 @@ III. Design:
     - Propagate dirty bit from TLB to IPT and disable current page in TLB
     - Copy page from memory to swap page
     - Update PageTable to reflect page moving from memory to swapfile
-	
+
 
   Part 3 - 
     Created a new file in the network directory called server.cc to
@@ -92,6 +94,10 @@ III. Design:
 
     Functions validate the input, then do any necessary work,
     then prepare a response message to send to the client.
+
+	Added server functions for each lock and condition syscall. Added
+	server functions and exception.cc syscalls for all monitor variable
+	actions.
 
     Example Function:
 
@@ -162,6 +168,7 @@ IV. Implementation:
 
       Test Folder:      networktests.c
                         two_matmults.c (actually runs 7 matmults, as a demonstration of multiple processes)
+						execnetworktests.c (runs 2 copies of networktests)
 
     + Data Structures added, and the file they were added to. 
 
@@ -238,6 +245,10 @@ IV. Implementation:
       int evictAPage();             -- exception.cc
       int handleIPTMiss(int vpn);   -- exception.cc
       void handlePageFault(int vAddress);   -- exception.cc
+      int CreateMV_Syscall(unsigned int strPtr, int length, int arraySize) -- exception.cc
+      void DestroyMV_Syscall(int index) -- exception.cc
+      void SetMV_Syscall(int index, int value, int arrayIndex) -- exception.cc
+      int  GetMV_Syscall(int index, int arrayIndex)  -- exception.cc
 
       void CreateLock(char* msg); 		-- server.cc
       void Acquire(int index);		-- server.cc
@@ -266,16 +277,14 @@ IV. Implementation:
       void DestroyLock_Syscall(int lockIndex);-- exception.cc
       int  CreateCondition_Syscall(unsigned int strPtr, int length); -- exception.cc
       void DestroyCondition_Syscall(int cvIndex); -- exception.cc
-      int  CreateMV_Syscall(unisgned int strPtr, int length, int arraySize); -- exception.cc
-      void DestroyMV_Syscall(int index); 	-- exception.cc
-      void SetMV_Syscall(int index, int value, int arrayIndex); -- exception.cc
-      int  GetMV_Syscall(int index, int arrayIndex);	-- exception.cc
       void ExceptionHandler(ExceptionType which);	-- exception.cc
-		
-		
+
+
 V. Testing:  (For each test case, you must show)
     + How to test
-    
+		To compile all tests:
+			* In test folder, run "gmake *TESTNAME*", ie "gmake sort"
+				
       (From network folder; must be compiled from here because of new 'network' features)
         gmake
       
@@ -293,8 +302,15 @@ V. Testing:  (For each test case, you must show)
           nachos -P {RAND || FIFO} -x ../test/two_matmults    [ (actually more 7 different matmults, just large-scale demo) ]
       
       - Demonstration of network functionality
-        [NETWORK]
-	
+					In the test folder, compile the two tests by running
+						gmake networktests
+						gmake execnetworktests
+					Then, in separate windows run the -s (server command) first
+						nachos -s
+						nachos -m 1 -x ../test/execnetworktests
+					A kill command must be passed to server to stop its execution
+					*Note: If you want to run test again, please restart server*
+
 
     + Test Output
     
@@ -326,8 +342,758 @@ V. Testing:  (For each test case, you must show)
         Exit: Nachos successfully shutting down.
         Machine halting!
 
-		[NETWORK]
-		
+			SERVER EXPECTED OUTPUT
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				outPacketHeader to 1.
+				outMailHeader to 1.
+				Error: waitQueue in list empty cond is empty!
+				***
+				Entered Server loop.
+				Received a message.
+				Lock 0 MainLock.
+				***
+				Entered Server loop.
+				Received a message.
+				CV Created at position: 0
+
+				***
+				Entered Server loop.
+				Received a message.
+				Names match, name: MainCV, returning index value of 0
+
+				Error: waitQueue in list empty cond is empty!
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				Lock 0 MainLock.
+				outPacketHeader to 1.
+				outMailHeader to 1.
+				***
+				Entered Server loop.
+				Received a message.
+				Lock 0 MainLock.
+				Lock 1 a.
+				outPacketHeader to 1.
+				outMailHeader to 1.
+				***
+				Entered Server loop.
+				Received a message.
+				Lock 0 MainLock.
+				Lock 1 a.
+				Lock 2 b.
+				outPacketHeader to 1.
+				outMailHeader to 1.
+				***
+				Entered Server loop.
+				Received a message.
+				Lock 0 MainLock.
+				Lock 1 a.
+				Lock 2 b.
+				Lock 3 c.
+				outPacketHeader to 1.
+				outMailHeader to 1.
+				***
+				Entered Server loop.
+				Received a message.
+				Lock 0 MainLock.
+				Lock 1 a.
+				Lock 2 b.
+				Lock 3 c.
+				Lock 4 d.
+				outPacketHeader to 1.
+				outMailHeader to 1.
+				***
+				Entered Server loop.
+				Received a message.
+				Lock 0 MainLock.
+				Lock 1 a.
+				Lock 2 b.
+				Lock 3 c.
+				Lock 4 d.
+				Lock 5 e.
+				outPacketHeader to 1.
+				outMailHeader to 1.
+				***
+				Entered Server loop.
+				Received a message.
+				Lock 0 MainLock.
+				Lock 1 a.
+				Lock 2 b.
+				Lock 3 c.
+				Lock 4 d.
+				Lock 5 e.
+				Lock 6 f.
+				outPacketHeader to 1.
+				outMailHeader to 1.
+				***
+				Entered Server loop.
+				Received a message.
+				Lock 0 MainLock.
+				Lock 1 a.
+				Lock 2 b.
+				Lock 3 c.
+				Lock 4 d.
+				Lock 5 e.
+				Lock 6 f.
+				Lock 7 g.
+				outPacketHeader to 1.
+				outMailHeader to 1.
+				***
+				Entered Server loop.
+				Received a message.
+				Lock 0 MainLock.
+				Lock 1 a.
+				Lock 2 b.
+				Lock 3 c.
+				Lock 4 d.
+				Lock 5 e.
+				Lock 6 f.
+				Lock 7 g.
+				Lock 8 h.
+				outPacketHeader to 1.
+				outMailHeader to 1.
+				***
+				Entered Server loop.
+				Received a message.
+				Lock 0 MainLock.
+				Lock 1 a.
+				Lock 2 b.
+				Lock 3 c.
+				Lock 4 d.
+				Lock 5 e.
+				Lock 6 f.
+				Lock 7 g.
+				Lock 8 h.
+				Lock 9 i.
+				outPacketHeader to 1.
+				outMailHeader to 1.
+				***
+				Entered Server loop.
+				Received a message.
+				Lock 0 MainLock.
+				Lock 1 a.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: Bad index on destroy lock
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: Bad index on destroy lock
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: This lock is already deleted
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				CV Created at position: 1
+
+				***
+				Entered Server loop.
+				Received a message.
+				CV Created at position: 2
+
+				***
+				Entered Server loop.
+				Received a message.
+				CV Created at position: 3
+
+				***
+				Entered Server loop.
+				Received a message.
+				CV Created at position: 4
+
+				***
+				Entered Server loop.
+				Received a message.
+				CV Created at position: 5
+
+				***
+				Entered Server loop.
+				Received a message.
+				CV Created at position: 6
+
+				***
+				Entered Server loop.
+				Received a message.
+				CV Created at position: 7
+
+				***
+				Entered Server loop.
+				Received a message.
+				CV Created at position: 8
+
+				***
+				Entered Server loop.
+				Received a message.
+				CV Created at position: 9
+
+				***
+				Entered Server loop.
+				Received a message.
+				CV Created at position: 10
+
+				***
+				Entered Server loop.
+				Received a message.
+				Names match, name: a, returning index value of 1
+
+				***
+				Entered Server loop.
+				Received a message.
+				CV at 1 is deleted!
+				***
+				Entered Server loop.
+				Received a message.
+				CV has a bad index!
+				***
+				Entered Server loop.
+				Received a message.
+				CV has a bad index!
+				***
+				Entered Server loop.
+				Received a message.
+				CV has a bad index!
+				***
+				Entered Server loop.
+				Received a message.
+				CV is already deleted!
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: Bad index on acquire
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: Bad index on acquire
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: Lock is already deleted
+				***
+				Entered Server loop.
+				Received a message.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: Not the lock owner!
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: Bad index on release
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: Bad index on release
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: This lock is already deleted.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: The given cv index is not valid.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: The given cv index is not valid.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: The given lock index is not valid.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: The given lock index is not valid.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: This condition has been deleted.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: This lock has been deleted.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: The given cv index is not valid.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: The given cv index is not valid.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: The given lock index is not valid.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: The given lock index is not valid.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: This condition has been deleted.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: This lock has been deleted.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: The given cv index is not valid.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: The given cv index is not valid.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: The given lock index is not valid.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: The given lock index is not valid.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: This condition has been deleted.
+				***
+				Entered Server loop.
+				Received a message.
+				ERROR: This lock has been deleted.
+				***
+				Entered Server loop.
+
+				Cleaning up...
+
+				CLIENT EXPECTED OUTPUT
+					Starting Tests
+					Starting Tests
+					My super awesome id is 1
+					Process ID 1.
+					Error: waitQueue in list empty cond is empty!
+					My super awesome id is 2
+					Process ID 2.
+					Lock Index: 0.
+					Lock Index: 0.
+					Error: waitQueue in list empty cond is empty!
+					SUCCESS: Created the MV.
+					*** Two Client Tests *** 
+					SUCCESS: Created the MV.
+					*** Two Client Tests *** 
+					SUCCESS: Acquired the lock.
+					1: Acquired the lock
+					SUCCESS: Getting MV value 0.
+					NumTimes: 0, mvIndex: 0
+					SUCCESS: The MV value is 1.
+					SUCCESS: Getting MV value 1.
+					numTimes to 1
+					SUCCESS: Acquired the lock.
+					2: Acquired the lock
+					SUCCESS: Getting MV value 1.
+					NumTimes: 1, mvIndex: 0
+					Last client inside, about to broadcast
+					SUCCESS: The MV value is 0.
+					SUCCESS: Released the lock.
+
+
+					*****
+					2: Got outside wait cycle from broadcast test 
+					*****
+
+					SUCCESS: Released the lock.
+
+
+					*****
+					1: Got outside wait cycle from broadcast test 
+					*****
+
+					SUCCESS: Acquired the lock.
+					2: Acquired the lock for signal test
+					SUCCESS: Getting MV value 0.
+					NumTimes: 0, mvIndex: 0
+					SUCCESS: The MV value is 1.
+					SUCCESS: Getting MV value 1.
+					numTimes to 1
+					SUCCESS: Acquired the lock.
+					1: Acquired the lock for signal test
+					SUCCESS: Getting MV value 1.
+					NumTimes: 1, mvIndex: 0
+					Last client inside, about to signal
+					SUCCESS: The MV value is 0.
+					SUCCESS: Released the lock.
+
+
+					*****
+					1: Got outside wait cycle from signal test
+					*****
+
+					SUCCESS: Released the lock.
+
+
+					*****
+					2: Got outside wait cycle from signal test
+					*****
+
+					SUCCESS: Acquired the lock.
+
+					*** LOCK TEST ***
+
+
+					Testing CreateLock. Calling CreateLock('a', 1)
+					Process ID 1.
+					Lock Index: 1.
+					Lock syscall successful.
+					Testing Many Lock syscalls. Calling CreateLock() 9 times
+					Process ID 1.
+					Lock Index: 2.
+					Process ID 1.
+					Lock Index: 3.
+					Process ID 1.
+					Lock Index: 4.
+					Process ID 1.
+					Lock Index: 5.
+					Process ID 1.
+					Lock Index: 6.
+					Process ID 1.
+					Lock Index: 7.
+					Process ID 1.
+					Lock Index: 8.
+					Process ID 1.
+					Lock Index: 9.
+					Process ID 1.
+					Lock Index: 10.
+					Many locks created finished!
+					Testing making a lock with the same name.
+					Process ID 1.
+					Lock Index: 1.
+					SUCCESS the indices match.
+					Testing Destroy Lock. Calling DestroyLock()
+					SUCCESS: The lock was deleted.
+					Testing Destroy Lock syscall with a negative index.
+					ERROR: Bad Index.
+					Testing Destroy Lock sys call with a lock index of 12 (Larger than next index)
+					ERROR: Bad Index.
+					Testing Destroy Lock on already destroyed lock
+					ERROR: Already Deleted.
+					Acquiring unused lock_10 to check destroy_Lock
+					SUCCESS: Acquired the lock.
+					Destroying Lock 10!!!
+					NOTE: The lock will be deleted soon.
+
+					*** MV TEST ***
+					Testing Create MV. Calling CreateMV('a',1,5)
+					SUCCESS: Created the MV.
+					Testing Create MV 9 more times
+					SUCCESS: Created the MV.
+					SUCCESS: Created the MV.
+					SUCCESS: Created the MV.
+					SUCCESS: Created the MV.
+					SUCCESS: Created the MV.
+					SUCCESS: Created the MV.
+					SUCCESS: Created the MV.
+					SUCCESS: Created the MV.
+					SUCCESS: Created the MV.
+					Testing Create MV with the same name.
+					SUCCESS: Created the MV.
+					SUCCESS the indices match
+					Testing Set.
+					SUCCESS: The MV value is 4.
+					Testing Set with bad indices.
+					ERROR: Bad Index.
+					ERROR: Bad Index.
+					Testing Set with bad array indices.
+					ERROR: Bad Index.
+					ERROR: Bad Index.
+					Testing Set on  a deleted MV.
+					SUCCESS: The lock was deleted.
+					ERROR: Already Deleted.
+					Testing Get.
+					ERROR: Already Deleted.
+					Testing getting an MV with a bad index.
+					ERROR: Bad Index.
+					ERROR: Bad Index.
+					Testing MV Get with bad array indices.
+					ERROR: Bad Index.
+					ERROR: Bad Index.
+					Testing MV Get on a deleted MV.
+					ERROR: Already Deleted.
+					Testing destroy MV.
+					SUCCESS: The lock was deleted.
+					Testing destroy on bad indices.
+					ERROR: Bad Index.
+					ERROR: Bad Index.
+					Testing destroy on a deleted MV.
+					ERROR: Already Deleted.
+
+					*** CV TEST ***
+					Testing Create CV. Calling CreateCV()
+					Testing Create CV 9 more times
+					SUCCESS the indices are the same.
+					Testing Destroy CV. Destroying cv_1
+					Testing Destroy CV on a negative index
+					Testing Destroy CV on index of 12 (Larger than next index)
+					Testing Destroy CV on index 11
+					Testing Destroy CV on already deleted CV, cv_1
+
+					*** ACQUIRE TEST ***
+					Testing Acquire on lock_2
+					SUCCESS: Acquired the lock.
+					Testing Acquire on negative index
+					ERROR: Bad Index.
+					Testing Acquire on out of bounds index
+					ERROR: Bad Index.
+					Testing Acquire on on deleted lock, lock_1
+					ERROR: Already Deleted.
+
+					*** RELEASE TEST ***
+					Testing Release on lock_2
+					SUCCESS: Released the lock.
+					Testing Release on lock_2 again
+					ERROR: Not the lock owner!
+					Testing Release on negative index
+					ERROR: Bad Index.
+					Testing Release on out of bounds index
+					ERROR: Bad Index.
+					Testing Release on deleted lock, lock_1
+					ERROR: Already Deleted.
+					Testing Wait on a negative cv index
+					ERROR: Bad Index.
+					Testing Wait on a out of bounds cv index
+					ERROR: Bad Index.
+					Testing Wait on a negative lock index
+					ERROR: Bad Index.
+					Testing Wait on a out of bounds lock index
+					ERROR: Bad Index.
+					Testing Wait on a deleted cv
+					ERROR: Already Deleted.
+					Testing Wait on a deleted lock
+					ERROR: Already Deleted.
+
+					*** SIGNAL TEST ***
+					Testing Signal on negative cv index
+					ERROR: Bad Index.
+					Testing Signal on a out of bounds cv index
+					ERROR: Bad Index.
+					Testing Signal on a out of bounds lock index
+					ERROR: Bad Index.
+					Testing Signal on a negative lock index
+					ERROR: Bad Index.
+					Testing Signal on deleted cv
+					ERROR: Already Deleted.
+					Testing Signal on deleted lock
+					ERROR: Already Deleted.
+
+					*** BROADCAST TEST ***
+					Testing Broadcast on negative cv index
+					ERROR: Bad Index.
+					Testing Broadcast on out of bounds cv index
+					ERROR: Bad Index.
+					Testing Broadcast on negative lock index
+					ERROR: Bad Index.
+					Testing Broadcast on out of bounds lock index
+					ERROR: Bad Index.
+					Testing Broadcast on deleted cv
+					ERROR: Already Deleted.
+					Testing Broadcast on deleted lock
+					ERROR: Already Deleted.
+
+
+
+					*** END OF TESTING BEFORE EXIT ***
+
+
+					Exit: Nachos successfully shutting down.
+					Machine halting!
+
+					Ticks: total 104309, idle 79577, system 21480, user 3252
+					Disk I/O: reads 0, writes 0
+					Console I/O: reads 0, writes 0
+					Paging: faults 0
+					Network I/O: packets received 119, sent 119
+
+					Cleaning up...
+
 
 VI. Discussion: 
     + Experiment expectation.  (What you hope will happen.) 
@@ -345,7 +1111,10 @@ VI. Discussion:
       tough, but very doable. We created a very robust system of memory
       management that seems very capable for handling multiple threads and
       processes with ease.
-      [NETWORK]
+     
+      We also created all of the necessary networking calls. We can communicate
+      between client and server and our tests show that the networking is
+      working.
 
     + Explanation 
 
@@ -353,11 +1122,14 @@ VI. Discussion:
       (as Professor Crowley did in class) made it substantially easier to
       grasp and understand as we progressed, helping me to better understand
       the concepts as I went. 
-      [NETWORK]
-		  
+      
+      We found that once we had one networking call working, it was easy to get
+      the other ones done. Certain calls like wait and acquire required more
+       in depth logic than others. 
+
 VII. Miscellaneous: 
 
-		
+
 
 
 

@@ -133,6 +133,7 @@ void create_MV_Test() {
   mv_1 = CreateMV("a",1,5);
 }
 
+/* Default test creating many MVs to be used in later tests */
 void create_Many_MVs_Test() {
   Write("Testing Create MV 9 more times\n", sizeof("Testing Create MV 9 more times\n"), ConsoleOutput);
   mv_2 = CreateMV("b",1, 5);
@@ -146,6 +147,7 @@ void create_Many_MVs_Test() {
   mv_10 = CreateMV("j",1,1);
 }
 
+/* Test to check that an MV with an existing name returns the same index */
 void create_Same_MV() {
   Write("Testing Create MV with the same name.\n", sizeof("Testing Create MV with the same name.\n"), ConsoleOutput);
   mv_11 = CreateMV("a",1,5);
@@ -154,22 +156,83 @@ void create_Same_MV() {
   }
 }
 
+/* Default test to check that setting an MV works */
 void set_MV_Test() {
+  Write("Testing Set.\n", sizeof("Testing Set.\n"), ConsoleOutput);
   SetMV(mv_1, 4, 1);
 }
 
+/* Test to check that set returns an error if using a bad index */
+void set_Bad_Index() {
+  Write("Testing Set with bad indices.\n", sizeof("Testing Set with bad indices.\n"), ConsoleOutput);
+  SetMV(-1, 1, 1);
+  SetMV(12, 1, 1);
+}
+
+/* Test to check that set returns an error if using a bad array index */
+void set_Bad_ArrayIndex() {
+  Write("Testing Set with bad array indices.\n", sizeof("Testing Set with bad array indices.\n"), ConsoleOutput);
+  SetMV(mv_2, 95, -1);
+  SetMV(mv_9, 15, 158);
+}
+
+/* Test to check that set returns an error if the MV is deleted */
+void set_Deleted() {
+  Write("Testing Set on  a deleted MV.\n", sizeof("Testing Set on a deleted MV.\n"), ConsoleOutput);
+  DestroyMV(mv_1);
+  SetMV(mv_1, 1, 1);
+}
+
+/* Default tes to check that get is working */
 void get_MV_Test() {
   int temp;
+  Write("Testing Get.\n", sizeof("Testing Get.\n"), ConsoleOutput);
   temp = GetMV(mv_1, 1);
   if(temp == 4) {
     Write("SUCCESS.\n", sizeof("SUCCESS.\n"), ConsoleOutput);
   }
 }
 
-void get_Bad_Index_Test() {
+/* Testing Get on bad indices */
+void get_Bad_Index() {
   int temp;
   Write("Testing getting an MV with a bad index.\n", sizeof("Testing getting an MV with a bad index.\n"), ConsoleOutput);
   temp = GetMV(-1, 1);
+  temp = GetMV(12, 1);
+}
+
+/* Testing Get on bad array indices */
+void get_Bad_ArrayIndex() {
+  int temp;
+  Write("Testing MV Get with bad array indices.\n", sizeof("Testing MV Get with bad array indices.\n"), ConsoleOutput);
+  temp = GetMV(5, -1);
+  temp = GetMV(10, 295);
+}
+
+/* Testing Get on a deleted MV */
+void get_Deleted() {
+	int temp;
+  Write("Testing MV Get on a deleted MV.\n", sizeof("Testing MV Get on a deleted MV.\n"), ConsoleOutput);
+  temp = GetMV(1, 1);
+}
+
+/* Testing Destroy MV */
+void destroy() {
+  Write("Testing destroy MV.\n", sizeof("Testing destroy MV.\n"), ConsoleOutput);
+  DestroyMV(mv_2);
+}
+
+/* Testing Destroy on bad indices */
+void destroy_Bad_Index() {
+  Write("Testing destroy on bad indices.\n", sizeof("Testing destroy on bad indices.\n"), ConsoleOutput);
+  DestroyMV(-1);
+  DestroyMV(12);
+}
+
+/* Testing Destroy on a deleted MV */
+void destroy_Deleted() {
+  Write("Testing destroy on a deleted MV.\n", sizeof("Testing destroy on a deleted MV.\n"), ConsoleOutput);
+  DestroyMV(1);
 }
 
 
@@ -466,10 +529,9 @@ int main() {
 	Release(lockIndex);
 	Print("\n\n*****\n%i: Got outside wait cycle from signal test\n*****\n\n", myid, -1, -1);
 	
+
+	if(myid == 1){/* Lock Tests */
 	Acquire(lockIndex);
-	Print("%i: Acquired the lock for signal test\n", myid, -1, -1);
-	numTimes = GetMV(mvIndex, 1);
-	if(numTimes == 1){/* Currently will never enter this *//* Lock Tests */
   Write("\n*** LOCK TEST ***\n", sizeof("\n*** LOCK TEST ***\n"), ConsoleOutput);
   create_Lock_Test();
 
@@ -490,16 +552,23 @@ int main() {
   /* MV Tests */
   Write("\n*** MV TEST ***\n", sizeof("\n*** MV TEST ***\n"), ConsoleOutput);
   create_MV_Test();
-  
-  create_Many_MVs_Test();
-  
-  create_Same_MV();
+		
+		create_Many_MVs_Test();
+		
+		create_Same_MV();
 
-  set_MV_Test();
-  
-  get_MV_Test();
-
-  get_Bad_Index_Test();
+		set_MV_Test();
+		
+		set_Bad_Index();
+		set_Bad_ArrayIndex();
+		set_Deleted();
+		get_MV_Test();
+		get_Bad_Index();
+		get_Bad_ArrayIndex();
+		get_Deleted();
+		destroy();
+		destroy_Bad_Index();
+		destroy_Deleted();
 
   /* CV Tests */
   Write("\n*** CV TEST ***\n", sizeof("\n*** CV TEST ***\n"), ConsoleOutput);
@@ -553,15 +622,10 @@ int main() {
   broadcast_Bad_Index();
 
   broadcast_Already_Deleted();
-	
   Write("\n\n\n*** END OF TESTING BEFORE EXIT ***\n\n", sizeof("\n\n\n*** END OF TESTING BEFORE EXIT ***\n"), ConsoleOutput); 
   }
-	else {
-		SetMV(mvIndex, numTimes + 1, 1);
-		numTimes = GetMV(mvIndex, 1);
-		Print("numTimes to %i\n", numTimes, -1, -1);
-	}
-	Release(lockIndex);
+
+	
   Exit(0);
 }
 
