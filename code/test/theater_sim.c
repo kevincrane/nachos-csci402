@@ -134,6 +134,14 @@ int totalRevenue;
 /* MODIFIED FROM PROJECT 1 - might need to add a lock*/
 int groups[MAX_CUST];
 
+char* concat_str(char* str, int num) {
+	char cnum = (char)(((int)'0')+num);
+	int len = sizeof(str);
+	str[len] = cnum;
+	str[len+1] = '\0';
+	return str;
+}
+
 
 /* Customer Code */
 
@@ -192,11 +200,11 @@ void customerInit(int numGroups)
       totalCustomers += groups[i];
       
     }
-  customerLobbyLock = CreateLock("cll", 3);
-  customerLobbyCV = CreateCV();
+  customerLobbyLock = CreateLock("cll", 3); /* TODO Check if this is in for loop */
+  customerLobbyCV = CreateCV("clcv", 4);
   for(k=0; k<totalGroups; k++) {
-    waitingOnGroupLock[k] = CreateLock("wogl", 4);
-    waitingOnGroupCV[k] = CreateCV();
+    waitingOnGroupLock[k] = CreateLock(concat_str("wogl",k), 5);
+    waitingOnGroupCV[k] = CreateCV(concat_str("wogcv", k), 6);
   }    
 }
 
@@ -1276,26 +1284,26 @@ void init_values(){
   ticketClerkLineLock = CreateLock("tcll", 4);
   for(i=0; i<MAX_TC; i++) 
   {
-    ticketClerkLineCV[i] = CreateCV();		/* instantiate line condition variables */
-    ticketClerkLock[i] = CreateLock("tcli", 4); /*********************CHANGE THIS******************************/
-    ticketClerkCV[i] = CreateCV();
-    ticketClerkBreakLock[i] = CreateLock("tcbli", 5); /*****************************CHANGE THIST*********************/
-    ticketClerkBreakCV[i] = CreateCV();
+    ticketClerkLineCV[i] = CreateCV(concat_str("tclcv", i), 6);		/* instantiate line condition variables */
+    ticketClerkLock[i] = CreateLock(concat_str("tcl", i), 4); /*********************CHANGE THIS******************************/
+    ticketClerkCV[i] = CreateCV(concat_str("tccv", i), 5);
+    ticketClerkBreakLock[i] = CreateLock(concat_str("tcbl", i), 5); /*****************************CHANGE THIST*********************/
+    ticketClerkBreakCV[i] = CreateCV(concat_str("tcbcv", i), 6);
     ticketClerkIsWorking[i] = 1;
   }
 	
   /* Initialize ticketTaker values */
   ticketTakerLineLock = CreateLock("ttll", 4);
   ticketTakerMovieLock = CreateLock("ttml", 4);
-  ticketTakerMovieCV = CreateCV();
+  ticketTakerMovieCV = CreateCV("ttmcv", 5);
   ticketTakerBreakLock = CreateLock("ttbl", 4);
-  ticketTakerBreakCV = CreateCV();
+  ticketTakerBreakCV = CreateCV("ttbcv", 5);
   movieStarted = 0;
   for(i=0; i<MAX_TT; i++)
   {
-    ticketTakerLineCV[i] = CreateCV();
-    ticketTakerLock[i] = CreateLock("ttli", 4); /****************************CHANGE THIS*****************************/
-    ticketTakerCV[i] = CreateCV();
+    ticketTakerLineCV[i] = CreateCV(concat_str("ttlcv", i), 6);
+    ticketTakerLock[i] = CreateLock(concat_str("ttl", i), 4); /****************************CHANGE THIS*****************************/
+    ticketTakerCV[i] = CreateCV(concat_str("ttcv", i), 5);
     ticketTakerIsWorking[i] = 1;
   }
 	
@@ -1303,11 +1311,11 @@ void init_values(){
   concessionClerkLineLock = CreateLock("ccll", 4);
   concessionClerkWorking = MAX_CC;
   for(i=0; i<MAX_CC; i++) {
-    concessionClerkLineCV[i] = CreateCV(); /* instantiate line condition variables */
-    concessionClerkLock[i] = CreateLock("ccli", 4); /***************************CHANGE THIS**************************/
-    concessionClerkCV[i] = CreateCV();
-    concessionClerkBreakLock[i] = CreateLock("ccbli", 5); /**************************CHANGE THIS********************/
-    concessionClerkBreakCV[i] = CreateCV();
+    concessionClerkLineCV[i] = CreateCV(concat_str("cclcv", i), 6); /* instantiate line condition variables */
+    concessionClerkLock[i] = CreateLock(concat_str("ccl", i), 4); /***************************CHANGE THIS**************************/
+    concessionClerkCV[i] = CreateCV(concat_str("cccv", i), 5);
+    concessionClerkBreakLock[i] = CreateLock(concat_str("ccbl", i), 5); /**************************CHANGE THIS********************/
+    concessionClerkBreakCV[i] = CreateCV(concat_str("ccbcv", i), 6);
     
     concessionClerkLineCount[i] = 0;
     concessionClerkState[i] = 0;
@@ -1321,8 +1329,8 @@ void init_values(){
   /* Initialize movieTechnician values */
   movieStatus = 2; /* Movie starts in the "finished" state */
   movieLength = 0;
-  movieFinishedLockCV = CreateCV();
-  movieStatusLockCV = CreateCV();
+  movieFinishedLockCV = CreateCV("mflcv", 5);
+  movieStatusLockCV = CreateCV("mslcv", 5);
   movieFinishedLock = CreateLock("mfl", 3);
   movieStatusLock = CreateLock("msl", 3);
   numSeatsOccupied = 0; 
