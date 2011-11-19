@@ -158,8 +158,9 @@ void create_Same_MV() {
 
 /* Default test to check that setting an MV works */
 void set_MV_Test() {
-  Write("Testing Set.\n", sizeof("Testing Set.\n"), ConsoleOutput);
+  Write("Testing SetMV.\n", sizeof("Testing SetMV.\n"), ConsoleOutput);
   SetMV(mv_1, 4, 1);
+  Print("TITTAHS=%d\n", GetMV(mv_1, 1), -1, -1);
 }
 
 /* Test to check that set returns an error if using a bad index */

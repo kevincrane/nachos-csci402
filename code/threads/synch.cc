@@ -194,7 +194,7 @@ void Condition::Signal(Lock* conditionLock) {
 
   // If no threads waiting, restore interrupts and return
   if(waitQueue->IsEmpty()) {
-    printf ("Error: waitQueue in %s is empty!\n", name);
+    DEBUG('a', "Error: waitQueue in %s is empty!\n", name);
     (void) interrupt->SetLevel(oldLevel);
     return;
   }

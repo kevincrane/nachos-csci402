@@ -4,7 +4,15 @@
 int main()
 {
 	Exec("../test/networktests",20);
+	Yield();
 	Exec("../test/networktests",20);
+	Yield();
+/*	Exec("../test/networktests",20);
+	Yield();
+	Exec("../test/networktests",20);
+	Yield();
+	Exec("../test/networktests",20);*/
+				
 
 	Exit(0);
 }

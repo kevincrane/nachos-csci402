@@ -21,6 +21,9 @@ int
 main()
 {
     int i, j, k;
+      int num;
+      num = Identify();
+  Print("BOLLOCKS, MBOX#=%d\n", num, -1, -1);
 
     for (i = 0; i < Dim; i++)	{	/* first initialize the matrices */
       for (j = 0; j < Dim; j++) {

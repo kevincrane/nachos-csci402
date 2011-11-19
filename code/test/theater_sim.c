@@ -6,7 +6,7 @@
 #include "syscall.h"
 
 /* CONSTANTS */
-#define MAX_CUST 35        /* constant: maximum number of customers                */
+#define MAX_CUST 30        /* constant: maximum number of customers                */
 #define MAX_TC 5            /* constant: defines maximum number of ticketClerks     */
 #define MAX_TT 3            /* constant: defines maximum number of ticketTakers     */
 #define MAX_CC 2            /* constant: defines maximum number of concessionClerks */
@@ -17,8 +17,6 @@
 #define TICKET_PRICE 12     /* constant: price of a movie ticket */
 #define POPCORN_PRICE 5     /* constant: price of popcorn        */
 #define SODA_PRICE 4        /* constant: price of soda           */
-
-#define len(x) (sizeof (x) / sizeof *(x))   /* used for finding the length of arrays */
 
 /* Customer Global variables */
 typedef struct {
@@ -207,8 +205,6 @@ void customerInit(int numGroups)
     waitingOnGroupCV[k] = CreateCV(concat_str("wogcv", k), 6);
   }    
 }
-
-/* Bring a group of Customers back from the lobby */
 
 void doBuyTickets(int custIndex, int groupIndex) 
 {
@@ -449,7 +445,7 @@ void doChooseSeats(int custIndex, int groupIndex)
       for(j=0; j<toBeSeated; j++) {
         /* Seating remaining customers in group */
         choseSeat((custIndex+freeInFirstRow+j), i, freeSeatsInRow[i]);
-        freeSeatsInRow[i];
+        freeSeatsInRow[i]--;
       }
       return;
     }
@@ -1269,11 +1265,6 @@ void init_values(){
   ticketTakerWorking = MAX_TT;
   ticketClerkWorking = MAX_TC;
   concessionClerkWorking = MAX_CC;
-	
-  for(i=0; i<NUM_ROWS; i++)
-  {
-    freeSeatsInRow[i] = NUM_COLS;
-  }
 	
   for(i=0; i<NUM_ROWS; i++)
   {

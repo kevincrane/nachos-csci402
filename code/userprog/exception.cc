@@ -265,21 +265,21 @@ int Open_Syscall(unsigned int vaddr, int len) {
 }
 
 int Random_Syscall(int m){
-	int retVal;
-	retVal = (int)(rand() % m);
-	return retVal;
+  int retVal;
+  retVal = (int)(rand() % m);
+  return retVal;
 }
 
 int Identify_Syscall(){
-	PacketHeader inPacketHeader;
+  PacketHeader inPacketHeader;
   PacketHeader outPacketHeader;
-  MailHeader   inMailHeader;
-  MailHeader   outMailHeader;
+  MailHeader inMailHeader;
+  MailHeader outMailHeader;
 
-	int id;
+int id;
   char* msg = new char[MAX_SIZE];
   char* response = new char[MAX_SIZE];
-	DEBUG('r', "Entered Identify\n");
+DEBUG('r', "Entered Identify\n");
   sprintf(msg, "s%d", IDENTIFY);
 
   outPacketHeader.to = 0;
@@ -287,25 +287,25 @@ int Identify_Syscall(){
   outMailHeader.from = currentThread->getProcessID();
   outPacketHeader.from = currentThread->getProcessID();
   outMailHeader.length = strlen(msg) + 1;
-	DEBUG('r', "Sending msg: %s\n", msg);
-	bool success = postOffice->Send(outPacketHeader, outMailHeader, msg);
+  DEBUG('r', "Sending msg: %s\n", msg);
+  bool success = postOffice->Send(outPacketHeader, outMailHeader, msg);
 
-	if(!success) {
-    printf("The postOffice send failed. You must not have the other Nachos running. Terminating Nachos.\n");
-    interrupt->Halt();
-  }
+  if(!success) {
+      printf("The postOffice send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+      interrupt->Halt();
+    }
 
-	postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
-	DEBUG('r', "Received response: %s\n", response);
-	if(response[0] == 'i') {
+  postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
+  DEBUG('r', "Received response: %s\n", response);
+  if(response[0] == 'i') {
     int i = 1;
     int j = strlen(response);
     int total = 0;
     
     while(response[j] != 'i') {
       if(response[j] != '\0') {
-				total += (response[j]-48)*i;
-				i = i*10;
+        total += (response[j]-48)*i;
+        i = i*10;
       }
       j--;
     }
@@ -313,8 +313,8 @@ int Identify_Syscall(){
   }
   fflush(stdout);
 
-	DEBUG('r', "ID: %i\n", id);
-	return id;
+  DEBUG('r', "ID: %i\n", id);
+  return id;
 }
 
 
@@ -477,26 +477,26 @@ void Acquire_Syscall(int lockIndex) {
 	DEBUG('r', "%i: Acquire: Response, %s\n", currentThread->getProcessID(),response);
   if(response[0] == 'e') {
     if((response[1]-48) == BADINDEX1 && (response[2]-48) == BADINDEX2) {
-      printf("ERROR: Bad Index.\n");
+      DEBUG('r', "ERROR: Bad Index.\n");
     }
     else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
-      printf("ERROR: Already Deleted.\n");
+      DEBUG('r', "ERROR: Already Deleted.\n");
     }
     else if((response[1]-48)==TOBEDELETED1 && (response[2]-48)==TOBEDELETED2) {
-      printf("NOTE: The lock will be deleted soon.\n");
+      DEBUG('r', "NOTE: The lock will be deleted soon.\n");
     }
   }
   else if((response[0]-48)==OWNER1 && (response[1]-48)==OWNER2) {
-    printf("ERROR: Already the lock owner.\n");
+    DEBUG('r', "ERROR: Already the lock owner.\n");
   }
   else if((response[0]-48)==SUCCESS1 && (response[1]-48)==SUCCESS2) {
-    printf("SUCCESS: Acquired the lock.\n");
+    DEBUG('r', "SUCCESS: Acquired the lock.\n");
   }
   else if((response[0]-48)==WAITING1 && (response[1]-48)==WAITING2) {
-    printf("SUCCESS: Waiting to acquire the lock.\n");
+    DEBUG('r', "SUCCESS: Waiting to acquire the lock.\n");
   }
   else {
-    printf("ERROR: unknown response %s.\n", response);
+    DEBUG('r', "ERROR: unknown response %s.\n", response);
   }
   fflush(stdout);
   return;
@@ -531,17 +531,17 @@ void Release_Syscall(int lockIndex) {
   
   if(response[0] == 'e') {
     if((response[1]-48)==BADINDEX1 && (response[2]-48)==BADINDEX2) {
-      printf("ERROR: Bad Index.\n");
+      DEBUG('r', "ERROR: Bad Index.\n");
     }
     else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
-      printf("ERROR: Already Deleted.\n");
+      DEBUG('r', "ERROR: Already Deleted.\n");
     }
     else if((response[1]-48)==WRONGPROCESS1 && (response[2]-48)==WRONGPROCESS2) {
-      printf("ERROR: Not the lock owner!\n");
+      DEBUG('r', "ERROR: Not the lock owner!\n");
     }
   }
   else if((response[0]-48)==SUCCESS1 && (response[1]-48) == SUCCESS2) {
-    printf("SUCCESS: Released the lock.\n");
+    DEBUG('r', "SUCCESS: Released the lock.\n");
   }
   return;  
 }
@@ -744,16 +744,16 @@ void Wait_Syscall(int cvIndex, int lockIndex) {
 	DEBUG('r', "Just got a response: %s\n", response);
 	if(response[0] == 'e') {
     if((response[1]-48) == BADINDEX1 && (response[2]-48) == BADINDEX2) {
-      printf("ERROR: Bad Index.\n");
+      DEBUG('r', "ERROR: Bad Index.\n");
     }
     else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
-      printf("ERROR: Already Deleted.\n");
+      DEBUG('r', "ERROR: Already Deleted.\n");
     }
     else if((response[1]-48)==TOBEDELETED1 && (response[2]-48)==TOBEDELETED2) {
-      printf("NOTE: The lock/cv will be deleted soon.\n");
+      DEBUG('r', "NOTE: The lock/cv will be deleted soon.\n");
     }
 		else if((response[1]-48)=='1' && (response[2]-48)=='8') {
-      printf("NOTE: This is wrong lock.\n");
+      DEBUG('r', "NOTE: This is wrong lock.\n");
     }
   }
   fflush(stdout);
@@ -1059,7 +1059,7 @@ int CreateLock_Syscall(unsigned int strPtr, int length) {
   copyin(strPtr, MAX_SIZE, msg);
   
   if(length >= MAX_SIZE - 4) {
-    printf("ERROR: This lock name is too long.\n");
+    DEBUG('r', "ERROR: This lock name is too long.\n");
     return -1;
   }
 
@@ -1067,7 +1067,7 @@ int CreateLock_Syscall(unsigned int strPtr, int length) {
 
   // VALIDATE NAME?
 
-  printf("Process ID %i.\n", currentThread->getProcessID());
+  DEBUG('r', "Process ID %i.\n", currentThread->getProcessID());
 
   outPacketHeader.to = 0;
   outMailHeader.to = 0;
@@ -1103,7 +1103,7 @@ int CreateLock_Syscall(unsigned int strPtr, int length) {
   }
   fflush(stdout);
 
-  printf("Lock Index: %i.\n", lockIndex);
+  DEBUG('r', "Lock Index: %i.\n", lockIndex);
   return lockIndex;
 }
   
@@ -1136,17 +1136,17 @@ void DestroyLock_Syscall(int lockIndex) {
 
   if(response[0] == 'e') {
     if((response[1]-48) == BADINDEX1 && (response[2]-48) == BADINDEX2) {
-      printf("ERROR: Bad Index.\n");
+      DEBUG('r', "ERROR: Bad Index.\n");
     }
     else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
-      printf("ERROR: Already Deleted.\n");
+      DEBUG('r', "ERROR: Already Deleted.\n");
     }
     else if((response[1]-48)==TOBEDELETED1 && (response[2]-48)==TOBEDELETED2) {
-      printf("NOTE: The lock will be deleted soon.\n");
+      DEBUG('r', "NOTE: The lock will be deleted soon.\n");
     }
   }
   else if(response[0] == 's') {
-    printf("SUCCESS: The lock was deleted.\n");
+    DEBUG('r', "SUCCESS: The lock was deleted.\n");
   }
   fflush(stdout);
 
@@ -1337,22 +1337,21 @@ int CreateMV_Syscall(unsigned int strPtr, int length, int arraySize) {
   postOffice->Receive(currentThread->getProcessID(), &inPacketHeader, &inMailHeader, response);
 
   if(response[0] == 'e') {
-    printf("ERROR: Exceeded max number of mvs.\n");
-  }
-  else if(response[0] == 's') {
+    DEBUG('r', "ERROR: Exceeded max number of mvs.\n");
+  } else if(response[0] == 's') {
     int i = 1;
     int j = strlen(response);
     int total = 0;
 
     while(response[j] != 's') {
       if(response[j] != '\0') {
-	total += (response[j]-48)*i;
-	i = i*10;
+        total += (response[j]-48)*i;
+	      i = i*10;
       }
       j--;
     }
     index = total;
-    printf("SUCCESS: Created the MV.\n");
+    DEBUG('r', "SUCCESS: Created the MV.\n");
   }
 
   fflush(stdout);
@@ -1388,17 +1387,17 @@ void DestroyMV_Syscall(int index) {
 
   if(response[0] == 'e') {
     if((response[1]-48)==BADINDEX1 && (response[2]-48)==BADINDEX2) {
-      printf("ERROR: Bad Index.\n");
+      DEBUG('r', "ERROR: Bad Index.\n");
     }
     else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
-      printf("ERROR: Already Deleted.\n");
+      DEBUG('r', "ERROR: Already Deleted.\n");
     }
     else if((response[1]-48)==TOBEDELETED1 && (response[2]-48)==TOBEDELETED2) {
-      printf("NOTE: The lock will be deleted soon.\n");
+      DEBUG('r', "NOTE: The lock will be deleted soon.\n");
     }
   }
   else if(response[0] == 's') {
-    printf("SUCCESS: The lock was deleted.\n");
+    DEBUG('r', "SUCCESS: The lock was deleted.\n");
   }
   fflush(stdout);
   return;
@@ -1433,14 +1432,14 @@ void SetMV_Syscall(int index, int value, int arrayIndex) {
 	DEBUG('r', "SetMV response: %s\n", response);
   if(response[0] == 'e') {
     if((response[1]-48)==BADINDEX1 && (response[2]-48)==BADINDEX2) {
-      printf("ERROR: Bad Index.\n");
+      DEBUG('r', "ERROR: Bad Index.\n");
     }
     else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
-      printf("ERROR: Already Deleted.\n");
+      DEBUG('r', "ERROR: Already Deleted.\n");
     }
   }
   else if(response[0] == 's') {
-    printf("SUCCESS: The MV value is %i.\n", value);
+    DEBUG('r', "SUCCESS: The MV value is %i.\n", value);
   }
   fflush(stdout);
   return;
@@ -1477,10 +1476,10 @@ int GetMV_Syscall(int index, int arrayIndex) {
 
   if(response[0] == 'e') {
     if((response[1]-48)==BADINDEX1 && (response[2]-48)==BADINDEX2) {
-      printf("ERROR: Bad Index.\n");
+      DEBUG('r', "ERROR: Bad Index.\n");
     }
     else if((response[1]-48)==DELETED1 && (response[2]-48)==DELETED2) {
-      printf("ERROR: Already Deleted.\n");
+      DEBUG('r', "ERROR: Already Deleted.\n");
     }
   }
   else if(response[0] == 's') {
@@ -1496,7 +1495,7 @@ int GetMV_Syscall(int index, int arrayIndex) {
       j--;
     }
     value = total;
-    printf("SUCCESS: Getting MV value %i.\n", value);
+    DEBUG('r', "SUCCESS: Getting MV value %i.\n", value);
   }
   fflush(stdout);
   return value;
@@ -1816,29 +1815,29 @@ void ExceptionHandler(ExceptionType which) {
         DestroyCondition_Syscall(machine->ReadRegister(4));
       break;
 			case SC_CreateMV:
-	DEBUG('a', "CreateMV syscall.\n");
-	rv = CreateMV_Syscall(machine->ReadRegister(4),
-			 machine->ReadRegister(5),
-			 machine->ReadRegister(6));
+        DEBUG('a', "CreateMV syscall.\n");
+        rv = CreateMV_Syscall(machine->ReadRegister(4),
+              machine->ReadRegister(5),
+              machine->ReadRegister(6));
       break;
       case SC_SetMV:
-	DEBUG('a', "Set syscall.\n");
-	SetMV_Syscall(machine->ReadRegister(4),
-		      machine->ReadRegister(5),
-		      machine->ReadRegister(6));
+        DEBUG('a', "Set syscall.\n");
+        SetMV_Syscall(machine->ReadRegister(4),
+	              machine->ReadRegister(5),
+	              machine->ReadRegister(6));
       break;
       case SC_GetMV:
-	DEBUG('a', "Get syscall.\n");
-	rv = GetMV_Syscall(machine->ReadRegister(4),
-		      machine->ReadRegister(5));
+        DEBUG('a', "Get syscall.\n");
+        rv = GetMV_Syscall(machine->ReadRegister(4),
+                machine->ReadRegister(5));
       break;
       case SC_DestroyMV:
-	DEBUG('a', "DestroyMV syscall.\n");
-	DestroyMV_Syscall(machine->ReadRegister(4));
+        DEBUG('a', "DestroyMV syscall.\n");
+        DestroyMV_Syscall(machine->ReadRegister(4));
       break;	
 			case SC_Identify:
-	DEBUG('a', "Identify syscall.\n");
-	rv = Identify_Syscall();
+        DEBUG('a', "Identify syscall.\n");
+        rv = Identify_Syscall();
       break;	
       }
 

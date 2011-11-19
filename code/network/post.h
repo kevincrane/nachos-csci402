@@ -127,6 +127,8 @@ class PostOffice {
    				// packet has arrived and can be pulled
 				// off of network (i.e., time to call 
 				// PostalDelivery)
+				
+	  int getPostAddress() { return netAddr; }
 
   private:
     Network *network;		// Physical network connection
@@ -136,6 +138,7 @@ class PostOffice {
     Semaphore *messageAvailable;// V'ed when message has arrived from network
     Semaphore *messageSent;	// V'ed when next message can be sent to network
     Lock *sendLock;		// Only one outgoing message at a time
+
 };
 
 #endif

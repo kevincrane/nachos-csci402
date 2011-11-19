@@ -18,9 +18,9 @@
 #include "table.h"
 #include "../vm/iptEntry.h"
 
-#define UserStackSize   1024   // increase this as necessary!
-#define MaxNumProgs     10     // max number of programs/stacks
-#define MaxNumThreads     60   // max number of threads/addrspace
+#define UserStackSize   1024  // increase this as necessary!
+#define MaxNumProgs     10    // max number of programs/stacks
+#define MaxNumThreads   60    // max number of threads/addrspace
 
 #define MaxOpenFiles 256
 #define MaxChildSpaces 256

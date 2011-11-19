@@ -914,7 +914,8 @@ void CreateMV(char* msg) {
 
   // Check the the MV already exists
   for(int i = 0; i < nextMVPos; i++) {
-    if(*mvs[i].name == *name) {
+    DEBUG('s', "CreateM SHIT-HAM(%d): stored=%s; new=%s\n", i, mvs[i].name, name);
+    if(strcmp(mvs[i].name,name) == 0) {
       DEBUG('s', "CreateMV name found %s at index %i\n", name, i);
       sprintf(response, "s%d", i);
       outMailHeader.length = strlen(response) + 1;
@@ -967,7 +968,7 @@ void Set(int index, int value, int arrayIndex) {
   }
 
   // Check that the index into the array is valid
-  if(arrayIndex < 0 || arrayIndex >= mvs[index].size-1) {
+  if(arrayIndex < 0 || arrayIndex >= mvs[index].size) {
     DEBUG('s', "Set: Bad arrayIndex\n");
     sprintf(response, "e%d", BADINDEX);
     outMailHeader.length = strlen(response) + 1;
@@ -1006,7 +1007,7 @@ void Get(int index, int arrayIndex) {
   }
 
   // Check that the array index is valid
-  if(arrayIndex < 0 || arrayIndex >= mvs[index].size-1) {
+  if(arrayIndex < 0 || arrayIndex >= mvs[index].size) {
     sprintf(response, "e%d", BADINDEX);
     outMailHeader.length = strlen(response) + 1;
     postOffice->Send(outPacketHeader, outMailHeader, response);

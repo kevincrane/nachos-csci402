@@ -245,7 +245,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 
     if (entry->readOnly && writing) {	// trying to write to a read-only page
 	DEBUG('a', "%d mapped read-only at %d in TLB!\n", virtAddr, i);
-	return ReadOnlyException;
+//	return ReadOnlyException;
     }
     pageFrame = entry->physicalPage;
 

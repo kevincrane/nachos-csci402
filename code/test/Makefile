@@ -31,7 +31,9 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
-all: halt matmult sort theater_sim two_theaters two_matmults networktests execnetworktests
+all: halt matmult sort theater_sim two_theaters two_matmults networktests \
+  execnetworktests the_customer the_ticketclerk the_tickettaker the_movietech \
+  dist_theater1 dist_theater2 the_concessionclerk the_manager
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -103,6 +105,76 @@ two_matmults.o: two_matmults.c
 two_matmults: two_matmults.o start.o
 	$(LD) $(LDFLAGS) start.o two_matmults.o -o two_matmults.coff
 	../bin/coff2noff two_matmults.coff two_matmults
+	
+
+
+dist_theater1.o: dist_theater1.c
+	$(CC) $(CFLAGS) -c dist_theater1.c
+dist_theater1: dist_theater1.o start.o
+	$(LD) $(LDFLAGS) start.o dist_theater1.o -o dist_theater1.coff
+	../bin/coff2noff dist_theater1.coff dist_theater1
+	
+dist_theater2.o: dist_theater2.c
+	$(CC) $(CFLAGS) -c dist_theater2.c
+dist_theater2: dist_theater2.o start.o
+	$(LD) $(LDFLAGS) start.o dist_theater2.o -o dist_theater2.coff
+	../bin/coff2noff dist_theater2.coff dist_theater2
+	
+dist_theater3.o: dist_theater3.c
+	$(CC) $(CFLAGS) -c dist_theater3.c
+dist_theater3: dist_theater3.o start.o
+	$(LD) $(LDFLAGS) start.o dist_theater3.o -o dist_theater3.coff
+	../bin/coff2noff dist_theater3.coff dist_theater3
+	
+dist_theater4.o: dist_theater4.c
+	$(CC) $(CFLAGS) -c dist_theater4.c
+dist_theater4: dist_theater4.o start.o
+	$(LD) $(LDFLAGS) start.o dist_theater4.o -o dist_theater4.coff
+	../bin/coff2noff dist_theater4.coff dist_theater4
+	
+dist_theater5.o: dist_theater5.c
+	$(CC) $(CFLAGS) -c dist_theater5.c
+dist_theater5: dist_theater5.o start.o
+	$(LD) $(LDFLAGS) start.o dist_theater5.o -o dist_theater5.coff
+	../bin/coff2noff dist_theater5.coff dist_theater5
+	
+	
+the_concessionclerk.o: the_concessionclerk.c
+	$(CC) $(CFLAGS) -c the_concessionclerk.c
+the_concessionclerk: the_concessionclerk.o start.o
+	$(LD) $(LDFLAGS) start.o the_concessionclerk.o -o the_concessionclerk.coff
+	../bin/coff2noff the_concessionclerk.coff the_concessionclerk
+	
+the_customer.o: the_customer.c creates.h
+	$(CC) $(CFLAGS) -c the_customer.c
+the_customer: the_customer.o start.o
+	$(LD) $(LDFLAGS) start.o the_customer.o -o the_customer.coff
+	../bin/coff2noff the_customer.coff the_customer
+	
+the_manager.o: the_manager.c creates.h
+	$(CC) $(CFLAGS) -c the_manager.c
+the_manager: the_manager.o start.o
+	$(LD) $(LDFLAGS) start.o the_manager.o -o the_manager.coff
+	../bin/coff2noff the_manager.coff the_manager
+	
+the_movietech.o: the_movietech.c creates.h
+	$(CC) $(CFLAGS) -c the_movietech.c
+the_movietech: the_movietech.o start.o
+	$(LD) $(LDFLAGS) start.o the_movietech.o -o the_movietech.coff
+	../bin/coff2noff the_movietech.coff the_movietech
+	
+the_ticketclerk.o: the_ticketclerk.c creates.h
+	$(CC) $(CFLAGS) -c the_ticketclerk.c
+the_ticketclerk: the_ticketclerk.o start.o
+	$(LD) $(LDFLAGS) start.o the_ticketclerk.o -o the_ticketclerk.coff
+	../bin/coff2noff the_ticketclerk.coff the_ticketclerk
+	
+the_tickettaker.o: the_tickettaker.c creates.h
+	$(CC) $(CFLAGS) -c the_tickettaker.c
+the_tickettaker: the_tickettaker.o start.o
+	$(LD) $(LDFLAGS) start.o the_tickettaker.o -o the_tickettaker.coff
+	../bin/coff2noff the_tickettaker.coff the_tickettaker
+
 
 clean:
 	rm -f *.o *.coff
