@@ -16,7 +16,6 @@ int main() {
   SetMV(nextCC, myIndex+1, 0);
   
   while(1) {
-
     if(GetMV(concessionClerkState, myIndex) == 2) {
       Print("ConcessionClerk %i is going on break.\n", myIndex, -1, -1);
       
@@ -38,12 +37,9 @@ int main() {
     
     /* Is there a customer in my line? */
     Acquire(concessionClerkLineLock);
-
     if(GetMV(concessionClerkLineCount, myIndex) > 0) {   /* There's a customer in my line */
-      SetMV(concessionClerkState, 1, myIndex);          /* I must be busy */  
-      
+      SetMV(concessionClerkState, 1, myIndex);          /* I must be busy */        
       Print("ConcessionClerk %i has a line length %i and is signaling a customer.\n", myIndex, GetMV(concessionClerkLineCount, myIndex), -1);
-
       SetMV(concessionClerkLineCount, GetMV(concessionClerkLineCount,myIndex)-1, myIndex);
       Signal(concessionClerkLineCV[myIndex], concessionClerkLineLock); /* Wake up 1 customer */
     } else {
@@ -52,8 +48,8 @@ int main() {
       SetMV(concessionClerkState, 0, myIndex);
     }
     
-    Acquire(concessionClerkLock[myIndex]);
     Release(concessionClerkLineLock);
+    Acquire(concessionClerkLock[myIndex]);
     
     /* If put on break instead, bail and wait */
     if((!concessionClerkIsWorking[myIndex]) && (GetMV(concessionClerkState, myIndex) == 2)) {
@@ -63,7 +59,6 @@ int main() {
     
     /* Wait for Customer to come to my counter and tell me their popcorn order */
     Wait(concessionClerkCV[myIndex], concessionClerkLock[myIndex]);
-
     Signal(concessionClerkCV[myIndex], concessionClerkLock[myIndex]);
     
     /* Wait for customer to tell me their soda order */

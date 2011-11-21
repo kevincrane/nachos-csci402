@@ -12,6 +12,7 @@ int main() {
   initTheater();
 
   while(theaterDone == 0) {	
+    
     if(theaterFull || (GetMV(totalCustomers,0)-(GetMV(totalCustomersServed,0)+GetMV(numSeatsOccupied,0))) <= (MAX_SEATS-GetMV(numSeatsOccupied,0)) || 1) {
       Acquire(movieStatusLock);
       movieStatus = 1;
@@ -52,11 +53,13 @@ int main() {
         
       Print("The MovieTechnician has told all customers to leave the theater room.\n", -1, -1, -1);
     }
-
-    if(movieStatus == 0) {
+    
+    if(movieStatus == -1) {
       Yield();
     } else {
-      while((GetMV(numSeatsOccupied,0) < MAX_SEATS) && (GetMV(numSeatsOccupied,0) < GetMV(totalCustomers,0))) {
+      while(((GetMV(numSeatsOccupied,0) < MAX_SEATS) && (GetMV(numSeatsOccupied,0) < GetMV(totalCustomers,0))) 
+          || ((GetMV(numSeatsOccupied,0) == 0) && (GetMV(totalCustomersServed,0) == 0))) {
+/*        Print("THERE ARE %d CUSTOMERS AND %d OF THE BITCHES ARE IN THEIR SEATS\n", GetMV(totalCustomers,0), GetMV(numSeatsOccupied,0), -1);*/
         Yield();
       }
 /*      Acquire(movieStatusLock);
@@ -65,6 +68,7 @@ int main() {
     }
     
     if((GetMV(totalCustomers, 0) == 0) && (GetMV(totalCustomersServed, 0) > 0)) {
+      Print("\n Everyone has left, Manager is closing the theater. Good work boys!\n\n", -1, -1 ,-1);
       break;
     }
   }

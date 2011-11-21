@@ -8,25 +8,17 @@
 int main() {
  /* initTheater();*/   /* Define all global values for theater */
   
-  /* TODO: Manually tweak values like group head, customer numbers, nextGroup, etc to force this bitch to work */
+  Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
+  Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
+  Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
+  Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
+  Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
   
-  /* After manually tweaking values, just blitz through 10 customers or 4 groups or something */
-  /* Up to 10 entities in this bitch */
+  Exec("../test/the_tickettaker", sizeof("../test/the_tickettaker"));
+  Exec("../test/the_tickettaker", sizeof("../test/the_tickettaker"));
+  Exec("../test/the_tickettaker", sizeof("../test/the_tickettaker"));
   
-  
-  Exec("../test/the_customer", sizeof("../test/the_customer"));
-  Exec("../test/the_customer", sizeof("../test/the_customer"));
-  Exec("../test/the_customer", sizeof("../test/the_customer"));
-  Exec("../test/the_customer", sizeof("../test/the_customer"));
-  Exec("../test/the_customer", sizeof("../test/the_customer"));
-  Exec("../test/the_customer", sizeof("../test/the_customer"));
-  Exec("../test/the_customer", sizeof("../test/the_customer"));
-  Exec("../test/the_customer", sizeof("../test/the_customer"));
-  
-  
-/*  Exec("../test/the_manager", sizeof("../test/the_manager"));*/
-/*  Exec("../test/the_customer", sizeof("../test/the_customer"));*/
-/*  Exec("../test/the_customer", sizeof("../test/the_customer"));*/
+  Exec("../test/the_movietech", sizeof("../test/the_movietech"));
   
   Exit(0);
 }

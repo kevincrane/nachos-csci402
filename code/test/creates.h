@@ -57,8 +57,8 @@ int   ticketClerkState;           /* Current state of a ticketClerk             
 int   ticketClerkLock[MAX_TC];            /* array of Locks, each corresponding to one of the TicketClerks */
 int   ticketClerkCV[MAX_TC];              /* condition variable assigned to particular TicketClerk         */
 int   ticketClerkLineCount;       /* How many people in each ticketClerk's line?                   */
-int   numberOfTicketsNeeded[MAX_TC];      /* How many tickets does the current customer need?              */
-int   amountOwedTickets[MAX_TC];          /* How much money the customer owes for tickets                  */
+int   numberOfTicketsNeeded;      /* How many tickets does the current customer need?              */
+int   amountOwedTickets;          /* How much money the customer owes for tickets                  */
 int   ticketClerkRegister[MAX_TC];        /* amount of money the ticketClerk has collected                 */
 int   ticketClerkWorking;                 /* Number of Ticket Clerks working                               */
 
@@ -222,6 +222,8 @@ void init_locks_and_stuff() {
   /* Initialize ticketClerk values */
   ticketClerkState = CreateMV("tcState", 7, MAX_TC);
   ticketClerkLineCount = CreateMV("tcLineCount", 11, MAX_TC);
+  numberOfTicketsNeeded = CreateMV("numTickets", 10, MAX_TC);
+  amountOwedTickets = CreateMV("amtOwedTix", 10, MAX_TC);
   nextTC = CreateMV("nextTC", 6, 1);
   SetMV(nextTC, 0, 0);
   ticketClerkLineLock = CreateLock("tcll", 4);
@@ -234,6 +236,28 @@ void init_locks_and_stuff() {
     ticketClerkBreakCV[i] = CreateCV(concat_str("tcbcv", i), 6);
     ticketClerkIsWorking[i] = 1;
 /*    SetMV(ticketClerkState, 0, i);*/
+  }
+  
+  /* Initialize concessionClerk values */
+  concessionClerkState = CreateMV("ccState", 7, MAX_CC);
+  concessionClerkLineCount = CreateMV("ccLineCount", 11, MAX_CC);
+  nextCC = CreateMV("nextCC", 6, 1);
+  SetMV(nextCC, 0, 0);
+  concessionClerkLineLock = CreateLock("ccll", 4);
+  for(i=0; i<MAX_CC; i++) {
+    concessionClerkLineCV[i] = CreateCV(concat_str("cclcv", i), 6); /* instantiate line condition variables */
+    concessionClerkLock[i] = CreateLock(concat_str("ccl", i), 4); /***************************CHANGE THIS**************************/
+    concessionClerkCV[i] = CreateCV(concat_str("cccv", i), 5);
+    concessionClerkBreakLock[i] = CreateLock(concat_str("ccbl", i), 5); /**************************CHANGE THIS********************/
+    concessionClerkBreakCV[i] = CreateCV(concat_str("ccbcv", i), 6);
+    
+/*    concessionClerkLineCount[i] = 0; */
+/*    SetMV(concessionClerkState, 0, i);*/
+    concessionClerkRegister[i] = 0;
+    amountOwed[i] = 0;
+    numPopcornsOrdered[i] = 0;
+    numSodasOrdered[i] = 0;
+    concessionClerkIsWorking[i] = 1;
   }
 	
   /* Initialize ticketTaker values */
@@ -256,29 +280,6 @@ void init_locks_and_stuff() {
     ticketTakerCV[i] = CreateCV(concat_str("ttcv", i), 5);
     ticketTakerIsWorking[i] = 1;
 /*    SetMV(ticketTakerState, 0, i);*/
-  }
-	
-  /* Initialize concessionClerk values */
-  concessionClerkState = CreateMV("ccState", 7, MAX_CC);
-  concessionClerkLineCount = CreateMV("ccLineCount", 11, MAX_CC);
-  nextCC = CreateMV("nextCC", 6, 1);
-  SetMV(nextCC, 0, 0);
-  concessionClerkLineLock = CreateLock("ccll", 4);
-  concessionClerkWorking = MAX_CC;
-  for(i=0; i<MAX_CC; i++) {
-    concessionClerkLineCV[i] = CreateCV(concat_str("cclcv", i), 6); /* instantiate line condition variables */
-    concessionClerkLock[i] = CreateLock(concat_str("ccl", i), 4); /***************************CHANGE THIS**************************/
-    concessionClerkCV[i] = CreateCV(concat_str("cccv", i), 5);
-    concessionClerkBreakLock[i] = CreateLock(concat_str("ccbl", i), 5); /**************************CHANGE THIS********************/
-    concessionClerkBreakCV[i] = CreateCV(concat_str("ccbcv", i), 6);
-    
-/*    concessionClerkLineCount[i] = 0; */
-/*    SetMV(concessionClerkState, 0, i);*/
-    concessionClerkRegister[i] = 0;
-    amountOwed[i] = 0;
-    numPopcornsOrdered[i] = 0;
-    numSodasOrdered[i] = 0;
-    concessionClerkIsWorking[i] = 1;
   }
 	
   /* Initialize movieTechnician values */
@@ -321,25 +322,18 @@ void initTheater() {
   
   init_locks_and_stuff();
 
+  Acquire(customerLobbyLock);
   while(custsLeftToAssign > 0) {
     /* int addNum = Rand()%5+1;  Random number of customers from 1-5  ******************** */
     if(addNum > custsLeftToAssign) {
       addNum = custsLeftToAssign;
     }
     
-    Acquire(customerLobbyLock);
     SetMV(groups, addNum, GetMV(aNumGroups,0));
     SetMV(aNumGroups, GetMV(aNumGroups,0)+1, 0);
     custsLeftToAssign -= addNum;
 /*    Release(customerLobbyLock);*/
   }
-  
-  /* Display for user how many of each theater player there are */
-/*  Print("Number of Customers =        %i.\n", MAX_CUST, -1, -1);
-  Print("Number of Groups =           %i.\n", GetMV(aNumGroups, 0), -1, -1);
-  Print("Number of TicketClerks =     %i.\n", MAX_TC, -1, -1);
-  Print("Number of ConcessionClerks = %i.\n", MAX_CC, -1, -1);
-  Print("Number of TicketTakers =     %i.\n", MAX_TT, -1, -1); */
   
 /*  Acquire(customerLobbyLock);*/
   customerInit(GetMV(aNumGroups, 0));

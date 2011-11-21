@@ -40,18 +40,14 @@ int main() {
 
     /* Is there a customer in my line? */
     Acquire(ticketClerkLineLock);
-    if(GetMV(ticketClerkLineCount, myIndex) > 0) {	/* There's a customer in my line *
-    
-      ticketClerkState[myIndex] = 1;        /* I must be busy, decrement line count */
+    if(GetMV(ticketClerkLineCount, myIndex) > 0) {	/* There's a customer in my line */
+      SetMV(ticketClerkState, 1, myIndex);        /* I must be busy, decrement line count */
       SetMV(ticketClerkLineCount, GetMV(ticketClerkLineCount,myIndex)-1, myIndex);
-
       Print("TicketClerk %i has a line length %i and is signaling a customer.\n", myIndex, GetMV(ticketClerkLineCount, myIndex)+1, -1);
-
       Signal(ticketClerkLineCV[myIndex], ticketClerkLineLock); /* Wake up 1 customer */
-          } else {
+    } else {
       /* No one in my line */
       Print("TicketClerk %i has no one in line. I am available for a customer.\n", myIndex, -1, -1);
-
       SetMV(ticketClerkState, 0, myIndex);
     }
       
@@ -66,16 +62,16 @@ int main() {
     /* Wait for Customer to come to my counter and ask for tickets; tell him what he owes. */
     Wait(ticketClerkCV[myIndex], ticketClerkLock[myIndex]);
   
-    amountOwedTickets[myIndex] = numberOfTicketsNeeded[myIndex] * TICKET_PRICE;   /* Tell customer how much money he owes */
+    SetMV(amountOwedTickets, GetMV(numberOfTicketsNeeded,myIndex) * TICKET_PRICE, myIndex);   /* Tell customer how much money he owes */
 
-    Print("TicketClerk %i has an order for %i and the cost is %i.\n", myIndex, numberOfTicketsNeeded[myIndex], amountOwedTickets[myIndex]);
+    Print("TicketClerk %i has an order for %i and the cost is %i.\n", myIndex, GetMV(numberOfTicketsNeeded, myIndex), GetMV(amountOwedTickets, myIndex));
     
     Signal(ticketClerkCV[myIndex], ticketClerkLock[myIndex]);
   
     /* Customer has given you money, give him the correct number of tickets, send that fool on his way */
     Wait(ticketClerkCV[myIndex], ticketClerkLock[myIndex]);
-    ticketClerkRegister[myIndex] += amountOwedTickets[myIndex];     /* Add money to cash register */
-    numberOfTicketsHeld = numberOfTicketsNeeded[myIndex];           /* Give customer his tickets */
+    ticketClerkRegister[myIndex] += GetMV(amountOwedTickets, myIndex);     /* Add money to cash register */
+    numberOfTicketsHeld = GetMV(numberOfTicketsNeeded, myIndex);           /* Give customer his tickets */
 
     Signal(ticketClerkCV[myIndex], ticketClerkLock[myIndex]);
   

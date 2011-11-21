@@ -914,7 +914,6 @@ void CreateMV(char* msg) {
 
   // Check the the MV already exists
   for(int i = 0; i < nextMVPos; i++) {
-    DEBUG('s', "CreateM SHIT-HAM(%d): stored=%s; new=%s\n", i, mvs[i].name, name);
     if(strcmp(mvs[i].name,name) == 0) {
       DEBUG('s', "CreateMV name found %s at index %i\n", name, i);
       sprintf(response, "s%d", i);

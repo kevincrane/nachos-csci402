@@ -74,7 +74,7 @@ void doBuyTickets(int custIndex, int groupIndex) {
   /* TicketClerk has acknowledged you. Time to wake up and talk to him.*/
   Acquire(ticketClerkLock[myTicketClerk]);
 
-  numberOfTicketsNeeded[myTicketClerk] = GetMV(groupSize, groupIndex);
+  SetMV(numberOfTicketsNeeded, GetMV(groupSize, groupIndex), myTicketClerk);
 
   Signal(ticketClerkCV[myTicketClerk], ticketClerkLock[myTicketClerk]);
   /* Done asking for 'myGroupSize' tickets from TicketClerk. Now sleep.*/
@@ -82,14 +82,14 @@ void doBuyTickets(int custIndex, int groupIndex) {
   /* TicketClerk has returned a price for you */
   Wait(ticketClerkCV[myTicketClerk], ticketClerkLock[myTicketClerk]);
 
-  customers[custIndex].money -= amountOwedTickets[myTicketClerk];               /* Pay the ticketClerk for the tickets */
+  customers[custIndex].money -= GetMV(amountOwedTickets, myTicketClerk);               /* Pay the ticketClerk for the tickets */
   Print("Customer %i in Group %i in TicketClerk line %i ", custIndex, groupIndex, myTicketClerk);
-  Print("is paying %i for tickets.\n", amountOwedTickets[myTicketClerk], -1, -1);
+  Print("is paying %i for tickets.\n", GetMV(amountOwedTickets, myTicketClerk), -1, -1);
   Signal(ticketClerkCV[myTicketClerk], ticketClerkLock[myTicketClerk]);
   
   /* TicketClerk has given you n tickets. Goodies for you! */
   Wait(ticketClerkCV[myTicketClerk], ticketClerkLock[myTicketClerk]);
-  customers[custIndex].numTickets += numberOfTicketsNeeded[myTicketClerk];      /* Receive tickets! */
+  customers[custIndex].numTickets += GetMV(numberOfTicketsNeeded, myTicketClerk);      /* Receive tickets! */
   
   Print("Customer %i in Group %i is leaving TicketClerk %i.\n", custIndex, groupIndex, myTicketClerk);
 
@@ -498,8 +498,10 @@ int main() {
   
   for(i=custIndex; i<custIndex+GetMV(groupSize, groupIndex); i++)
   {
-    Print("Customer %i in Group %i has left the movie theater.\n", i, groupIndex, -1);
     SetMV(totalCustomers, GetMV(totalCustomers,0)-1, 0);
+    Print("Customer %i in Group %i has left the movie theater (%d left).\n", i, groupIndex, GetMV(totalCustomers,0));
+    if(GetMV(totalCustomers, 0) == 0)
+      Print("\nMovie Theater simulation completed successfully!!\n\n", -1, -1, -1);
   }
   Release(customerLobbyLock);
   

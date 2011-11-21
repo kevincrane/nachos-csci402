@@ -6,19 +6,20 @@
 #include "creates.h"
 
 int main() {
- /* initTheater();*/   /* Define all global values for theater */
   
-  Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
-  Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
-  Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
-  Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
-  Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
+  Exec("../test/the_customer", sizeof("../test/the_customer"));
+  Exec("../test/the_customer", sizeof("../test/the_customer"));
+  Exec("../test/the_customer", sizeof("../test/the_customer"));
+  Exec("../test/the_customer", sizeof("../test/the_customer"));
+  Exec("../test/the_customer", sizeof("../test/the_customer"));
+  Exec("../test/the_customer", sizeof("../test/the_customer"));
+  Exec("../test/the_customer", sizeof("../test/the_customer"));
+  Exec("../test/the_customer", sizeof("../test/the_customer"));
   
-  Exec("../test/the_tickettaker", sizeof("../test/the_tickettaker"));
-  Exec("../test/the_tickettaker", sizeof("../test/the_tickettaker"));
-  Exec("../test/the_tickettaker", sizeof("../test/the_tickettaker"));
   
-  Exec("../test/the_movietech", sizeof("../test/the_movietech"));
+/*  Exec("../test/the_manager", sizeof("../test/the_manager"));*/
+/*  Exec("../test/the_customer", sizeof("../test/the_customer"));*/
+/*  Exec("../test/the_customer", sizeof("../test/the_customer"));*/
   
   Exit(0);
 }
