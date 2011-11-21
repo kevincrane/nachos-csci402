@@ -1073,13 +1073,54 @@ void Identify(){
 	postOffice->Send(outPacketHeader, outMailHeader, response);
 }
 
+void CheckTerminated(){
+	bool success;
+	char* msg = new char[MAX_SIZE];
+  waitingThread* thread;
+	
+	DEBUG('s', "Checking terminated processes\n");
+	for(int i = 0; i<nextLock; i++){
+		if(!lcks[i].lock.available){
+			outPacketHeader.to = lcks[i].lock.machineID;
+			outMailHeader.to = lcks[i].lock.mailboxNum;
+			msg = "t";
+			DEBUG('s', "outPacketHeader.to: %i, outMailHeader.to: %i\n", outPacketHeader.to,outMailHeader.to);
+			success = postOffice->Send(outPacketHeader, outMailHeader, msg);
+			DEBUG('s', "Success %d\n", success);
+			if(!success){			
+				DEBUG('s', "Found a dead thread on lock %i\n", i);
+				//Release lock from dead thread and give to next waiting thread
+				if(!(lcks[i].lock.waitList->IsEmpty())) {
+					thread = (waitingThread*)lcks[i].lock.waitList->Remove();
+					char* response2 = new char[MAX_SIZE];
+					sprintf(response2, "%d", SUCCESS);
+					outMailHeader.to = thread->mailboxNum;
+					outPacketHeader.to = thread->machineID;
+					outMailHeader.length = strlen(response2) + 1;
+					postOffice->Send(outPacketHeader, outMailHeader, response2); // Tell the thread that now has the lock that it has successfully acquired
+				}
+				else {
+					// Make the lock available
+					lcks[i].lock.available = true;
+					lcks[i].lock.machineID = -1;
+					lcks[i].lock.mailboxNum = -1;
+				}
+			}
+			else{
+				DEBUG('s',"Process still exists on lock %i\n", i);
+			}
+		}
+	}
+	return;
+}
+
 void Server() {
 
   while(true) {
     
     printf("***\nEntered Server loop.\n");
     message = new char[MAX_SIZE];
-
+		CheckTerminated();
     postOffice->Receive(0, &inPacketHeader, &inMailHeader, message);
 
     printf("Received a message.\n");

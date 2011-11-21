@@ -33,7 +33,7 @@ CFLAGS = -G 0 -c $(INCDIR)
 
 all: halt matmult sort theater_sim two_theaters two_matmults networktests \
   execnetworktests the_customer the_ticketclerk the_tickettaker the_movietech \
-  dist_theater1 dist_theater2 the_concessionclerk the_manager
+  dist_theater1 dist_theater2 the_concessionclerk the_manager terminatetest execterminatetest
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -69,6 +69,12 @@ execnetworktests.o: execnetworktests.c
 execnetworktests: execnetworktests.o start.o
 	$(LD) $(LDFLAGS) start.o execnetworktests.o -o execnetworktests.coff
 	../bin/coff2noff execnetworktests.coff execnetworktests
+
+execterminatetest.o: execterminatetest.c
+	$(CC) $(CFLAGS) -c execterminatetest.c
+execterminatetest: execterminatetest.o start.o
+	$(LD) $(LDFLAGS) start.o execterminatetest.o -o execterminatetest.coff
+	../bin/coff2noff execterminatetest.coff execterminatetest
 
 testfiles.o: testfiles.c
 	$(CC) $(CFLAGS) -c testfiles.c
@@ -175,6 +181,11 @@ the_tickettaker: the_tickettaker.o start.o
 	$(LD) $(LDFLAGS) start.o the_tickettaker.o -o the_tickettaker.coff
 	../bin/coff2noff the_tickettaker.coff the_tickettaker
 
+terminatetest.o: terminatetest.c
+	$(CC) $(CFLAGS) -c terminatetest.c
+terminatetest: terminatetest.o start.o
+	$(LD) $(LDFLAGS) start.o terminatetest.o -o terminatetest.coff
+	../bin/coff2noff terminatetest.coff terminatetest
 
 clean:
 	rm -f *.o *.coff
