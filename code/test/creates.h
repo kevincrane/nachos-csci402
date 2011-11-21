@@ -7,7 +7,7 @@
 
 /* CONSTANTS */
 #define MAX_CUST 30        /* constant: maximum number of customers                */
-#define MAX_TC 5            /* constant: defines maximum number of ticketClerks     */
+#define MAX_TC 4            /* constant: defines maximum number of ticketClerks     */
 #define MAX_TT 3            /* constant: defines maximum number of ticketTakers     */
 #define MAX_CC 2            /* constant: defines maximum number of concessionClerks */
 #define MAX_SEATS 25        /* constant: max number of seats in the theater         */
@@ -306,12 +306,12 @@ void initTheater() {
   int aNumGroups = CreateMV("numGroups", 9, 1);
   groups = CreateMV("groups", 6, MAX_CUST);
   totalCustomers = CreateMV("totalCustomers", 14, 1);
-  totalCustomersServed = CreateMV("totalCustomersServed", 20, 1);
+  totalCustomersServed = CreateMV("totCustServed", 13, 1);
   groupHeads = CreateMV("groupHeads", 10, MAX_CUST);
   groupSize = CreateMV("groupSize", 9, MAX_CUST);
   nextGroup = CreateMV("nextGroup", 9, 1);
   numSeatsOccupied = CreateMV("numSeats", 8, 1);
-  totalTicketsTaken = CreateMV("totalTicketsTaken", 17, 1);
+  totalTicketsTaken = CreateMV("totTicketsTaken", 15, 1);
   
   SetMV(totalCustomers, 0, 0);  
   SetMV(aNumGroups, 0, 0);

@@ -56,11 +56,19 @@ int main() {
     if(movieStatus == 0) {
       Yield();
     } else {
-      Acquire(movieStatusLock);
+      while((GetMV(numSeatsOccupied,0) < MAX_SEATS) && (GetMV(numSeatsOccupied,0) < GetMV(totalCustomers,0))) {
+        Yield();
+      }
+/*      Acquire(movieStatusLock);
       Wait(movieStatusLockCV, movieStatusLock);  /* Wait until manager says it's time to start the movie */
-      Release(movieStatusLock);
+/*      Release(movieStatusLock);*/
+    }
+    
+    if((GetMV(totalCustomers, 0) == 0) && (GetMV(totalCustomersServed, 0) > 0)) {
+      break;
     }
   }
+  
   Exit(0);
 
   return 0;

@@ -102,6 +102,10 @@ int main() {
 /*    Wait(ticketTakerCV[myIndex], ticketTakerLock[myIndex]);*/
     Release(ticketTakerLock[myIndex]);
     /* TicketTaker is done with customer, allows them to move into the theater */
+    
+    if((GetMV(totalCustomers, 0) == 0) && (GetMV(totalCustomersServed, 0) > 0)) {
+      break;
+    }
   }
     
   Exit(0);

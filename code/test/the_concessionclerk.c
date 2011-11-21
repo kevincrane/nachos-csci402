@@ -94,6 +94,10 @@ int main() {
     Signal(concessionClerkCV[myIndex], concessionClerkLock[myIndex]);
     Wait(concessionClerkCV[myIndex], concessionClerkLock[myIndex]);
     Release(concessionClerkLock[myIndex]);
+    
+    if((GetMV(totalCustomers, 0) == 0) && (GetMV(totalCustomersServed, 0) > 0)) {
+      break;
+    }
   }
   Exit(0);
 

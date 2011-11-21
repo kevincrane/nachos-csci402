@@ -193,11 +193,11 @@ void doGiveTickets(int custIndex, int groupIndex)
 }
 
 /* Customer sitting in position [row, col] */
-void choseSeat(int custIndex, int row, int col) {
+void choseSeat(int custIndex, int row, int col, int groupIndex) {
   customers[custIndex].seatRow = row+1; /* defaults rows from 1-5 as opposed to 0-4 */
   customers[custIndex].seatCol = col;
  
-  Print("Customer %i in Group %i has found the following seat: ", custIndex, customers[custIndex].group, -1);
+  Print("Customer %i in Group %i has found the following seat: ", custIndex, groupIndex, -1);
   Print("row %i and seat %i.\n", customers[custIndex].seatRow, customers[custIndex].seatCol, -1);
  
   SetMV(numSeatsOccupied, GetMV(numSeatsOccupied,0)+1, 0);
@@ -216,7 +216,7 @@ void doChooseSeats(int custIndex, int groupIndex)
       /* enough consecutive seats in one row */
       for(j=custIndex; j<(custIndex+gSize); j++) {
         /* Seating a customer */
-        choseSeat(j, i, GetMV(freeSeatsInRow, i));
+        choseSeat(j, i, GetMV(freeSeatsInRow, i), groupIndex);
         SetMV(freeSeatsInRow, GetMV(freeSeatsInRow, i)-1, i);
       }
       return;
@@ -230,13 +230,13 @@ void doChooseSeats(int custIndex, int groupIndex)
       int freeInFirstRow = GetMV(freeSeatsInRow, i-1);
       for(j=0; j<freeInFirstRow; j++) {
         /* Seating a customer */
-        choseSeat(custIndex+j, i-1, GetMV(freeSeatsInRow, i-1));
+        choseSeat(custIndex+j, i-1, GetMV(freeSeatsInRow, i-1), groupIndex);
         SetMV(freeSeatsInRow, GetMV(freeSeatsInRow, i-1)-1, i-1);
         toBeSeated--;
       }
       for(j=0; j<toBeSeated; j++) {
         /* Seating remaining customers in group */
-        choseSeat((custIndex+freeInFirstRow+j), i, GetMV(freeSeatsInRow, i));
+        choseSeat((custIndex+freeInFirstRow+j), i, GetMV(freeSeatsInRow, i), groupIndex);
         SetMV(freeSeatsInRow, GetMV(freeSeatsInRow, i)-1, i);
       }
       return;
@@ -249,7 +249,7 @@ void doChooseSeats(int custIndex, int groupIndex)
     if(GetMV(freeSeatsInRow, i) > 0) {
       for(j=0; j<GetMV(freeSeatsInRow, i); j++) {
         /* Sit customer down here */
-        choseSeat(custIndex+(gSize-toBeSeated), i, GetMV(freeSeatsInRow, i)-j);
+        choseSeat(custIndex+(gSize-toBeSeated), i, GetMV(freeSeatsInRow, i)-j, groupIndex);
         toBeSeated--;
         if(toBeSeated == 0) {
           SetMV(freeSeatsInRow, GetMV(freeSeatsInRow, i)-j+1, i);
@@ -329,7 +329,7 @@ void doBuyFood(int custIndex, int groupIndex)
       
       /* Found the ConcessionClerk with the shortest line */
       myConcessionClerk = shortestCCLine;
-      Print("Customer %i in Group %i is getting in ConcessionClerk line %i.\n", custIndex, customers[custIndex].group, myConcessionClerk);
+      Print("Customer %i in Group %i is getting in ConcessionClerk line %i.\n", custIndex, groupIndex, myConcessionClerk);
       
       /* Get in the shortest line */
       SetMV(concessionClerkLineCount, GetMV(concessionClerkLineCount,myConcessionClerk)+1, myConcessionClerk);
@@ -347,7 +347,7 @@ void doBuyFood(int custIndex, int groupIndex)
   
   /* ConcessionClerk has acknowledged you. TIme to wake up and talk to him. */
   Acquire(concessionClerkLock[myConcessionClerk]);
-  Print("Customer %i in Group %i is walking up to ConcessionClerk %i ", custIndex, customers[custIndex].group, myConcessionClerk);
+  Print("Customer %i in Group %i is walking up to ConcessionClerk %i ", custIndex, groupIndex, myConcessionClerk);
   Print("to buy %i popcorn and %i soda.\n", customers[custIndex].totalPopcorns, customers[custIndex].totalSodas, -1);
 
   numPopcornsOrdered[myConcessionClerk] = customers[custIndex].totalPopcorns;
@@ -423,10 +423,10 @@ void doLeaveTheaterAndUseRestroom(int custIndex, int groupIndex) {
 
   for(i=custIndex; i<custIndex+GetMV(groupSize, groupIndex); i++) {
     if(customers[i].needsRestroom == 1) {
-      Print("Customer %i in Group %i is going to the bathroom and has left the theater.\n", i, groupIndex, -1);
+      Print("Customer %i in Group %i is going to the bathroom and has left the movie.\n", i, groupIndex, -1);
       numInRestroom++;
     } else {
-      Print("Customer %i in Group %i is in the lobby and has left the theater.\n", i, groupIndex, -1);
+      Print("Customer %i in Group %i is in the lobby after the movie\n", i, groupIndex, -1);
     }
   }
     
@@ -447,6 +447,7 @@ void doLeaveTheaterAndUseRestroom(int custIndex, int groupIndex) {
       }
     }
   }
+  Release(waitingOnGroupLock[groupIndex]);
 }
  
 
@@ -471,7 +472,7 @@ int main() {
   takeFoodOrders(custIndex);
   
   Print("Customer %i just took food orders.\n", custIndex, -1, -1);
-  if((customers[custIndex].totalSodas > 0)||(customers[custIndex].totalPopcorns > 0)) {
+  if((customers[custIndex].totalSodas > 0) || (customers[custIndex].totalPopcorns > 0)) {
     doBuyFood(custIndex, groupIndex);
   }
   
@@ -489,6 +490,7 @@ int main() {
   Release(movieFinishedLock);
   
   /* Leave theater and use restroom */
+  Acquire(customerLobbyLock);
   doLeaveTheaterAndUseRestroom(custIndex, groupIndex);
   
   /* Counter to see how many customers have left movies */
@@ -496,8 +498,10 @@ int main() {
   
   for(i=custIndex; i<custIndex+GetMV(groupSize, groupIndex); i++)
   {
-    Print("Customer %i in Group %i has left the movie theater.\n", i, customers[i].group, -1);
+    Print("Customer %i in Group %i has left the movie theater.\n", i, groupIndex, -1);
+    SetMV(totalCustomers, GetMV(totalCustomers,0)-1, 0);
   }
+  Release(customerLobbyLock);
   
   Exit(0);
   

@@ -1073,7 +1073,7 @@ void Identify(){
 	postOffice->Send(outPacketHeader, outMailHeader, response);
 }
 
-void CheckTerminated(){
+void CheckTerminated() {
 	bool success;
 	char* msg = new char[MAX_SIZE];
   waitingThread* thread;
@@ -1120,7 +1120,7 @@ void Server() {
     
     printf("***\nEntered Server loop.\n");
     message = new char[MAX_SIZE];
-		CheckTerminated();
+//    CheckTerminated();
     postOffice->Receive(0, &inPacketHeader, &inMailHeader, message);
 
     printf("Received a message.\n");

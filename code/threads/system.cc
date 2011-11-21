@@ -52,6 +52,7 @@ int evictType;
 
 #ifdef NETWORK
 PostOffice *postOffice;
+int nextBox;
 #endif
 
 
@@ -145,6 +146,8 @@ Initialize(int argc, char **argv)
 	    netname = atoi(*(argv + 1));
 	    argCount = 2;
 	}
+	
+	
 #endif
     }
 

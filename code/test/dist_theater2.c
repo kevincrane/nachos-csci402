@@ -19,11 +19,6 @@ int main() {
   Exec("../test/the_tickettaker", sizeof("../test/the_tickettaker"));
   
   Exec("../test/the_movietech", sizeof("../test/the_movietech"));
-/*  Exec("../test/the_customer", sizeof("../test/the_customer"));
-  Exec("../test/the_customer", sizeof("../test/the_customer"));
-  Exec("../test/the_customer", sizeof("../test/the_customer"));
-  Exec("../test/the_customer", sizeof("../test/the_customer"));
-/*  Exec("../test/the_customer", sizeof("../test/the_customer"));*/
   
   Exit(0);
 }

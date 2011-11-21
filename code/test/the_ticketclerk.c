@@ -81,6 +81,10 @@ int main() {
   
     Wait(ticketClerkCV[myIndex], ticketClerkLock[myIndex]);         /* Wait until customer is out of the way before beginning next one */
     Release(ticketClerkLock[myIndex]); /* Temp? */
+    
+    if((GetMV(totalCustomers, 0) == 0) && (GetMV(totalCustomersServed, 0) > 0)) {
+      break;
+    }
   }
   
   Exit(0);
