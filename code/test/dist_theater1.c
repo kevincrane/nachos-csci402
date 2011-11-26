@@ -12,7 +12,7 @@ int main() {
   Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
   Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
   Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
-  Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));
+/*  Exec("../test/the_ticketclerk", sizeof("../test/the_ticketclerk"));*/
   
   Exec("../test/the_tickettaker", sizeof("../test/the_tickettaker"));
   Exec("../test/the_tickettaker", sizeof("../test/the_tickettaker"));

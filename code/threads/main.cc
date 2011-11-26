@@ -65,6 +65,7 @@ extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
 extern void Server();
+//extern void Server(int machineID, int numServers);  *** PART 2; uncomment this, comment the line above
 #ifdef THREADS
 extern void TestSuite(void); //Problem2(void)
 extern void Theater_Sim(void);
@@ -113,14 +114,6 @@ main(int argc, char **argv)
 #endif
 
 #ifdef USER_PROGRAM
-  if(!strcmp(*argv, "RAND")) {
-    DEBUG('z', "RARGHHHH1=%i\n", strcmp(*argv, "-P RAND"));
-    evictType = 1;
-  } else if(evictType != 1) {
-    DEBUG('z', "RARGHHHH2=%i\n", strcmp(*argv, "-P RAND"));
-    evictType = 0;
-  }
-   
   if (!strcmp(*argv, "-x")) {        	// run a user program
 	  ASSERT(argc > 1);
     StartProcess(*(argv + 1));
@@ -170,7 +163,7 @@ main(int argc, char **argv)
             argCount = 2;
         }
 	else if(!strcmp(*argv, "-s")) {
-	  Server();
+	  Server();//Server(atoi(*(argv + 1)), atoi(*(argv + 2)));  *** PART 2; delete first constructor, keep the one from this comment
 	}
 #endif // NETWORK
     }

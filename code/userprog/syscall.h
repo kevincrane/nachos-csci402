@@ -148,17 +148,32 @@ void Yield();
 /* Acquire the lock with the inputted index */
 void Acquire(int lockIndex);
 
+/* PART 2 
+   void Acquire(char* name, int length); */
+
 /* Release the lock with the inputted index */
 void Release(int lockIndex);
+
+/* PART 2
+   void Release(char* name, int length); */
 
 /* Wait on the Condition Variable with the inputted index */
 void Wait(int cvIndex, int lockIndex);
 
+/* PART 2
+   void Wait(char* cvName, int cvLength, char* lockName, int lockLength); */
+
 /* Signal the Condition Variable with the inputted index */
 void Signal(int cvIndex, int lockIndex);
 
+/* PART 2
+   void Signal(char* cvName, int cvLength, char* lockName, int lockLength); */
+
 /* Broadcast on the Condition Variable with the inputted index */
 void Broadcast(int cvIndex, int lockIndex);
+
+/* PART 2
+   void Broadcast(char* cvName, int cvLength, char* lockName, int lockLength); */
 
 /* Create a new lock */
 int CreateLock(char* name, int length);
@@ -166,11 +181,17 @@ int CreateLock(char* name, int length);
 /* Destroy the lock with the given index */
 void DestroyLock(int lockIndex);
 
+/* PART 2
+   void DestroyLock(char* name, int length); */
+
 /* Create a new condition variable */
 int CreateCV(char* name, int length);
 
 /* Destroy the CV with the given index */
 void DestroyCV(int cvIndex);
+
+/* PART 2
+   void DestroyCV(char* name, int length); */
 
 /* Create random int with modulus paramater */
 int Random(int m);
@@ -180,8 +201,19 @@ int Identify();
 
 int CreateMV(char* name, int length, int size);
 void DestroyMV(int mvIndex);
+
+/* PART 2
+   void DestroyMV(char* name, int length); */
+
 void SetMV(int index, int value, int arrayIndex);
+
+/* PART 2
+   void SetMV(char* name, int length, int value, int arrayIndex); */
+
 int GetMV(int index, int arrayIndex);
+
+/* PART 2
+   int GetMV(char* name, int length, int arrayIndex); */
 
 #endif /* IN_ASM */
 

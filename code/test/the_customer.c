@@ -264,7 +264,7 @@ void doChooseSeats(int custIndex, int groupIndex)
   Acquire(customerLobbyLock);
   Wait(customerLobbyCV, customerLobbyLock);
   Release(customerLobbyLock);
-  /*  doChooseSeats(custIndex, groupIndex);*/
+/*  doChooseSeats(custIndex, groupIndex);*/
   doGiveTickets(custIndex, groupIndex);
 }
 
@@ -499,9 +499,11 @@ int main() {
   for(i=custIndex; i<custIndex+GetMV(groupSize, groupIndex); i++)
   {
     SetMV(totalCustomers, GetMV(totalCustomers,0)-1, 0);
-    Print("Customer %i in Group %i has left the movie theater (%d left).\n", i, groupIndex, GetMV(totalCustomers,0));
-    if(GetMV(totalCustomers, 0) == 0)
-      Print("\nMovie Theater simulation completed successfully!!\n\n", -1, -1, -1);
+    if(GetMV(totalCustomers,0) >=0) {
+      Print("Customer %i in Group %i has left the movie theater (%d left).\n", i, groupIndex, GetMV(totalCustomers,0));
+      if(GetMV(totalCustomers, 0) <= 0)
+        Print("\nMovie Theater simulation completed successfully!!\n\n", -1, -1, -1);
+    }
   }
   Release(customerLobbyLock);
   

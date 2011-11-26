@@ -6,7 +6,7 @@
 #include "syscall.h"
 
 /* CONSTANTS */
-#define MAX_CUST 30        /* constant: maximum number of customers                */
+#define MAX_CUST 24        /* constant: maximum number of customers                */
 #define MAX_TC 4            /* constant: defines maximum number of ticketClerks     */
 #define MAX_TT 3            /* constant: defines maximum number of ticketTakers     */
 #define MAX_CC 2            /* constant: defines maximum number of concessionClerks */

@@ -67,7 +67,7 @@ int main() {
 /*      Release(movieStatusLock);*/
     }
     
-    if((GetMV(totalCustomers, 0) == 0) && (GetMV(totalCustomersServed, 0) > 0)) {
+    if((GetMV(totalCustomers, 0) <= 0) && (GetMV(totalCustomersServed, 0) > 0)) {
       Print("\n Everyone has left, Manager is closing the theater. Good work boys!\n\n", -1, -1 ,-1);
       break;
     }
